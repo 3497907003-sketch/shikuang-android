@@ -236,54 +236,21 @@ async function imageToDataUrl(src) {
 async function predictOnline() {
   if (!DEEPSEEK_API_KEY) throw new Error("DeepSeek 密钥未配置，请在设置中填写后重试。");
   if (state.currentVideo) {
-    const local = await predictOnnx();
+    const local = await predictVideoOnnx();
     const text = await deepseekText(
       `本地识别为 ${local.name_zh}（${local.name_en}）。请判断图片是否为矿物，并补充产地、成因、工业用途和鉴别特征。`
     );
     return { ...local, ai: text };
   }
-  const dataUrl = await imageToDataUrl(state.currentImage);
+  const local = await predictOnnx();
   const description = $("#description").value.trim();
   const prompt = [
-    "你是矿物鉴定专家。请识别图片中的矿物。",
-    "只能返回一个 JSON 对象，不要 Markdown，不要解释。字段：",
-    '{"name_zh":"中文名","name_en":"英文名","formula":"化学式","confidence":0到1,"origin":"产地","formation":"形成原因","industrial_uses":["工业用途"],"features":["鉴别特征"]}',
+    `本地识别为 ${local.name_zh}（${local.name_en}，${local.formula || "未知化学式"}），置信度 ${Math.round(local.confidence * 100)}%。`,
     description ? `用户补充描述：${description}` : "",
-    "如果不是矿物、图片不清晰、或属于人物/动物/日常物品，返回 {\"error\":\"这不是矿物，请您放入清晰的矿物照片。\"}",
-  ].join("\n");
-  const res = await fetch("https://api.deepseek.com/chat/completions", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${DEEPSEEK_API_KEY}` },
-    body: JSON.stringify({
-      model: DEEPSEEK_MODEL,
-      messages: [
-        {
-          role: "user",
-          content: [
-            { type: "text", text: prompt },
-            { type: "image_url", image_url: { url: dataUrl } },
-          ],
-        },
-      ],
-      temperature: 0.2,
-      max_tokens: 6000,
-    }),
-  });
-  if (!res.ok) throw new Error(`DeepSeek 请求失败（${res.status}）`);
-  const data = await res.json();
-  const content = data.choices?.[0]?.message?.content || "";
-  const firstBrace = content.indexOf("{");
-  const lastBrace = content.lastIndexOf("}");
-  const jsonText = firstBrace >= 0 && lastBrace > firstBrace ? content.slice(firstBrace, lastBrace + 1) : content.trim();
-  let parsed;
-  try {
-    parsed = JSON.parse(jsonText);
-  } catch (_) {
-    parsed = { name_zh: content.replace(/\n/g, " ").slice(0, 80) };
-  }
-  parsed = normalizeDeepSeekResult(parsed);
-  if (parsed.error) throw new Error(parsed.error);
-  return parsed;
+    "请补充该矿物的产地、形成原因、工业用途和最可靠鉴别特征，用简洁中文回答。",
+  ].filter(Boolean).join("\n");
+  const text = await deepseekText(prompt);
+  return { ...local, ai: text };
 }
 
 function normalizeDeepSeekResult(data) {
@@ -315,7 +282,8 @@ async function deepseekText(prompt) {
   });
   if (!res.ok) return "";
   const data = await res.json();
-  return data.choices?.[0]?.message?.content || "";
+  const message = data.choices?.[0]?.message || {};
+  return message.content || message.reasoning_content || "";
 }
 
 function renderDeepSeekResult(data) {
@@ -370,14 +338,14 @@ async function predict() {
       renderDeepSeekResult(data);
       setStatus("识别完成");
     } else {
-      const local = await predictOnnx();
+      const local = state.currentVideo ? await predictVideoOnnx() : await predictOnnx();
       renderResult(local);
       setStatus("本地识别完成");
     }
   } catch (err) {
     let fallbackError = "";
     try {
-      const local = await predictOnnx();
+      const local = state.currentVideo ? await predictVideoOnnx() : await predictOnnx();
       renderResult(local);
       if (state.onlineMode) {
         const text = await deepseekText(`本地识别为 ${local.name_zh}（${local.name_en}）。请简要补充产地、成因、工业用途与最可靠鉴别特征。`);
@@ -561,9 +529,9 @@ async function getOnnxSessions() {
   window.ort.env.wasm.wasmPaths = vendorBase;
   window.ort.env.wasm.numThreads = 1;
   window.ort.env.wasm.proxy = false;
-  const eff = await window.ort.InferenceSession.create(modelBase + "efficientnet.onnx?v=4", { executionProviders: ["wasm"], graphOptimizationLevel: "all" });
-  const mob = await window.ort.InferenceSession.create(modelBase + "mobilenet.onnx?v=4", { executionProviders: ["wasm"], graphOptimizationLevel: "all" });
-  const legacy = await window.ort.InferenceSession.create(modelBase + "efficientnet_legacy.onnx?v=1", { executionProviders: ["wasm"], graphOptimizationLevel: "all" });
+  const eff = await window.ort.InferenceSession.create(modelBase + "efficientnet.onnx?v=5", { executionProviders: ["wasm"], graphOptimizationLevel: "all" });
+  const mob = await window.ort.InferenceSession.create(modelBase + "mobilenet.onnx?v=5", { executionProviders: ["wasm"], graphOptimizationLevel: "all" });
+  const legacy = await window.ort.InferenceSession.create(modelBase + "efficientnet_legacy.onnx?v=2", { executionProviders: ["wasm"], graphOptimizationLevel: "all" });
   ortSessions = [eff, mob, legacy];
   return ortSessions;
 }
@@ -612,7 +580,7 @@ async function rejectNonMineral() {
     const probs = exp.map((x) => x / sum);
     let top = 0;
     for (let i = 1; i < probs.length; i++) if (probs[i] > probs[top]) top = i;
-    const isBlocked = window.IMAGENET_BLOCKED?.[top] && probs[top] >= 0.18;
+    const isBlocked = window.IMAGENET_BLOCKED?.[top] && probs[top] >= 0.22;
     return isBlocked ? { index: top, label: window.IMAGENET_CLASSES[top], confidence: probs[top] } : false;
   } catch (_) {
     return false;
@@ -679,10 +647,40 @@ async function imageToTensor(src, flipH = false, flipV = false) {
   return new window.ort.Tensor("float32", input, [1, 3, 224, 224]);
 }
 
+async function predictVideoOnnx() {
+  if (!state.currentVideo) throw new Error("请先录制或选择视频");
+  const video = document.createElement("video");
+  video.muted = true;
+  video.playsInline = true;
+  video.src = state.currentVideo;
+  await new Promise((resolve, reject) => {
+    video.onloadeddata = resolve;
+    video.onerror = () => reject(new Error("视频无法读取"));
+  });
+  const target = Math.min(0.35, Math.max(0.05, (video.duration || 0) / 2));
+  video.currentTime = target;
+  await new Promise((resolve, reject) => {
+    video.onseeked = resolve;
+    video.onerror = () => reject(new Error("视频无法定位帧"));
+  });
+  const canvas = document.createElement("canvas");
+  canvas.width = video.videoWidth || 640;
+  canvas.height = video.videoHeight || 480;
+  canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
+  const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
+  const previous = state.currentImage;
+  state.currentImage = dataUrl;
+  try {
+    return await predictOnnx();
+  } finally {
+    state.currentImage = previous;
+  }
+}
+
 async function predictOnnx() {
   if (!state.currentImage) throw new Error("请先拍照或选择图片");
   await waitFor(() => !!window.MINERAL_CLASSES && !!window.MINERAL_KB);
-  if ((await imageSkinRatio(state.currentImage)) > 0.32) {
+  if ((await imageSkinRatio(state.currentImage)) > 0.55) {
     throw new Error("这不是矿物，请您放入清晰的矿物照片。");
   }
   if (await rejectNonMineral()) {
