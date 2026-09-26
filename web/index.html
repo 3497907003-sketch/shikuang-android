@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#17211c" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <title>识矿 · 矿物识别</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script defer src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+    <script defer src="./vendor/ort.min.js?v=5"></script>
+    <script defer src="./config.js?v=5"></script>
+    <script defer src="./data/classes.js?v=5"></script>
+    <script defer src="./data/minerals.js?v=5"></script>
+    <script defer src="./data/imagenet.js?v=5"></script>
+    <script defer src="./data/graph.js?v=5"></script>
+    <script defer src="./app.js?v=16"></script>
+  </head>
+  <body>
+    <canvas class="ambient" id="ambient" aria-hidden="true"></canvas>
+    <div class="splash" id="splash" role="status" aria-live="polite">
+      <div class="splash-core">
+        <span class="splash-mark"></span>
+        <span class="splash-ring ring-a"></span>
+        <span class="splash-ring ring-b"></span>
+      </div>
+      <h1 class="splash-title">识矿</h1>
+      <p class="splash-sub">矿物识别 · 正在准备识别引擎</p>
+      <div class="splash-bar"><span id="splashBar"></span></div>
+      <span class="splash-status" id="splashStatus">加载模型…</span>
+    </div>
+
+    <header class="app-header">
+      <div class="brand">
+        <span class="brand-mark animate__animated animate__fadeInDown" aria-hidden="true"></span>
+        <div class="brand-text">
+          <h1>识矿</h1>
+          <p>Mineral ID · 矿物识别</p>
+        </div>
+      </div>
+      <div class="status" id="statusBadge"><span class="dot"></span><span id="statusText">就绪</span></div>
+      <div class="mode-switch" id="modeSwitch" role="group" aria-label="运行模式">
+        <button class="mode-chip active" data-netmode="offline" type="button">离线</button>
+        <button class="mode-chip" data-netmode="online" type="button">联网</button>
+      </div>
+    </header>
+
+    <main class="app-main animate__animated animate__fadeInUp">
+      <section class="mode-row" role="tablist" aria-label="输入方式">
+        <button class="mode active" data-mode="photo" type="button"><i data-lucide="camera"></i>拍照</button>
+        <button class="mode" data-mode="video" type="button"><i data-lucide="video"></i>视频</button>
+        <button class="mode" data-mode="file" type="button"><i data-lucide="folder-open"></i>文件</button>
+      </section>
+
+      <section class="capture-panel">
+        <div class="stage animate__animated animate__zoomIn" id="stage">
+          <video id="camera" autoplay playsinline muted></video>
+          <img id="preview" alt="预览" hidden />
+          <div class="placeholder" id="placeholder">
+            <i data-lucide="scan-line"></i>
+            <p>将矿物置于取景框内</p>
+            <span>支持照片、视频与文字描述</span>
+          </div>
+          <div class="recording-pill" id="recordingPill" hidden><span></span>正在录制</div>
+        </div>
+
+        <div class="controls">
+          <button class="tool" id="cameraBtn" type="button" title="拍摄照片"><i data-lucide="camera"></i></button>
+          <button class="tool record" id="recordBtn" type="button" title="开始录像"><i data-lucide="circle"></i></button>
+          <button class="tool" id="galleryBtn" type="button" title="选择文件"><i data-lucide="folder-open"></i></button>
+          <button class="tool" id="clearBtn" type="button" title="清空"><i data-lucide="x"></i></button>
+        </div>
+        <input id="fileInput" type="file" accept="image/*,video/*" hidden />
+      </section>
+
+      <section class="describe">
+        <label for="description"><i data-lucide="message-square-text"></i>补充描述</label>
+        <textarea id="description" rows="3" placeholder="例如：绿色、肾状集合体、有同心环带，来自铜矿氧化带……"></textarea>
+      </section>
+
+      <button class="primary" id="predictBtn" type="button">
+        <i data-lucide="sparkles"></i><span id="predictLabel">识别矿物</span>
+      </button>
+
+      <section class="result animate__animated animate__fadeInUp" id="result" hidden aria-live="polite">
+        <div class="result-head">
+          <div>
+            <p class="eyebrow">识别结果</p>
+            <h2 id="resultName">—</h2>
+            <p class="formula" id="resultFormula"></p>
+          </div>
+          <span class="confidence" id="resultConf">0%</span>
+        </div>
+        <div class="meter"><div class="meter-fill" id="meterFill"></div></div>
+        <div class="verdict" id="verdict"></div>
+
+        <div class="tabs" role="tablist">
+          <button class="tab active" data-tab="basic" type="button">基本信息</button>
+          <button class="tab" data-tab="origin" type="button">产地成因</button>
+          <button class="tab" data-tab="use" type="button">工业用途</button>
+          <button class="tab" data-tab="graph" type="button">关系图谱</button>
+          <button class="tab" data-tab="rank" type="button">候选排名</button>
+        </div>
+        <div class="tab-panel" id="tab-basic"></div>
+        <div class="tab-panel" id="tab-origin" hidden></div>
+        <div class="tab-panel" id="tab-use" hidden></div>
+        <div class="tab-panel" id="tab-graph" hidden></div>
+        <div class="tab-panel" id="tab-rank" hidden></div>
+      </section>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "name": "识矿 · 矿物识别",
+  "short_name": "识矿",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f5f2eb",
+  "theme_color": "#17211c",
+  "icons": [
+    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
