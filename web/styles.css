@@ -128,13 +128,6 @@ body::before {
 .update-banner { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; margin-bottom: 12px; border: 1px solid rgba(213,138,42,.4); border-radius: 8px; background: rgba(213,138,42,.08); color: rgba(255,255,255,.86); font-size: 13px; }
 .update-banner button { border: 0; background: var(--accent); color: #fff; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; }
 
-.download-links { margin-top: 22px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,.08); }
-.download-links p { margin: 0 0 10px; color: rgba(255,255,255,.58); font-size: 13px; letter-spacing: .04em; }
-.download-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.download-grid a { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; border: 1px solid rgba(255,255,255,.12); border-radius: 8px; color: rgba(255,255,255,.84); text-decoration: none; background: rgba(255,255,255,.04); }
-.download-grid a:active { background: rgba(255,255,255,.08); }
-.download-grid i { width: 18px; height: 18px; }
-
 .history-btn {
   width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;
   border: 1px solid var(--line); border-radius: 50%; background: var(--surface); color: var(--muted);
