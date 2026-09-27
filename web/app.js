@@ -616,9 +616,13 @@ async function getOnnxSessions() {
   window.ort.env.wasm.wasmPaths = vendorBase;
   window.ort.env.wasm.numThreads = 1;
   window.ort.env.wasm.proxy = false;
-  const eff = await window.ort.InferenceSession.create(modelBase + "efficientnet.onnx?v=5", { executionProviders: ["wasm"], graphOptimizationLevel: "all" });
-  const mob = await window.ort.InferenceSession.create(modelBase + "mobilenet.onnx?v=5", { executionProviders: ["wasm"], graphOptimizationLevel: "all" });
-  const legacy = await window.ort.InferenceSession.create(modelBase + "efficientnet_legacy.onnx?v=3", { executionProviders: ["wasm"], graphOptimizationLevel: "all" });
+  const loadWithTimeout = (url) => Promise.race([
+    window.ort.InferenceSession.create(url, { executionProviders: ["wasm"], graphOptimizationLevel: "all" }),
+    new Promise((_, reject) => setTimeout(() => reject(new Error("模型加载超时")), 90000)),
+  ]);
+  const eff = await loadWithTimeout(modelBase + "efficientnet.onnx?v=5");
+  const mob = await loadWithTimeout(modelBase + "mobilenet.onnx?v=5");
+  const legacy = await loadWithTimeout(modelBase + "efficientnet_legacy.onnx?v=3");
   ortSessions = [eff, mob, legacy];
   return ortSessions;
 }
@@ -1002,13 +1006,15 @@ window.addEventListener("load", () => {
     navigator.serviceWorker.getRegistrations().then((regs) => regs.forEach((r) => r.unregister()));
   }
   setMode("photo");
-  setTimeout(() => {
-    getOnnxSessions().catch(() => {});
-    getGateSession().catch(() => {});
-  }, 1700);
-  setTimeout(() => {
-    setSplash("识别服务已就绪");
-    setStatus("就绪");
-    dismissSplash();
-  }, 1600);
+  setSplash("正在加载识别模型…");
+  getOnnxSessions()
+    .then(() => {
+      setSplash("识别服务已就绪");
+      setStatus("就绪");
+      dismissSplash();
+    })
+    .catch(() => {
+      setSplash("模型加载失败，请检查网络后重试");
+      dismissSplash();
+    });
 });
