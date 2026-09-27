@@ -598,6 +598,7 @@ function tagList(items) {
 
 let ortSessions = null;
 let gateSession = null;
+let gateLoadingPromise = null;
 
 async function waitFor(fn, timeout = 15000) {
   const start = Date.now();
@@ -620,21 +621,33 @@ async function getOnnxSessions() {
     window.ort.InferenceSession.create(url, { executionProviders: ["wasm"], graphOptimizationLevel: "all" }),
     new Promise((_, reject) => setTimeout(() => reject(new Error("模型加载超时")), 90000)),
   ]);
-  const [eff, mob, legacy] = await Promise.all([
+  const mob = await loadWithTimeout(modelBase + "mobilenet.onnx?v=5");
+  ortSessions = [mob];
+  Promise.all([
     loadWithTimeout(modelBase + "efficientnet.onnx?v=5"),
-    loadWithTimeout(modelBase + "mobilenet.onnx?v=5"),
     loadWithTimeout(modelBase + "efficientnet_legacy.onnx?v=3"),
-  ]);
-  ortSessions = [eff, mob, legacy];
+  ])
+    .then(([eff, legacy]) => {
+      if (!ortSessions.some((s) => s === eff)) ortSessions = [mob, eff, legacy];
+    })
+    .catch(() => {});
   return ortSessions;
 }
 
 async function getGateSession() {
   if (gateSession) return gateSession;
-  await waitFor(() => !!window.ort && !!window.IMAGENET_CLASSES);
-  const modelBase = new URL("./models/", location.href).href;
-  gateSession = await window.ort.InferenceSession.create(modelBase + "imagenet_gate.onnx?v=2", { executionProviders: ["wasm"], graphOptimizationLevel: "all" });
-  return gateSession;
+  if (gateLoadingPromise) return gateLoadingPromise;
+  gateLoadingPromise = (async () => {
+    await waitFor(() => !!window.ort && !!window.IMAGENET_CLASSES);
+    const modelBase = new URL("./models/", location.href).href;
+    gateSession = await window.ort.InferenceSession.create(modelBase + "imagenet_gate.onnx?v=2", { executionProviders: ["wasm"], graphOptimizationLevel: "all" });
+    return gateSession;
+  })().catch((err) => {
+    console.warn("gate unavailable", err);
+    gateLoadingPromise = null;
+    return null;
+  });
+  return gateLoadingPromise;
 }
 
 async function imageToImageNetTensor(src) {
@@ -662,11 +675,10 @@ async function imageToImageNetTensor(src) {
 }
 
 async function rejectNonMineral() {
-  if (!state.currentImage) return false;
+  if (!state.currentImage || !gateSession) return false;
   try {
-    const session = await getGateSession();
     const tensor = await imageToImageNetTensor(state.currentImage);
-    const output = await session.run({ input: tensor });
+    const output = await gateSession.run({ input: tensor });
     const logits = output.logits.data;
     const exp = logits.map((x) => Math.exp(x));
     const sum = exp.reduce((a, b) => a + b, 0);
@@ -1009,6 +1021,7 @@ window.addEventListener("load", () => {
   }
   setMode("photo");
   setSplash("正在加载识别模型…");
+  getGateSession().catch(() => {});
   getOnnxSessions()
     .then(() => {
       setSplash("识别服务已就绪");
