@@ -620,9 +620,11 @@ async function getOnnxSessions() {
     window.ort.InferenceSession.create(url, { executionProviders: ["wasm"], graphOptimizationLevel: "all" }),
     new Promise((_, reject) => setTimeout(() => reject(new Error("模型加载超时")), 90000)),
   ]);
-  const eff = await loadWithTimeout(modelBase + "efficientnet.onnx?v=5");
-  const mob = await loadWithTimeout(modelBase + "mobilenet.onnx?v=5");
-  const legacy = await loadWithTimeout(modelBase + "efficientnet_legacy.onnx?v=3");
+  const [eff, mob, legacy] = await Promise.all([
+    loadWithTimeout(modelBase + "efficientnet.onnx?v=5"),
+    loadWithTimeout(modelBase + "mobilenet.onnx?v=5"),
+    loadWithTimeout(modelBase + "efficientnet_legacy.onnx?v=3"),
+  ]);
   ortSessions = [eff, mob, legacy];
   return ortSessions;
 }
