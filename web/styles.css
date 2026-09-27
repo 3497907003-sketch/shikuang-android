@@ -125,6 +125,9 @@ body::before {
 
 .app-main { position: relative; z-index: 1; max-width: 720px; margin: 0 auto; padding: 18px 16px 44px; animation: fadeUp .45s ease both; }
 
+.update-banner { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; margin-bottom: 12px; border: 1px solid rgba(213,138,42,.4); border-radius: 8px; background: rgba(213,138,42,.08); color: rgba(255,255,255,.86); font-size: 13px; }
+.update-banner button { border: 0; background: var(--accent); color: #fff; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+
 .download-links { margin-top: 22px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,.08); }
 .download-links p { margin: 0 0 10px; color: rgba(255,255,255,.58); font-size: 13px; letter-spacing: .04em; }
 .download-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }

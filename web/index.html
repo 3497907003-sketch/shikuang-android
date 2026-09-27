@@ -17,7 +17,7 @@
     <script defer src="./data/minerals.js?v=5"></script>
     <script defer src="./data/imagenet.js?v=5"></script>
     <script defer src="./data/graph.js?v=5"></script>
-    <script defer src="./app.js?v=20"></script>
+    <script defer src="./app.js?v=21"></script>
   </head>
   <body>
     <canvas class="ambient" id="ambient" aria-hidden="true"></canvas>
@@ -54,6 +54,10 @@
     </header>
 
     <main class="app-main animate__animated animate__fadeInUp">
+      <div class="update-banner" id="updateBanner" hidden>
+        <span>发现新版本</span>
+        <button id="updateReload" type="button">立即刷新</button>
+      </div>
       <section class="mode-row" role="tablist" aria-label="输入方式">
         <button class="mode active" data-mode="photo" type="button"><i data-lucide="camera"></i>拍照</button>
         <button class="mode" data-mode="video" type="button"><i data-lucide="video"></i>视频</button>

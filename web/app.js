@@ -905,6 +905,25 @@ function renderHistory() {
     .join("");
 }
 
+async function checkVersion() {
+  try {
+    const res = await fetch(`./version.json?v=${Date.now()}`, { cache: "no-store" });
+    if (!res.ok) return;
+    const data = await res.json();
+    const current = data.version;
+    const seen = localStorage.getItem("shikuang_version");
+    localStorage.setItem("shikuang_version", current);
+    if (seen && seen !== current) {
+      const banner = document.getElementById("updateBanner");
+      if (banner) banner.hidden = false;
+    }
+  } catch (_) {
+    // offline or static hosting without version file
+  }
+}
+
+document.getElementById("updateReload").addEventListener("click", () => location.reload());
+
 document.querySelectorAll(".mode").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
 cameraBtn.addEventListener("click", () => {
   if (state.mode !== "photo") setMode("photo");
@@ -955,6 +974,7 @@ window.addEventListener("load", () => {
   if (window.lucide) lucide.createIcons();
   initAmbient();
   initSplashMinerals();
+  checkVersion();
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.getRegistrations().then((regs) => regs.forEach((r) => r.unregister()));
   }
