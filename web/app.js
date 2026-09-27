@@ -648,6 +648,49 @@ async function rejectNonMineral() {
   }
 }
 
+let mediaPipeFacePromise = null;
+
+async function getMediaPipeFaceDetector() {
+  if (mediaPipeFacePromise) return mediaPipeFacePromise;
+  mediaPipeFacePromise = (async () => {
+    try {
+      const vision = await import(new URL("./vendor/mediapipe/vision_bundle.mjs", location.href));
+      const fileset = await vision.FilesetResolver.forVisionTasks(
+        new URL("./vendor/mediapipe/wasm/", location.href).href
+      );
+      return await vision.FaceDetector.createFromOptions(fileset, {
+        baseOptions: {
+          modelAssetPath: new URL("./models/face_detector.tflite", location.href).href,
+          delegate: "GPU",
+        },
+        minDetectionConfidence: 0.85,
+      });
+    } catch (err) {
+      console.warn("MediaPipe face detector unavailable", err);
+      return null;
+    }
+  })();
+  return mediaPipeFacePromise;
+}
+
+async function rejectHumanByFace() {
+  const detector = await getMediaPipeFaceDetector();
+  if (!detector || !state.currentImage) return false;
+  try {
+    const image = new Image();
+    image.src = state.currentImage;
+    await image.decode();
+    const result = await Promise.race([
+      detector.detect(image),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("face detect timeout")), 4500)),
+    ]);
+    const detections = result && result.detections ? result.detections : [];
+    return detections.some((d) => d.categories && d.categories[0] && d.categories[0].score >= 0.85);
+  } catch (_) {
+    return false;
+  }
+}
+
 async function imageSkinRatio(src) {
   const img = new Image();
   img.src = src;
@@ -742,6 +785,9 @@ async function predictOnnx() {
   if (!state.currentImage) throw new Error("请先拍照或选择图片");
   await waitFor(() => !!window.MINERAL_CLASSES && !!window.MINERAL_KB);
   if ((await imageSkinRatio(state.currentImage)) > 0.55) {
+    throw new Error("这不是矿物，请您放入清晰的矿物照片。");
+  }
+  if (await rejectHumanByFace()) {
     throw new Error("这不是矿物，请您放入清晰的矿物照片。");
   }
   if (await rejectNonMineral()) {
