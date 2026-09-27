@@ -215,7 +215,26 @@ function showPreviewFromVideo(url) {
   stopCamera();
 }
 
-function capturePhoto() {
+async function capturePhoto() {
+  const nativeCamera = window.Capacitor?.Plugins?.Camera;
+  if (nativeCamera?.getPhoto) {
+    try {
+      const photo = await nativeCamera.getPhoto({
+        resultType: "dataUrl",
+        source: "CAMERA",
+        quality: 90,
+        allowEditing: false,
+        correctOrientation: true,
+      });
+      if (photo?.dataUrl) {
+        showPreviewFromImage(photo.dataUrl);
+        setStatus("照片已就绪");
+        return;
+      }
+    } catch (_) {
+      // fall through to WebView camera below
+    }
+  }
   if (!state.stream) return;
   const canvas = document.createElement("canvas");
   canvas.width = camera.videoWidth || 1280;
