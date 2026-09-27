@@ -114,6 +114,13 @@ body::before {
 
 .app-main { position: relative; z-index: 1; max-width: 720px; margin: 0 auto; padding: 18px 16px 44px; animation: fadeUp .45s ease both; }
 
+.download-links { margin-top: 22px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,.08); }
+.download-links p { margin: 0 0 10px; color: rgba(255,255,255,.58); font-size: 13px; letter-spacing: .04em; }
+.download-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.download-grid a { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; border: 1px solid rgba(255,255,255,.12); border-radius: 8px; color: rgba(255,255,255,.84); text-decoration: none; background: rgba(255,255,255,.04); }
+.download-grid a:active { background: rgba(255,255,255,.08); }
+.download-grid i { width: 18px; height: 18px; }
+
 .mode-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 12px; }
 .mode {
   display: flex; align-items: center; justify-content: center; gap: 6px;
