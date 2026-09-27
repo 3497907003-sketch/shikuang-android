@@ -14,6 +14,7 @@ const state = {
   lastResult: null,
   onlineMode: false,
 };
+let stopSplashMinerals = null;
 
 const $ = (sel) => document.querySelector(sel);
 const camera = $("#camera");
@@ -92,6 +93,7 @@ function initSplashMinerals() {
   if (!canvas) return;
   const ctx = canvas.getContext("2d");
   let particles = [];
+  let running = true;
   const resize = () => {
     canvas.width = innerWidth;
     canvas.height = innerHeight;
@@ -129,6 +131,7 @@ function initSplashMinerals() {
     ctx.restore();
   };
   const tick = () => {
+    if (!running) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     for (const p of particles) {
       p.x += p.vx;
@@ -143,6 +146,9 @@ function initSplashMinerals() {
   addEventListener("resize", resize);
   resize();
   tick();
+  return () => {
+    running = false;
+  };
 }
 
 function setMode(mode) {
@@ -290,6 +296,7 @@ function clearAll() {
 
 function dismissSplash() {
   const splash = document.getElementById("splash");
+  if (stopSplashMinerals) stopSplashMinerals();
   if (!splash) return;
   splash.classList.add("done");
   setTimeout(() => splash.remove(), 700);
@@ -806,9 +813,6 @@ async function predictOnnx() {
   if ((await imageSkinRatio(state.currentImage)) > 0.55) {
     throw new Error("这不是矿物，请您放入清晰的矿物照片。");
   }
-  if (await rejectHumanByFace()) {
-    throw new Error("这不是矿物，请您放入清晰的矿物照片。");
-  }
   if (await rejectNonMineral()) {
     throw new Error("这不是矿物，请您放入清晰的矿物照片。");
   }
@@ -992,7 +996,7 @@ document.querySelectorAll(".mode-chip").forEach((chip) =>
 window.addEventListener("load", () => {
   if (window.lucide) lucide.createIcons();
   initAmbient();
-  initSplashMinerals();
+  stopSplashMinerals = initSplashMinerals();
   checkVersion();
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.getRegistrations().then((regs) => regs.forEach((r) => r.unregister()));
