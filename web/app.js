@@ -159,9 +159,6 @@ function setMode(mode) {
   preview.hidden = true;
   placeholder.hidden = false;
   camera.hidden = true;
-  cameraBtn.disabled = mode !== "photo";
-  recordBtn.disabled = mode !== "video";
-  galleryBtn.disabled = mode !== "file";
   if (mode === "photo") {
     void startCamera();
   } else if (mode === "video") {
