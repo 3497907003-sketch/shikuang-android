@@ -17,11 +17,15 @@
     <script defer src="./data/minerals.js?v=5"></script>
     <script defer src="./data/imagenet.js?v=5"></script>
     <script defer src="./data/graph.js?v=5"></script>
-    <script defer src="./app.js?v=18"></script>
+    <script defer src="./app.js?v=19"></script>
   </head>
   <body>
     <canvas class="ambient" id="ambient" aria-hidden="true"></canvas>
     <div class="splash" id="splash" role="status" aria-live="polite">
+      <canvas class="splash-canvas" id="splashCanvas" aria-hidden="true"></canvas>
+      <div class="splash-formulas" aria-hidden="true">
+        <span>SiO₂</span><span>CaCO₃</span><span>FeS₂</span><span>Cu₂O</span><span>ZnS</span>
+      </div>
       <div class="splash-core">
         <span class="splash-mark"></span>
         <span class="splash-ring ring-a"></span>
@@ -42,6 +46,7 @@
         </div>
       </div>
       <div class="status" id="statusBadge"><span class="dot"></span><span id="statusText">就绪</span></div>
+      <button class="history-btn" id="historyBtn" type="button" title="历史记录"><i data-lucide="history"></i></button>
       <div class="mode-switch" id="modeSwitch" role="group" aria-label="运行模式">
         <button class="mode-chip active" data-netmode="offline" type="button">离线</button>
         <button class="mode-chip" data-netmode="online" type="button">联网</button>
@@ -121,6 +126,14 @@
             <i data-lucide="monitor"></i><span>macOS App</span>
           </a>
         </div>
+      </section>
+
+      <section class="history-panel" id="historyPanel" hidden aria-label="历史搜索记录">
+        <div class="history-head">
+          <h2>历史搜索记录</h2>
+          <button class="history-clear" id="historyClear" type="button">清空</button>
+        </div>
+        <ul class="history-list" id="historyList"></ul>
       </section>
     </main>
   </body>

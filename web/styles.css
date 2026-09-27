@@ -78,6 +78,17 @@ body::before {
 .splash-bar { width: min(260px, 72vw); height: 3px; border-radius: 999px; background: rgba(245,242,235,.18); overflow: hidden; }
 .splash-bar span { display: block; height: 100%; width: 45%; border-radius: 999px; background: linear-gradient(90deg, #0f8f6b, #d58a2a); animation: loadingSlide 1.2s ease-in-out infinite; }
 .splash-status { font-size: 12px; color: #d9ddd8; }
+.splash-canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.splash-formulas { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.splash-formulas span {
+  position: absolute; color: rgba(245,242,235,.14); font-weight: 700; letter-spacing: .08em;
+  animation: formulaFloat 7s ease-in-out infinite;
+}
+.splash-formulas span:nth-child(1) { left: 12%; top: 22%; font-size: 22px; }
+.splash-formulas span:nth-child(2) { right: 14%; top: 18%; font-size: 28px; animation-delay: 1.2s; }
+.splash-formulas span:nth-child(3) { left: 20%; bottom: 18%; font-size: 18px; animation-delay: .6s; }
+.splash-formulas span:nth-child(4) { right: 18%; bottom: 26%; font-size: 24px; animation-delay: 1.8s; }
+.splash-formulas span:nth-child(5) { left: 44%; top: 10%; font-size: 15px; animation-delay: 2.4s; }
 
 .app-header {
   position: sticky;
@@ -120,6 +131,23 @@ body::before {
 .download-grid a { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; border: 1px solid rgba(255,255,255,.12); border-radius: 8px; color: rgba(255,255,255,.84); text-decoration: none; background: rgba(255,255,255,.04); }
 .download-grid a:active { background: rgba(255,255,255,.08); }
 .download-grid i { width: 18px; height: 18px; }
+
+.history-btn {
+  width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--line); border-radius: 50%; background: var(--surface); color: var(--muted);
+  cursor: pointer; box-shadow: var(--shadow-soft);
+}
+.history-btn i { width: 17px; height: 17px; }
+.history-panel { margin-top: 22px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,.08); }
+.history-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.history-head h2 { margin: 0; font-size: 16px; color: rgba(255,255,255,.86); }
+.history-clear { border: 0; background: none; color: rgba(255,255,255,.52); font-size: 12px; cursor: pointer; }
+.history-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.history-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid rgba(255,255,255,.08); border-radius: 8px; background: rgba(255,255,255,.03); }
+.history-list .h-name { color: rgba(255,255,255,.9); font-size: 14px; }
+.history-list .h-meta { color: rgba(255,255,255,.5); font-size: 11px; }
+.history-list .h-time { color: rgba(255,255,255,.35); font-size: 11px; white-space: nowrap; }
+.history-empty { color: rgba(255,255,255,.45); font-size: 13px; padding: 6px 0; }
 
 .mode-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 12px; }
 .mode {
@@ -280,3 +308,4 @@ body::before {
 @keyframes grow { from { width: 0; } }
 @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
 @keyframes loadingSlide { 0% { transform: translateX(-120%); } 100% { transform: translateX(260%); } }
+@keyframes formulaFloat { 0%,100% { transform: translateY(0) rotate(0deg); opacity: .4; } 50% { transform: translateY(-14px) rotate(8deg); opacity: 1; } }

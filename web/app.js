@@ -25,6 +25,7 @@ const cameraBtn = $("#cameraBtn");
 const recordBtn = $("#recordBtn");
 const galleryBtn = $("#galleryBtn");
 const clearBtn = $("#clearBtn");
+const historyBtn = $("#historyBtn");
 const fileInput = $("#fileInput");
 const predictBtn = $("#predictBtn");
 const resultPanel = $("#result");
@@ -78,6 +79,64 @@ function initAmbient() {
           ctx.stroke();
         }
       }
+    }
+    requestAnimationFrame(tick);
+  };
+  addEventListener("resize", resize);
+  resize();
+  tick();
+}
+
+function initSplashMinerals() {
+  const canvas = document.getElementById("splashCanvas");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  let particles = [];
+  const resize = () => {
+    canvas.width = innerWidth;
+    canvas.height = innerHeight;
+    particles = Array.from({ length: 38 }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * 0.18,
+      vy: (Math.random() - 0.5) * 0.18,
+      r: Math.random() * 2.1 + 0.7,
+      hue: Math.random() > 0.55 ? 154 : 34,
+      spin: Math.random() * Math.PI,
+      spinSpeed: (Math.random() - 0.5) * 0.02,
+    }));
+  };
+  const drawCrystal = (x, y, r, a, hue) => {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(a);
+    ctx.beginPath();
+    ctx.moveTo(0, -r * 2.4);
+    ctx.lineTo(r * 1.1, 0);
+    ctx.lineTo(0, r * 2.4);
+    ctx.lineTo(-r * 1.1, 0);
+    ctx.closePath();
+    ctx.strokeStyle = `hsla(${hue}, 48%, 52%, .28)`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.55, 0);
+    ctx.lineTo(0, -r * 2.4);
+    ctx.lineTo(r * 0.55, 0);
+    ctx.closePath();
+    ctx.strokeStyle = `hsla(${hue}, 46%, 66%, .12)`;
+    ctx.stroke();
+    ctx.restore();
+  };
+  const tick = () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (const p of particles) {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.spin += p.spinSpeed;
+      if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+      if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+      drawCrystal(p.x, p.y, p.r, p.spin, p.hue);
     }
     requestAnimationFrame(tick);
   };
@@ -309,6 +368,7 @@ function renderDeepSeekResult(data) {
     ai: data.ai || "",
   };
   renderResult(result);
+  saveHistory(result);
   if (result.ai) {
     document.getElementById("tab-use").innerHTML += `<div class="kv"><dt>AI 辅助</dt><dd>${escapeHtml(result.ai)}</dd></div>`;
   }
@@ -379,6 +439,7 @@ async function predict() {
 
 function renderResult(data) {
   state.lastResult = data;
+  saveHistory(data);
   resultPanel.hidden = false;
   resultPanel.classList.remove("show");
   void resultPanel.offsetWidth;
@@ -531,7 +592,7 @@ async function getOnnxSessions() {
   window.ort.env.wasm.proxy = false;
   const eff = await window.ort.InferenceSession.create(modelBase + "efficientnet.onnx?v=5", { executionProviders: ["wasm"], graphOptimizationLevel: "all" });
   const mob = await window.ort.InferenceSession.create(modelBase + "mobilenet.onnx?v=5", { executionProviders: ["wasm"], graphOptimizationLevel: "all" });
-  const legacy = await window.ort.InferenceSession.create(modelBase + "efficientnet_legacy.onnx?v=2", { executionProviders: ["wasm"], graphOptimizationLevel: "all" });
+  const legacy = await window.ort.InferenceSession.create(modelBase + "efficientnet_legacy.onnx?v=3", { executionProviders: ["wasm"], graphOptimizationLevel: "all" });
   ortSessions = [eff, mob, legacy];
   return ortSessions;
 }
@@ -754,6 +815,50 @@ async function assistOnline(result) {
   }
 }
 
+function saveHistory(data) {
+  if (!data || !data.name_zh || data.name_zh === "未知矿物" || data.name_zh === "无法识别") return;
+  const key = "shikuang_history";
+  let items = [];
+  try {
+    items = JSON.parse(localStorage.getItem(key) || "[]");
+  } catch (_) {
+    items = [];
+  }
+  const entry = {
+    name_zh: data.name_zh,
+    name_en: data.name_en || "",
+    formula: data.formula || "",
+    confidence: Math.round((data.confidence || 0) * 100),
+    time: Date.now(),
+  };
+  items = [entry, ...items.filter((x) => x.name_zh !== entry.name_zh)].slice(0, 50);
+  localStorage.setItem(key, JSON.stringify(items));
+}
+
+function renderHistory() {
+  const list = $("#historyList");
+  if (!list) return;
+  let items = [];
+  try {
+    items = JSON.parse(localStorage.getItem("shikuang_history") || "[]");
+  } catch (_) {
+    items = [];
+  }
+  if (!items.length) {
+    list.innerHTML = '<li class="history-empty">暂无历史记录</li>';
+    return;
+  }
+  list.innerHTML = items
+    .map((x) => {
+      const time = new Date(x.time).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+      return `<li>
+        <div><div class="h-name">${escapeHtml(x.name_zh)}</div><div class="h-meta">${escapeHtml(x.name_en || "")} · ${escapeHtml(x.formula || "未知化学式")} · ${x.confidence}%</div></div>
+        <div class="h-time">${time}</div>
+      </li>`;
+    })
+    .join("");
+}
+
 document.querySelectorAll(".mode").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
 cameraBtn.addEventListener("click", () => {
   if (state.mode !== "photo") setMode("photo");
@@ -768,6 +873,15 @@ galleryBtn.addEventListener("click", () => {
   fileInput.click();
 });
 clearBtn.addEventListener("click", clearAll);
+historyBtn.addEventListener("click", () => {
+  const panel = $("#historyPanel");
+  panel.hidden = !panel.hidden;
+  if (!panel.hidden) renderHistory();
+});
+$("#historyClear").addEventListener("click", () => {
+  localStorage.removeItem("shikuang_history");
+  renderHistory();
+});
 fileInput.addEventListener("change", () => {
   const file = fileInput.files[0];
   if (!file) return;
@@ -794,6 +908,7 @@ document.querySelectorAll(".mode-chip").forEach((chip) =>
 window.addEventListener("load", () => {
   if (window.lucide) lucide.createIcons();
   initAmbient();
+  initSplashMinerals();
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.getRegistrations().then((regs) => regs.forEach((r) => r.unregister()));
   }
