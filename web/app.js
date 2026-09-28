@@ -315,6 +315,45 @@ async function imageToDataUrl(src) {
   });
 }
 
+async function predictDeepSeekImage() {
+  if (!DEEPSEEK_API_KEY) throw new Error("DeepSeek 密钥未配置");
+  if (!state.currentImage) throw new Error("请先选择矿物照片");
+  const dataUrl = await imageToDataUrl(state.currentImage);
+  const description = $("#description").value.trim();
+  const prompt = [
+    "你是矿物鉴定专家。请识别图片中的矿物。",
+    "只能返回一个 JSON 对象，不要 Markdown，不要解释。字段：",
+    '{"name_zh":"中文名","name_en":"英文名","formula":"化学式","confidence":0到1,"origin":"产地","formation":"形成原因","industrial_uses":["工业用途"],"features":["鉴别特征"]}',
+    description ? `用户补充描述：${description}` : "",
+    "如果不是矿物、图片不清晰、或属于人物/动物/日常物品，返回 {\"error\":\"这不是矿物，请您放入清晰的矿物照片。\"}",
+  ].join("\n");
+  const res = await fetch("https://api.deepseek.com/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${DEEPSEEK_API_KEY}` },
+    body: JSON.stringify({
+      model: DEEPSEEK_MODEL,
+      messages: [{ role: "user", content: [{ type: "text", text: prompt }, { type: "image_url", image_url: { url: dataUrl } }] }],
+      temperature: 0.2,
+      max_tokens: 4000,
+    }),
+  });
+  if (!res.ok) throw new Error(`DeepSeek 请求失败（${res.status}）`);
+  const data = await res.json();
+  const content = data.choices?.[0]?.message?.content || "";
+  const firstBrace = content.indexOf("{");
+  const lastBrace = content.lastIndexOf("}");
+  const jsonText = firstBrace >= 0 && lastBrace > firstBrace ? content.slice(firstBrace, lastBrace + 1) : content.trim();
+  let parsed;
+  try {
+    parsed = JSON.parse(jsonText);
+  } catch (_) {
+    parsed = { name_zh: content.replace(/\n/g, " ").slice(0, 80) };
+  }
+  parsed = normalizeDeepSeekResult(parsed);
+  if (parsed.error) throw new Error(parsed.error);
+  return parsed;
+}
+
 async function predictOnline() {
   if (!DEEPSEEK_API_KEY) throw new Error("DeepSeek 密钥未配置，请在设置中填写后重试。");
   if (state.currentVideo) {
@@ -324,15 +363,7 @@ async function predictOnline() {
     );
     return { ...local, ai: text };
   }
-  const local = await predictOnnx();
-  const description = $("#description").value.trim();
-  const prompt = [
-    `本地识别为 ${local.name_zh}（${local.name_en}，${local.formula || "未知化学式"}），置信度 ${Math.round(local.confidence * 100)}%。`,
-    description ? `用户补充描述：${description}` : "",
-    "请补充该矿物的产地、形成原因、工业用途和最可靠鉴别特征，用简洁中文回答。",
-  ].filter(Boolean).join("\n");
-  const text = await deepseekText(prompt);
-  return { ...local, ai: text };
+  return await predictDeepSeekImage();
 }
 
 function normalizeDeepSeekResult(data) {
@@ -426,6 +457,16 @@ async function predict() {
       setStatus("本地识别完成");
     }
   } catch (err) {
+    if (DEEPSEEK_API_KEY && state.currentImage) {
+      try {
+        const data = await predictDeepSeekImage();
+        renderDeepSeekResult(data);
+        setStatus("联网识别完成");
+        return;
+      } catch (_) {
+        // continue to local fallback below
+      }
+    }
     let fallbackError = "";
     try {
       const local = state.currentVideo ? await predictVideoOnnx() : await predictOnnx();
@@ -607,7 +648,7 @@ async function waitFor(fn, timeout = 15000) {
 
 async function getOnnxSessions() {
   if (ortSessions) return ortSessions;
-  await waitFor(() => !!window.ort);
+  await waitFor(() => !!window.ort, 6000);
   if (!window.ort) throw new Error("浏览器推理组件未加载");
   const vendorBase = new URL("./vendor/", location.href).href;
   const modelBase = new URL("./models/", location.href).href;
@@ -1019,6 +1060,12 @@ window.addEventListener("load", () => {
   setMode("photo");
   setSplash("正在加载识别模型…");
   getGateSession().catch(() => {});
-  getOnnxSessions().then(() => setStatus("就绪")).catch(() => setStatus("模型加载失败"));
+  getOnnxSessions()
+    .then(() => setStatus("就绪"))
+    .catch(() => {
+      state.onlineMode = true;
+      document.querySelectorAll(".mode-chip").forEach((c) => c.classList.toggle("active", c.dataset.netmode === "online"));
+      setStatus(DEEPSEEK_API_KEY ? "本地模型不可用，已切换联网" : "模型加载失败");
+    });
   setTimeout(() => dismissSplash(), 2500);
 });
