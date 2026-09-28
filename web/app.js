@@ -1019,14 +1019,6 @@ window.addEventListener("load", () => {
   setMode("photo");
   setSplash("正在加载识别模型…");
   getGateSession().catch(() => {});
-  getOnnxSessions()
-    .then(() => {
-      setSplash("识别服务已就绪");
-      setStatus("就绪");
-      dismissSplash();
-    })
-    .catch(() => {
-      setSplash("模型加载失败，请检查网络后重试");
-      dismissSplash();
-    });
+  getOnnxSessions().then(() => setStatus("就绪")).catch(() => setStatus("模型加载失败"));
+  setTimeout(() => dismissSplash(), 2500);
 });
