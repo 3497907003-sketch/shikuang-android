@@ -183,6 +183,8 @@ async function startCamera() {
     setStatus("相机不可用");
     camera.hidden = true;
     placeholder.hidden = false;
+    placeholder.innerHTML = '<i data-lucide="camera-off"></i><p>相机不可用</p><span>请点击下方“文件”选择矿物照片</span>';
+    if (window.lucide) lucide.createIcons();
   }
 }
 
@@ -437,15 +439,6 @@ async function predict() {
   predictBtn.classList.add("loading");
   $("#predictLabel").textContent = "识别中…";
   setStatus("识别中…", true);
-  const form = new FormData();
-  form.append("description", $("#description").value.trim());
-  if (state.currentImage) {
-    const resp = await fetch(state.currentImage);
-    form.append("image", await resp.blob(), "specimen.jpg");
-  } else if (state.currentVideo) {
-    const resp = await fetch(state.currentVideo);
-    form.append("video", await resp.blob(), "specimen.webm");
-  }
   try {
     if (state.onlineMode) {
       const data = await predictOnline();
