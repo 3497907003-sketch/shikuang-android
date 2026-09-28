@@ -17,7 +17,7 @@
     <script defer src="./data/minerals.js?v=5"></script>
     <script defer src="./data/imagenet.js?v=5"></script>
     <script defer src="./data/graph.js?v=5"></script>
-    <script defer src="./app.js?v=29"></script>
+    <script defer src="./app.js?v=30"></script>
   </head>
   <body>
     <canvas class="ambient" id="ambient" aria-hidden="true"></canvas>
@@ -77,10 +77,10 @@
         </div>
 
         <div class="controls">
-          <button class="tool" id="cameraBtn" type="button" title="拍摄照片"><i data-lucide="camera"></i></button>
-          <button class="tool record" id="recordBtn" type="button" title="开始录像"><i data-lucide="circle"></i></button>
-          <button class="tool" id="galleryBtn" type="button" title="选择文件"><i data-lucide="folder-open"></i></button>
-          <button class="tool" id="clearBtn" type="button" title="清空"><i data-lucide="x"></i></button>
+          <button class="tool" id="cameraBtn" type="button" title="拍摄照片"><i data-lucide="camera"></i><span>拍照</span></button>
+          <button class="tool record" id="recordBtn" type="button" title="开始录像"><i data-lucide="circle"></i><span>录像</span></button>
+          <button class="tool" id="galleryBtn" type="button" title="选择文件"><i data-lucide="folder-open"></i><span>文件</span></button>
+          <button class="tool" id="clearBtn" type="button" title="清空"><i data-lucide="x"></i><span>清空</span></button>
         </div>
         <input id="fileInput" type="file" accept="image/*,video/*" hidden />
       </section>
