@@ -51,6 +51,17 @@ public class MineralEngineInstrumentedTest {
         return new JSONObject(evaluate("JSON.stringify(window.__shikuangRuntimeSmoke || {})"));
     }
 
+    private String shellOutput(String command) throws Exception {
+        try (InputStream stream = new android.os.ParcelFileDescriptor.AutoCloseInputStream(
+            InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommand(command))) {
+            java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream();
+            byte[] buffer = new byte[4096];
+            int read;
+            while ((read = stream.read(buffer)) != -1) output.write(buffer, 0, read);
+            return new String(output.toByteArray(), StandardCharsets.UTF_8);
+        }
+    }
+
     private JSONObject awaitPhase(String phase, long timeoutMillis) throws Exception {
         long end = SystemClock.elapsedRealtime() + timeoutMillis;
         JSONObject latest = new JSONObject();
@@ -167,6 +178,13 @@ public class MineralEngineInstrumentedTest {
             JSONObject resources = awaitPhase("resources", 60000);
             assertEquals(98, resources.getInt("labels"));
             assertTrue("Packaged app origin must be secure", resources.getBoolean("secureContext"));
+            String routes4 = shellOutput("ip route show");
+            String routes6 = shellOutput("ip -6 route show");
+            evaluate("window.__shikuangRuntimeSmoke.network={ipv4Routes:" + JSONObject.quote(routes4)
+                + ",ipv6Routes:" + JSONObject.quote(routes6) + "};");
+            assertFalse("External IPv4 default route remains active: " + routes4, routes4.contains("default "));
+            assertFalse("External IPv6 default route remains active: " + routes6, routes6.contains("default "));
+            assertFalse("WebView should detect unavailable networking", resources.getBoolean("online"));
             Log.i(TAG, "Worker probe is diagnostic only; native inference is required: " + resources);
 
             String quartz = fixture("quartz.jpg");

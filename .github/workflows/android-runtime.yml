@@ -72,6 +72,13 @@ jobs:
           adb shell settings put global animator_duration_scale 0
           adb shell svc wifi disable
           adb shell svc data disable
+          adb root
+          timeout 60 adb wait-for-device
+          test "$(adb shell id -u | tr -d '\r')" = 0
+          adb shell 'for device in eth0 eth1 wlan0; do if ip link show "$device" >/dev/null 2>&1; then ip link set "$device" down; fi; done'
+          adb shell ip route show > runtime-artifacts/ipv4-routes.txt
+          adb shell ip -6 route show > runtime-artifacts/ipv6-routes.txt
+          adb shell dumpsys connectivity > runtime-artifacts/connectivity.txt
           adb shell dumpsys webviewupdate > runtime-artifacts/webview-provider.txt
           adb shell settings get global wifi_on > runtime-artifacts/wifi-state.txt
           adb shell settings get global mobile_data > runtime-artifacts/mobile-data-state.txt
@@ -79,7 +86,7 @@ jobs:
           nohup adb logcat -v threadtime > runtime-artifacts/logcat.txt 2>&1 &
       - name: Run packaged WebView with actual native ONNX inference
         working-directory: android
-        run: ./gradlew --no-daemon --max-workers=2 connectedDebugAndroidTest
+        run: ./gradlew --no-daemon --max-workers=2 -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true connectedDebugAndroidTest
       - name: Capture runtime diagnostics
         if: always()
         shell: bash
