@@ -38,3 +38,20 @@ test('backup import validates schema, strips executable media and preserves conf
   const parsed=C.parseImport(JSON.stringify({schema:'shikuang-records',version:2,records:[raw]}));assert.equal(parsed[0].confirmedKey,'calcite');assert.deepEqual(parsed[0].photos,[]);assert.equal(parsed[0].notes,raw.notes);
   assert.throws(()=>C.parseImport('{"records":[]}'));assert.throws(()=>C.parseImport(JSON.stringify({schema:'shikuang-records',version:2,records:[raw,raw]})));
 });
+test('a valid 100-record image backup larger than 10 MB imports and exports without losing photos',()=>{
+  const photo='data:image/png;base64,'+require('node:fs').readFileSync(require.resolve('../icon-512.png')).toString('base64');
+  const records=Array.from({length:100},(_,i)=>({id:`backup-${i}`,time:1,name:'照片备份测试',rankings:[{key:'quartz',score:.8}],score:.8,photos:[photo,photo,photo],notes:'保留完整记录',confirmedKey:'calcite',confirmationMethod:'备份往返测试'}));
+  const text=JSON.stringify({schema:'shikuang-records',version:2,records});
+  assert.ok(C.checkBackupSize(text)>10*1024*1024);
+  const imported=C.parseImport(text),exported=JSON.stringify({schema:'shikuang-records',version:2,records:imported});
+  C.checkBackupSize(exported);
+  assert.deepEqual(C.parseImport(exported),imported);assert.equal(imported.length,100);
+  assert.deepEqual(imported.map(r=>r.photos),records.map(r=>r.photos));
+});
+test('backup byte limits consistently reject files and UTF-8 text over 100 MB',()=>{
+  assert.equal(C.checkBackupSize(C.BACKUP_LIMIT_BYTES),C.BACKUP_LIMIT_BYTES);
+  assert.throws(()=>C.checkBackupSize(C.BACKUP_LIMIT_BYTES+1),/100 MB/);
+  assert.equal(C.checkBackupSize('矿物'),6);
+  const oversized='矿'.repeat(Math.floor(C.BACKUP_LIMIT_BYTES/3)+1);
+  assert.throws(()=>C.parseImport(oversized),/100 MB/);
+});

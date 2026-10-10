@@ -39,6 +39,7 @@ jobs:
           "$SHIKUANG_ANDROID_SDK/cmdline-tools/latest/bin/sdkmanager" \
             "platform-tools" "emulator" \
             "system-images;android-${{ matrix.api }};google_apis;x86_64"
+          printf '%s\n' "$SHIKUANG_ANDROID_SDK/platform-tools" >> "$GITHUB_PATH"
           printf 'no\n' | "$SHIKUANG_ANDROID_SDK/cmdline-tools/latest/bin/avdmanager" create avd \
             --name "shikuang-api${{ matrix.api }}" \
             --package "system-images;android-${{ matrix.api }};google_apis;x86_64" \

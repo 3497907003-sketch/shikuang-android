@@ -274,6 +274,7 @@
     try {
       const records = await SpecimenStore.list(); if (!records.length) { toast('暂无可导出的标本'); return; }
       const text = JSON.stringify({ schema:'shikuang-records', version:2, exportedAt:new Date().toISOString(), records },null,2);
+      MineralCore.checkBackupSize(text);
       const fileName = `shikuang-specimens-${new Date().toISOString().slice(0,10)}.json`;
       if (isNative()) {
         const result = await plugin('Filesystem').writeFile({ path:`exports/${fileName}`, data:text, directory:'CACHE', encoding:'utf8', recursive:true });
@@ -287,7 +288,7 @@
   async function importRecords(input) {
     try {
       const file = input.files?.[0]; if (!file) return;
-      if (file.size > 10*1024*1024) throw new Error('导入文件超过 10 MB');
+      MineralCore.checkBackupSize(file.size);
       const records = MineralCore.parseImport(await file.text());
       if (records.some(r=>!MINERAL_KB[r.key] || (r.confirmedKey && !MINERAL_KB[r.confirmedKey]))) throw new Error('文件包含未收录的候选或确认名称');
       const added = await SpecimenStore.merge(records); await renderRecords(); toast(`已导入 ${added} 条新记录，原记录保留`);
