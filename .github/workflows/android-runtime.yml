@@ -76,6 +76,7 @@ jobs:
           timeout 60 adb wait-for-device
           test "$(adb shell id -u | tr -d '\r')" = 0
           adb shell 'for device in eth0 eth1 wlan0; do if ip link show "$device" >/dev/null 2>&1; then ip link set "$device" down; fi; done'
+          test "$(timeout 20 adb get-state | tr -d '\r')" = device
           adb shell ip route show > runtime-artifacts/ipv4-routes.txt
           adb shell ip -6 route show > runtime-artifacts/ipv6-routes.txt
           adb shell dumpsys connectivity > runtime-artifacts/connectivity.txt
@@ -92,9 +93,30 @@ jobs:
         shell: bash
         run: |
           mkdir -p runtime-artifacts
-          adb exec-out screencap -p > runtime-artifacts/final-screen.png || true
-          adb shell dumpsys webviewupdate > runtime-artifacts/webview-provider-final.txt || true
-          adb pull /sdcard/Android/data/com.shikuang.app.preview/files/runtime-smoke runtime-artifacts/ || true
+          timeout 20 adb exec-out screencap -p > runtime-artifacts/final-screen.png || true
+          timeout 20 adb shell dumpsys webviewupdate > runtime-artifacts/webview-provider-final.txt || true
+          timeout 60 adb pull /sdcard/Android/data/com.shikuang.app.preview/files/runtime-smoke runtime-artifacts/ || true
+      - name: Require screenshots and JSON from successful runtime tests
+        if: success()
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          folder = Path('runtime-artifacts/runtime-smoke')
+          for filename in ['quartz-result.png', 'dog-rejection.png', 'library-offline-overview.png', 'quartz-reference-details.png', 'quartz-image-references.png', 'abellaite-reference-details.png']:
+              content = (folder / filename).read_bytes()
+              assert content.startswith(b'\x89PNG\r\n\x1a\n') and len(content) > 1024, filename
+          report = json.loads((folder / 'runtime-report.json').read_text())
+          assert report['phase'] == 'passed', report.get('phase')
+          assert report['quartz']['engine'] == 'onnx-native-android'
+          assert report['catalog']['imaSpecies'] == 6239
+          assert report['catalog']['crystalSpecies'] == 3430
+          assert report['catalog']['imageReferences'] == 780
+          assert report['catalog']['localFetches'] == 4
+          assert report['catalog']['online'] is False
+          print('Preserved native inference, offline catalog JSON and six genuine app screenshots.')
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:

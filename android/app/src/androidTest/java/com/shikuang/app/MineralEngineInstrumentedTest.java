@@ -151,6 +151,89 @@ public class MineralEngineInstrumentedTest {
         fail("Photo file UI remained unavailable: " + evaluate("document.getElementById('progress').textContent"));
     }
 
+    private void awaitUi(String predicate, String description, long timeoutMillis) throws Exception {
+        long end = SystemClock.elapsedRealtime() + timeoutMillis;
+        do {
+            if ("true".equals(evaluate("!!(" + predicate + ")"))) return;
+            SystemClock.sleep(150);
+        } while (SystemClock.elapsedRealtime() < end);
+        fail("Timed out waiting for " + description + ": " + evaluate("document.getElementById('catalogLoadState')?.textContent || 'No catalog UI'"));
+    }
+
+    /** Exercise the real lazy loader, SHA-256 checks, searches and detail dialogs while disconnected. */
+    private void checkOfflineReferenceCatalog() throws Exception {
+        assertEquals("Reference collection should not delay mineral inference", "idle",
+            evaluate("window.MineralReference?.status"));
+        evaluate(script(
+            "(() => {const s=window.__shikuangRuntimeSmoke;s.phase='library-loading';s.catalogFetches=[];",
+            " const realFetch=window.fetch.bind(window);",
+            " window.fetch=async(...args)=>{const response=await realFetch(...args);const url=new URL(args[0] instanceof Request?args[0].url:String(args[0]),location.href);if(/\\/data\\/(reference-manifest|catalog|crystals|image-sources)\\.json$/.test(url.pathname))s.catalogFetches.push({path:url.pathname,url:url.href,status:response.status,type:response.headers.get('content-type'),local:url.origin===location.origin});return response;};",
+            " document.querySelector('[data-view=library]').click();})()"
+        ));
+        awaitUi("window.MineralReference?.status==='ready' && document.getElementById('catalogLoadState').textContent.includes('6239')",
+            "6,239-species packaged reference collection", 60000);
+        JSONObject catalog = new JSONObject(evaluate(script(
+            "JSON.stringify({imaSpecies:MINERAL_CATALOG.minerals.length,crystalSpecies:Object.keys(MINERAL_CRYSTAL_RECORDS.by_species).length,imageReferences:MINERAL_IMAGE_SOURCES.records.length,completed:MineralReference.completed,online:navigator.onLine,cardsShown:document.querySelectorAll('#libraryList [data-detail]').length,intro:document.getElementById('catalogIntro').textContent,localFetches:window.__shikuangRuntimeSmoke.catalogFetches.length})"
+        )));
+        assertEquals(6239, catalog.getInt("imaSpecies"));
+        assertEquals(3430, catalog.getInt("crystalSpecies"));
+        assertEquals(780, catalog.getInt("imageReferences"));
+        assertEquals(3, catalog.getInt("completed"));
+        assertEquals(80, catalog.getInt("cardsShown"));
+        assertFalse("Catalog must load while WebView detects unavailable networking", catalog.getBoolean("online"));
+        assertTrue(catalog.getString("intro").contains("780"));
+        assertTrue(catalog.getString("intro").contains("3430"));
+        JSONArray fetches = state().getJSONArray("catalogFetches");
+        assertEquals("Manifest and three reference files must be read locally", 4, fetches.length());
+        for (int index = 0; index < fetches.length(); index++) {
+            JSONObject request = fetches.getJSONObject(index);
+            assertTrue("Reference request left packaged app origin: " + request, request.getBoolean("local"));
+            assertEquals(200, request.getInt("status"));
+        }
+        assertEquals("98", evaluate("Object.keys(MINERAL_CLASSES).length"));
+        evaluate("window.__shikuangRuntimeSmoke.catalog=" + catalog + ";window.scrollTo({top:0,behavior:'instant'});");
+        screenshot("library-offline-overview.png");
+
+        evaluate("const quartzSearch=document.getElementById('librarySearch');quartzSearch.value='Quartz';quartzSearch.dispatchEvent(new Event('input',{bubbles:true}));");
+        awaitUi("document.querySelector('#libraryList [data-detail=quartz]')", "Quartz search card", 10000);
+        evaluate("document.querySelector('#libraryList [data-detail=quartz]').click();");
+        awaitUi("document.getElementById('detailDialog').open && document.getElementById('detailTitle').textContent==='石英'", "Quartz reference detail", 10000);
+        assertTrue(evaluate("document.getElementById('detailBody').textContent").contains("Quartz"));
+        assertTrue(evaluate("document.getElementById('detailBody').textContent").contains("官方目录字段"));
+        assertTrue(evaluate("document.getElementById('crystalRecords').textContent").contains("空间群"));
+        assertEquals("5", evaluate("document.querySelectorAll('#crystalRecords .crystal-record').length"));
+        evaluate("document.getElementById('detailDialog').scrollTop=0;");
+        screenshot("quartz-reference-details.png");
+        evaluate(script(
+            "document.querySelector('#detailBody .image-section').open=true;",
+            "document.querySelector('#detailBody .image-section').scrollIntoView({block:'start',behavior:'instant'});",
+            "window.__shikuangRuntimeSmoke.quartzReference={title:document.getElementById('detailTitle').textContent,crystalRecordsShown:document.querySelectorAll('#crystalRecords .crystal-record').length,imageRecordsShown:document.querySelectorAll('#imageRecords .image-record').length,imageEvidence:document.getElementById('imageRecords').textContent};"
+        ));
+        assertEquals("5", evaluate("document.querySelectorAll('#imageRecords .image-record').length"));
+        assertTrue(evaluate("document.getElementById('imageRecords').textContent").contains("尚未通过训练审核"));
+        assertEquals("0", evaluate("document.querySelectorAll('#imageRecords img').length"));
+        screenshot("quartz-image-references.png");
+        evaluate("document.getElementById('closeDetail').click();const rareSearch=document.getElementById('librarySearch');rareSearch.value='Abellaite';rareSearch.dispatchEvent(new Event('input',{bubbles:true}));");
+        awaitUi("document.querySelector('#libraryList [data-detail=\"catalog:ima-abellaite\"]')", "Abellaite search card", 10000);
+        evaluate("document.querySelector('#libraryList [data-detail=\"catalog:ima-abellaite\"]').click();");
+        awaitUi("document.getElementById('detailDialog').open && document.getElementById('detailTitle').textContent==='Abellaite'", "Abellaite reference detail", 10000);
+        String rareDetails = evaluate("document.getElementById('detailBody').textContent");
+        assertTrue(rareDetails.contains("NaPb₂(CO₃)₂(OH)"));
+        assertTrue(rareDetails.contains("2014-111"));
+        assertTrue(rareDetails.contains("Spain"));
+        assertTrue(rareDetails.contains("空间群"));
+        assertFalse("Directory-only mineral must not claim model recognition", evaluate("document.getElementById('detailType').textContent").contains("图像模型支持"));
+        evaluate("window.__shikuangRuntimeSmoke.abellaiteReference={title:document.getElementById('detailTitle').textContent,type:document.getElementById('detailType').textContent,details:document.getElementById('detailBody').textContent};document.getElementById('detailDialog').scrollTop=0;");
+        screenshot("abellaite-reference-details.png");
+        String finalRoutes4 = shellOutput("ip route show");
+        String finalRoutes6 = shellOutput("ip -6 route show");
+        assertFalse("IPv4 default route returned during catalog load", finalRoutes4.contains("default "));
+        assertFalse("IPv6 default route returned during catalog load", finalRoutes6.contains("default "));
+        assertEquals("false", evaluate("navigator.onLine"));
+        evaluate("window.__shikuangRuntimeSmoke.networkAfterCatalog={ipv4Routes:" + JSONObject.quote(finalRoutes4)
+            + ",ipv6Routes:" + JSONObject.quote(finalRoutes6) + "};window.__shikuangRuntimeSmoke.phase='passed';");
+    }
+
     @Test
     public void offlinePackagedNativeRecognitionAndRecovery() throws Exception {
         scenario = ActivityScenario.launch(MainActivity.class);
@@ -257,6 +340,7 @@ public class MineralEngineInstrumentedTest {
             assertEquals(savedRecords.getJSONObject(0).getString("id"), preserved.getJSONObject(0).getString("id"));
             assertEquals("quartz", preserved.getJSONObject(0).getString("key"));
             assertEquals(3, preserved.getJSONObject(0).getInt("modelCount"));
+            checkOfflineReferenceCatalog();
         } finally {
             writeDiagnostics();
             scenario.close();
