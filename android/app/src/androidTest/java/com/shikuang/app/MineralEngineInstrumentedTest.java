@@ -19,8 +19,7 @@ import android.webkit.WebView;
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
-import java.io.File;
-import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CountDownLatch;
@@ -147,7 +146,7 @@ public class MineralEngineInstrumentedTest {
         if(expectedPageSize!=null)assertEquals(Long.parseLong(expectedPageSize),nativeNetwork.getLong("pageSize"));
         evaluate("window.__shikuangRuntimeSmoke={phase:'unsupported-webview-recovery-passed',photoRecognitionVerified:false,reason:'Factory WebView lacks required modern syntax/APIs; actual Java ONNX runtime checked separately',userAgent:navigator.userAgent,boot:window.__shikuangBootCapabilities,recovery:document.getElementById('native-boot-recovery').textContent,network:{native:"+nativeNetwork+",ipv4Routes:"+JSONObject.quote(routes4)+",ipv6Routes:"+JSONObject.quote(routes6)+"}};");
         Bitmap bitmap=InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();assertNotNull(bitmap);
-        try(FileOutputStream stream=new FileOutputStream(new File(outputDirectory(),"legacy-webview-recovery.png"))){assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG,100,stream));}finally{bitmap.recycle();}
+        try(OutputStream stream=RuntimeTestOutput.open("legacy-webview-recovery.png")){assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG,100,stream));}finally{bitmap.recycle();}
     }
 
     private String fixture(String name) throws Exception {
@@ -196,13 +195,6 @@ public class MineralEngineInstrumentedTest {
         awaitPhase("geometry-passed",30000);
     }
 
-    private File outputDirectory() {
-        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        File directory = new File(context.getExternalFilesDir(null), "runtime-smoke");
-        assertTrue(directory.isDirectory() || directory.mkdirs());
-        return directory;
-    }
-
     private JSONObject bundledJson(String path) throws Exception {
         try (InputStream stream = InstrumentationRegistry.getInstrumentation().getTargetContext().getAssets().open("public/" + path)) {
             java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream(); byte[] buffer = new byte[4096]; int count;
@@ -242,7 +234,7 @@ public class MineralEngineInstrumentedTest {
             if (stable) break;
         }
         if (!stable) { bitmap.recycle(); fail("Display pixels did not stabilize for " + filename); }
-        try (FileOutputStream stream = new FileOutputStream(new File(outputDirectory(), filename))) {
+        try (OutputStream stream = RuntimeTestOutput.open(filename)) {
             assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream));
         } finally {
             bitmap.recycle();
@@ -253,7 +245,7 @@ public class MineralEngineInstrumentedTest {
         try {
             JSONObject report = state();
             Log.i(TAG, report.toString());
-            try (FileOutputStream stream = new FileOutputStream(new File(outputDirectory(), "runtime-report.json"))) {
+            try (OutputStream stream = RuntimeTestOutput.open("runtime-report.json")) {
                 stream.write(report.toString(2).getBytes(StandardCharsets.UTF_8));
             }
         } catch (Exception error) {
@@ -467,7 +459,7 @@ public class MineralEngineInstrumentedTest {
             assertEquals(0,proof.getInt("registrationCount"));
             assertTrue(proof.getJSONArray("cacheNames").toString().contains("runtime-unrelated-cache"));
             assertFalse(proof.getJSONArray("cacheNames").toString().contains("shikuang-"));
-            try (FileOutputStream stream = new FileOutputStream(new File(outputDirectory(),"asset-migration-report.json"))) {
+            try (OutputStream stream = RuntimeTestOutput.open("asset-migration-report.json")) {
                 stream.write(proof.toString(2).getBytes(StandardCharsets.UTF_8));
             }
         } finally {

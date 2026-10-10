@@ -12,8 +12,7 @@ import android.system.OsConstants;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -116,9 +115,7 @@ public final class ReviewedPhotoAssetsInstrumentedTest {
             .put("photosDecoded", decoded.length()).put("photos", decoded)
             .put("activeNetworkBefore", JSONObject.NULL).put("activeNetworkAfter", JSONObject.NULL)
             .put("scope", "Packaged bytes, source metadata identity and native JPEG decoding only; no mineral-label, training or accuracy claim");
-        File directory = new File(context.getExternalFilesDir(null), "runtime-smoke");
-        assertTrue(directory.isDirectory() || directory.mkdirs());
-        try (FileOutputStream output = new FileOutputStream(new File(directory, "reviewed-photo-runtime.json"))) {
+        try (OutputStream output = RuntimeTestOutput.open("reviewed-photo-runtime.json")) {
             output.write(report.toString(2).getBytes(StandardCharsets.UTF_8));
         }
     }

@@ -18,6 +18,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
@@ -114,7 +115,7 @@ public final class MineralModelContractTest {
                 }
             } finally {assertTrue(file.delete());}
         }
-        report.put("graphs",graphs).put("phase","passed");File directory=new File(context.getExternalFilesDir(null),"runtime-smoke");assertTrue(directory.isDirectory()||directory.mkdirs());
-        try(FileOutputStream output=new FileOutputStream(new File(directory,"native-contract-runtime.json"))){output.write(report.toString(2).getBytes(StandardCharsets.UTF_8));}
+        report.put("graphs",graphs).put("phase","passed");
+        try(OutputStream output=RuntimeTestOutput.open("native-contract-runtime.json")){output.write(report.toString(2).getBytes(StandardCharsets.UTF_8));}
     }
 }

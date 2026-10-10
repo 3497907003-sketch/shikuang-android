@@ -177,7 +177,7 @@ jobs:
       - name: Run packaged WebView with actual native ONNX inference
         if: ${{ !inputs.network_probe }}
         working-directory: android
-        run: ./gradlew --no-daemon --max-workers=2 -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true -Pandroid.testInstrumentationRunnerArguments.expectedPageSize=${{ matrix.pageSize }} -Pandroid.testInstrumentationRunnerArguments.additionalTestOutputDir=/sdcard/Android/data/com.shikuang.app.preview/files/runtime-smoke connectedDebugAndroidTest
+        run: ./gradlew --no-daemon --max-workers=2 -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true -Pandroid.testInstrumentationRunnerArguments.expectedPageSize=${{ matrix.pageSize }} connectedDebugAndroidTest
       - name: Capture runtime diagnostics
         if: always()
         shell: bash
@@ -199,8 +199,10 @@ jobs:
           timeout 20 adb shell dumpsys activity exit-info com.shikuang.app.preview > runtime-artifacts/app-exit-info.txt 2>&1 || true
           timeout 20 adb shell ps -A > runtime-artifacts/processes-final.txt 2>&1 || true
           timeout 20 adb shell dmesg > runtime-artifacts/kernel-final.txt 2>&1 || true
-          timeout 60 adb pull /sdcard/Android/data/com.shikuang.app.preview/files/runtime-smoke runtime-artifacts/ || true
-          # AGP's additionalTestOutputDir collector copies genuine files before
+          mkdir -p runtime-artifacts/runtime-smoke
+          timeout 60 adb pull /sdcard/googletest/test_outputfiles/. runtime-artifacts/runtime-smoke/ || true
+          # The official AndroidX test storage provider owns this directory.
+          # AGP's UTP collector copies genuine files before
           # later Gradle tasks finish. Preserve that export if post-test ADB drops.
           python3 - <<'PYOUTPUT'
           from pathlib import Path
