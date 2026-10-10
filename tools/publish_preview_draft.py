@@ -432,27 +432,45 @@ def inspect_package(args, apk, sync, release):
             'officialSdkBuildTools': '35.0.0', 'elf16kVerified': True, 'zip16kVerified': True}, (manifest, manifest_sha, reference, photos, photo_sha)
 
 
-def upload_draft(args, release, gate):
-    existing = release_state(args.tag, args.source_commit)
-    files = sorted(file for file in release.iterdir() if file.is_file())
-    if existing is None:
-        notes = args.output / 'draft-notes.md'
-        notes.write_text(f'Android {VERSION}, {PACKAGE}, versionCode {VERSION_CODE}.\n\n'
+def validate_draft_identity(obj, tag, commit, expected_id=None):
+    require(isinstance(obj, dict) and type(obj.get('id')) is int and obj['id'] > 0,
+            'Missing or invalid draft release ID')
+    require(expected_id is None or obj['id'] == expected_id, 'Unexpected draft release ID')
+    require(obj.get('tag_name') == tag and obj.get('target_commitish') == commit and
+            obj.get('draft') is True and obj.get('prerelease') is True,
+            'Release was published or changed; exact draft tag/source required')
+
+
+def create_draft(args, gate):
+    notes = (f'Android {VERSION}, {PACKAGE}, versionCode {VERSION_CODE}.\n\n'
                          f'Android source `{args.source_commit}`; web source `{gate["web_source_commit"]}`.\n'
                          f'Validated build: {gate["build_url"]}\nValidated runtime: {gate["runtime_url"]}\n\n'
                          'Draft only: release publication requires a separate human action. Four ABI/ELF+ZIP16KB checks, '
                          '157 source assets, four native graphs and117 licensed reference photo decodes verified. '
                          'API24 factory WebView may only pass the supported recovery screen; see runtime gate limitations. '
                          'Regression checks do not establish mineral accuracy or Kappa0.95.\n')
-        command(['gh', 'release', 'create', args.tag, '--repo', REPO, '--target', args.source_commit,
-                 '--draft', '--prerelease', '--title', f'识矿 {VERSION} Android preview', '--notes-file', str(notes)],
-                capture_output=True, text=True)
-        existing = release_state(args.tag, args.source_commit)
-    require(existing is not None, 'Cannot identify created draft')
+    request = {'tag_name': args.tag, 'target_commitish': args.source_commit,
+               'name': f'识矿 {VERSION} Android preview', 'body': notes, 'draft': True, 'prerelease': True}
+    request_file = args.output / 'draft-create-request.json'
+    request_file.write_text(json.dumps(request, ensure_ascii=False) + '\n')
+    # The creation response supplies the exact ID. An immediately following
+    # paginated list can temporarily omit the new draft; never infer identity
+    # from that listing or retry an unknown POST outcome automatically.
+    created = json.loads(command(['gh', 'api', '--method', 'POST', f'repos/{REPO}/releases',
+                                  '--input', str(request_file)], capture_output=True, text=True).stdout)
+    validate_draft_identity(created, args.tag, args.source_commit)
+    return created
+
+
+def upload_draft(args, release, gate):
+    existing = release_state(args.tag, args.source_commit)
+    files = sorted(file for file in release.iterdir() if file.is_file())
+    if existing is None:
+        existing = create_draft(args, gate)
+    validate_draft_identity(existing, args.tag, args.source_commit)
     for file in files:
         current = api(f'repos/{REPO}/releases/{existing["id"]}')
-        require(current['draft'] is True and current['prerelease'] is True and current['target_commitish'] == args.source_commit,
-                'Release was published or changed during upload; stopping')
+        validate_draft_identity(current, args.tag, args.source_commit, existing['id'])
         matches = [asset for asset in current['assets'] if asset['name'] == file.name]
         require(len(matches) <= 1, 'Ambiguous existing draft asset')
         if matches:
@@ -461,7 +479,7 @@ def upload_draft(args, release, gate):
         # No --clobber, no release edit, no delete and no publishing endpoint.
         command(['gh', 'release', 'upload', args.tag, str(file), '--repo', REPO], capture_output=True, text=True)
     final = release_state(args.tag, args.source_commit)
-    require(final and final['draft'] is True and final['prerelease'] is True, 'Release must remain a draft prerelease')
+    validate_draft_identity(final, args.tag, args.source_commit, existing['id'])
     for file in files:
         matches = [row for row in final['assets'] if row['name'] == file.name]
         require(len(matches) == 1 and matches[0].get('digest') == 'sha256:' + sha(file), 'Uploaded draft asset digest mismatch')
