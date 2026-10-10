@@ -1,5 +1,6 @@
 {
   "appId": "com.shikuang.app",
   "appName": "识矿",
-  "webDir": "web"
+  "webDir": "dist",
+  "backgroundColor": "#edf2f4"
 }
