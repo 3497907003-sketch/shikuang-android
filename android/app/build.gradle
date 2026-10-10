@@ -7,8 +7,8 @@ android {
         applicationId "com.shikuang.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 20002
-        versionName "2.0.2"
+        versionCode 25001
+        versionName "2.5.0"
         manifestPlaceholders = [appLabel: "识矿"]
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
@@ -32,8 +32,8 @@ android {
         debug {
             if (System.getenv('SHIKUANG_SIGNING_FILE')) signingConfig signingConfigs.previewStable
             applicationIdSuffix ".preview"
-            versionNameSuffix "-preview"
-            manifestPlaceholders = [appLabel: "识矿 2.0 预览"]
+            versionNameSuffix "-preview.1"
+            manifestPlaceholders = [appLabel: "识矿 2.5 预览"]
         }
         release {
             minifyEnabled false

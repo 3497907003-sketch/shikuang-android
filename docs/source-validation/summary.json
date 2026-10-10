@@ -1,0 +1,750 @@
+{
+  "schema_version": 1,
+  "validated_at": "2026-10-10T14:38:41.974819+00:00",
+  "scope": "All published reference records compared to acquired official-source files and reviewed imports. This audit does not establish ML accuracy, photograph quality or photo reuse permission.",
+  "checks": {
+    "official_catalog_count_and_unique_ids": true,
+    "official_names_unique": true,
+    "official_fields_preserved": true,
+    "formula_unicode_html_equivalent": true,
+    "source_page_valid": true,
+    "legacy_official_formula_and_source": true,
+    "legacy_kb_count": true,
+    "original_pdf_hash": true,
+    "original_zip_hash": true,
+    "ima_license_and_credits_preserved": true,
+    "all_ima_rows_reproduced_from_original_pdf": true,
+    "reviewed_physical_import_reproduced": true,
+    "physical_review_complete": true,
+    "physical_legacy_import_exact": true,
+    "physical_catalog_import_exact": true,
+    "physical_status_and_null_semantics": true,
+    "physical_original_pdf_hashes": true,
+    "physical_no_calculated_density_substitution": true,
+    "crystal_counts_unique_ids": true,
+    "crystal_ima_species_and_cell_values": true,
+    "crystal_archive_count": true,
+    "all_crystal_measurements_match_original_zip": true,
+    "explicit_synthetic_or_computational_headers_excluded": true,
+    "catalog_crystal_counts_match": true,
+    "image_metadata_exact_to_acquired_import": true,
+    "image_counts_unique_ids_urls": true,
+    "image_species_use_official_names": true,
+    "image_no_training_ready_claims": true,
+    "image_urls_are_official_https": true,
+    "commons_individual_author_license_metadata": true,
+    "rruff_permissions_not_invented": true,
+    "handbook_and_rruff_no_blanket_open_license_claim": true,
+    "published_manifest_hashes": true
+  },
+  "anomalies": {},
+  "files": {
+    "data/catalog.json": {
+      "bytes": 3869114,
+      "sha256": "8e9b3a73e2e46a16fa6821ae5e83e97ce85c5a458b26b3766664618905a3a8bb"
+    },
+    "data/crystals.json": {
+      "bytes": 6162899,
+      "sha256": "d010238e6b1345f2596e8c318223be4aa37209d4c1fa9197009845bceb501764"
+    },
+    "data/image-sources.json": {
+      "bytes": 1608654,
+      "sha256": "36917c4750fefe9435020426502c2b321ac961b056654508f1e54c790b4b6515"
+    },
+    "data/minerals.js": {
+      "bytes": 255568,
+      "sha256": "335c69a94e29e26623968f59ef4c38ec2449bd970d92a701e29e1a35429b3b2e"
+    }
+  },
+  "original_sources": {
+    "ima_pdf": {
+      "file": "IMA_Master_List_2026-09.pdf",
+      "sha256": "2257c653491b346669ee5d38c98226a2bddbec0562a3675043730a01ca146973",
+      "url": "https://cnmnc.units.it/files/editor/IMA_Master_List_(2026-09).pdf"
+    },
+    "amcsd_zip": {
+      "file": "amc.zip",
+      "sha256": "82e217c0c5cb82d19dc591f7c18a91044731ea049542eb639f2a1915ebdf9761",
+      "url": "https://www.rruff.net/AMS/zipped_files/amc.zip"
+    },
+    "handbook_pdfs": [
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/Pollucite.pdf",
+        "sha256": "1d0cdc4d3a13b1c36e4f3e901516536d679089d667ca36036494a358cb4d3b06",
+        "legacy_keys": [
+          "pollucite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/Spinel.pdf",
+        "sha256": "909424ca5791b897e03a45efd1a8294b58c23c6e466bcd1942aee4e03daf5294",
+        "legacy_keys": [
+          "spinel"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/actinolite.pdf",
+        "sha256": "8c008e014f2bf45fee4c936eaa7f2bd746f0b6aac140db41c6ca0ad2b35c8d53",
+        "legacy_keys": [
+          "actinolite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/aegirine.pdf",
+        "sha256": "4afa8b5836aa52045a11cf9665c6725d44e4c5c334db5593e1494fc3e70a2e24",
+        "legacy_keys": [
+          "aegirine"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/albite.pdf",
+        "sha256": "5732f5da9f88cc505c2f032729dbd641a71a5faec124731877aba78b854a688b",
+        "legacy_keys": [
+          "albite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/almandine.pdf",
+        "sha256": "75a808d5015e1c6dcdd94ac1e0d2e8d5defe349ff4afccac2ec2c4a0020c9d8c",
+        "legacy_keys": [
+          "almandine"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/analcime.pdf",
+        "sha256": "d22afc99d107f9caed29ee45eeb615677f98b3deaa7f5679c9056fe9ad43bdc8",
+        "legacy_keys": [
+          "analcim"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/andalusite.pdf",
+        "sha256": "26f6048863f8ec172b5d60a097cbede178843e7a0a441bca519a1d4ecad35435",
+        "legacy_keys": [
+          "andalusite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/andradite.pdf",
+        "sha256": "61504fd67164c6c28aceff137da10ea5ca1f5fe8496966f9aa688f3520ad5f73",
+        "legacy_keys": [
+          "andradite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/aragonite.pdf",
+        "sha256": "ed2c4e9c023838281f838bbc483922f0d6626eceb267d936244abaf14ee99184",
+        "legacy_keys": [
+          "aragonite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/arsenic.pdf",
+        "sha256": "49c5f17fe83cf346fac98cdd5a35554d9af7110768664781530bc62eb3964937",
+        "legacy_keys": [
+          "arsenic"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/arsenopyrite.pdf",
+        "sha256": "4b28e764a7f23e1cc74d2c2aa2455a4d8a92c91eff2a865e2f109db0babe3509",
+        "legacy_keys": [
+          "arsenopyrite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/augite.pdf",
+        "sha256": "54db86e5ca3348d2a4ab3b66aad1bdd0311203c0ebb276cb9f26edd9658b1894",
+        "legacy_keys": [
+          "augite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/azurite.pdf",
+        "sha256": "790565c74eb83ef9330179375f2ac3d185919640ba64261926741b7a09d4319a",
+        "legacy_keys": [
+          "azurite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/baryte.pdf",
+        "sha256": "b9cfef5a68974832b739dcbf8480924b840a70077a232ef9e92b9bb9d01b6009",
+        "legacy_keys": [
+          "barite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/beryl.pdf",
+        "sha256": "2f624de70655dcbbabae2c9e3da96a27759617f70e78879752fdabebb566e0ca",
+        "legacy_keys": [
+          "beryl"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/bismuth.pdf",
+        "sha256": "996431afe93bb2f48b6dd8fdbb4d18f919097e94ba695e748ed095941bc2c1dd",
+        "legacy_keys": [
+          "bismuth"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/bournonite.pdf",
+        "sha256": "c9f4ef916efdcdc9706f1ab6af6ea3df600fb901af054cf8ae288cd4137b89f9",
+        "legacy_keys": [
+          "bournonite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/calcite.pdf",
+        "sha256": "84e244ab0fc205558685a97b27e962eca5cddc44e9619e5208a91099cc093a67",
+        "legacy_keys": [
+          "calcite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/cancrinite.pdf",
+        "sha256": "2046236868b32663f6d4461846f1f97d1d84422a29901518a962f752a515115c",
+        "legacy_keys": [
+          "cancrinit"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/cassiterite.pdf",
+        "sha256": "3c626e73fb0065fd19cb53b014c6b331e56b79f274ad7b9fb897e60644bfb768",
+        "legacy_keys": [
+          "cassiterite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/celestine.pdf",
+        "sha256": "3b98ca4a5d71cf22b2746949d3ac6261d7433cdeb4fec108a19aab95be3830b2",
+        "legacy_keys": [
+          "celestine"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/cerussite.pdf",
+        "sha256": "c2fcc6049ef72f2b504cb8f06bc0653afcdf18c6fd350f6dc04b62565510ca5b",
+        "legacy_keys": [
+          "cerussite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/chalcopyrite.pdf",
+        "sha256": "a1bd89be4d83657f6d4093c8cda143a860eb1f2eb52f6a445ebb763269564c7c",
+        "legacy_keys": [
+          "chalcopyrite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/chromite.pdf",
+        "sha256": "dd36fd02136edffae24f286cf666621df3edbb93948f6c654693cc75e5e37214",
+        "legacy_keys": [
+          "chromite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/chrysoberyl.pdf",
+        "sha256": "c390097d7b513acdb1beb4ca6f1c7641eb7916f8107599770d25613ebf2881e1",
+        "legacy_keys": [
+          "chrysoberyl"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/cinnabar.pdf",
+        "sha256": "d4fbdcded67d455015b034e7141db8ca13a9f62b5f793f02212b86b5b1a59f23",
+        "legacy_keys": [
+          "cinnabar"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/cobaltite.pdf",
+        "sha256": "58c44e56047ad15e55675f42c9c31ab310e52d37dbea4cabc0a0af0fbd8a3909",
+        "legacy_keys": [
+          "cobaltin"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/copper.pdf",
+        "sha256": "2d4e8d5e4f4d65bed89360f97baba53fd65ca2eb84ba65d894b22cf922e83136",
+        "legacy_keys": [
+          "copper"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/corundum.pdf",
+        "sha256": "82534bfdab90a7610e32febf73438be0c776b9812ddd4d175ca6a72e3d1f80dd",
+        "legacy_keys": [
+          "corundum"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/creedite.pdf",
+        "sha256": "9d75343238248dc7e98675d4b4e3b148fd00c5684a537696c40a2d15f4da8f53",
+        "legacy_keys": [
+          "credit"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/cuprite.pdf",
+        "sha256": "0c997255b34d37b24ed561941d7d732c614bff942d07ba3a7b778681bec78466",
+        "legacy_keys": [
+          "cuprite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/diopside.pdf",
+        "sha256": "8588ef216e58bd94742c0dbea25822ca08be5b088f5649a4550d80ad7ee3a6fd",
+        "legacy_keys": [
+          "diopside"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/dioptase.pdf",
+        "sha256": "85b0766b741892a31fab28dc2a72a2883bf696bd24a67a71d0045a9010e3a7d0",
+        "legacy_keys": [
+          "dioptase"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/dolomite.pdf",
+        "sha256": "8bdc0dcd52f6067111c152988f16b96a6bccd3e025b302d451035ec1d43853ad",
+        "legacy_keys": [
+          "dolomite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/elbaite.pdf",
+        "sha256": "14e880157679bf30da411b87d5053d44e9596a1b10bbaba173ded112ac0403b0",
+        "legacy_keys": [
+          "elbait",
+          "elbaite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/epidote.pdf",
+        "sha256": "52d66c2bd257d296f1e45355d4e92a53c8cfd79528d601ed80d6e759c76b1185",
+        "legacy_keys": [
+          "epidote"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/eudialyte.pdf",
+        "sha256": "eeb10e72fbfbebfd81d61fb197ca83a0578abc40b79607064569a3a4bdf56f41",
+        "legacy_keys": [
+          "eudialyte"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/fluorapatite.pdf",
+        "sha256": "32bb586c37a7b0904cde6308de998de75c6e06f2db870197564e549d70cce360",
+        "legacy_keys": [
+          "fluorapatite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/fluorite.pdf",
+        "sha256": "a27ebb33934a0c4eff8dd9f3667a06b1eecd120a5ce3a2d0c8b9ce4e228c2737",
+        "legacy_keys": [
+          "fluorite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/galena.pdf",
+        "sha256": "0f936addd4f10b98356e7a1b9ce6ddd2d6571f5ca9cac34722dab7df6d9deaeb",
+        "legacy_keys": [
+          "galena"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/goethite.pdf",
+        "sha256": "15af1e1877347467699bc2b1b4a26c902fd3abb4c4a4583f5264287ca0c90245",
+        "legacy_keys": [
+          "goethite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/gold.pdf",
+        "sha256": "414c519b2092e652bebde36b78c029cc64ee2d3772489919fd1f00321cd19ec8",
+        "legacy_keys": [
+          "gold"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/graphite.pdf",
+        "sha256": "a70cc68e42a8e91264056dfb4eecbce0c4c957988bbdb4ba9e6b56e255cf687e",
+        "legacy_keys": [
+          "graphite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/grossular.pdf",
+        "sha256": "2e6e8d03815897099bc3df3becd7493f09a99566463a67b315903034f134ec5d",
+        "legacy_keys": [
+          "grossular"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/gypsum.pdf",
+        "sha256": "f6765b6656c81cccdfc1f8e79d595de9815e9bf18e08112aaec1dce7c67d8ec7",
+        "legacy_keys": [
+          "gypsum"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/hedenbergite.pdf",
+        "sha256": "1016400ddd4ee86240c6f3e07d908b46b684a6f18a817df2cc192f89541c11c6",
+        "legacy_keys": [
+          "hedenbergite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/hematite.pdf",
+        "sha256": "f517fa6c6558a6362075267ae81853ed71dc852450bc8173afe44125060b2612",
+        "legacy_keys": [
+          "hematite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/ilmenite.pdf",
+        "sha256": "065c67757642efe3f8e98a3dde684ebd763a4edeb00da9587adb68845aedc7d7",
+        "legacy_keys": [
+          "ilmenite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/kyanite.pdf",
+        "sha256": "6da87d8a1f1e8b359fb823112fa04c8fa2f93791a81f0097e74b542059fb0af6",
+        "legacy_keys": [
+          "kyanite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/labradorite.pdf",
+        "sha256": "b22d8c96f9d687e06a3c98f479ecac5f2e2e22d5260f46511d67e193b585174c",
+        "legacy_keys": [
+          "labrador"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/magnetite.pdf",
+        "sha256": "5de270faee31cbb37ca222a8e0279a65d765bd391c9d81b1376006eb95c23b03",
+        "legacy_keys": [
+          "magnetite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/malachite.pdf",
+        "sha256": "35ef1533a9da65d544b754833308090d2b77fd62521d89992d0ba90292e2490d",
+        "legacy_keys": [
+          "malachite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/marcasite.pdf",
+        "sha256": "1afb213232c909b98fc49e40583c23de3635f5d98fff3c988c4132c4d28789be",
+        "legacy_keys": [
+          "marcasite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/microcline.pdf",
+        "sha256": "bd122fa9bcdfb3cc338aceff86d8b5b637daf0e21088524a45d853b6f7ba5c59",
+        "legacy_keys": [
+          "microcline"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/molybdenite.pdf",
+        "sha256": "02057fb7a97bc8fdfeb6acbee9ae3a874b0fa7d3b3a3db96141a7fecb0ef6d65",
+        "legacy_keys": [
+          "molybdenite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/muscovite.pdf",
+        "sha256": "1bb11d18d2b37373f211eb2f10dde3cdfe80498fe70861583dffd130941e62c6",
+        "legacy_keys": [
+          "muscovite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/natrolite.pdf",
+        "sha256": "84b389d36df419a29c95ac63d45ac891151f3baf05685f213958f988e9dcdcc5",
+        "legacy_keys": [
+          "natrolite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/oligoclase.pdf",
+        "sha256": "29965ed7c2847292750602a40b245863283dd623dbef20ff80bcdf3736e5171b",
+        "legacy_keys": [
+          "oligoclase"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/orthoclase.pdf",
+        "sha256": "915fa3d94e2e0699e86a4a79411737e1d7a98dbbaa6ff86b48bacefab28e3878",
+        "legacy_keys": [
+          "orthoclase"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/pectolite.pdf",
+        "sha256": "74d8840a6eb05f61fdc3b82fe283b1e2f0c65956402da7118f7cd6fc0c80ef84",
+        "legacy_keys": [
+          "pectolite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/prehnite.pdf",
+        "sha256": "f786201f42980c1b5c38a9b84d5b2d29d6d5d553c824ba8b0f4d1c6359f5c027",
+        "legacy_keys": [
+          "prehnite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/proustite.pdf",
+        "sha256": "5f5f8340b3f070b7f8c2ff3b08c84f0857e4af1eb8a710fdaaeba628ff18c0dd",
+        "legacy_keys": [
+          "proustite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/pyrargyrite.pdf",
+        "sha256": "92b3240e1cde2123d1fa64e7f5b42db1e3e8cbe6f896b25ee2887cc7d713dab9",
+        "legacy_keys": [
+          "pyrargyrite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/pyrite.pdf",
+        "sha256": "8daf2cfd3cb68e4d65ee8e16ffad7198e23a711d304837d15c8d694446d99914",
+        "legacy_keys": [
+          "pyrite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/pyrrhotite.pdf",
+        "sha256": "b362807c0b729c796ca548bccc33c9b2cd5972b6f3645d9425d5fcd64674948c",
+        "legacy_keys": [
+          "pyrrhotite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/quartz.pdf",
+        "sha256": "cfe6f7472ed885212f1221ad8314c3eed7654032a7d8824f2f07ea3bdfe07aec",
+        "legacy_keys": [
+          "quartz"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/rhodochrosite.pdf",
+        "sha256": "84c061904399b847e222d694651ee47678981078b921491d47976367c40b81a1",
+        "legacy_keys": [
+          "rhodochrosite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/rhodonite.pdf",
+        "sha256": "c636a23202fe073347fac5ce4f389f4cb3195a9d625c772bb5060ed8d7593a67",
+        "legacy_keys": [
+          "rhodonite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/rutile.pdf",
+        "sha256": "298ebad9113f88906816cebd76e86a79663f8425cc40e46ceb2e596e8e8b1a83",
+        "legacy_keys": [
+          "rutile"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/scheelite.pdf",
+        "sha256": "0a10d7a3f01c2b21e331d20057363346c8ffb9d46a44511d4c68ecba97a3e97e",
+        "legacy_keys": [
+          "scheelit"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/siderite.pdf",
+        "sha256": "18e99c253836e2ebb233ab80208224079e0d6b5bc9b1b2add677464da2ee1ebd",
+        "legacy_keys": [
+          "siderite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/silver.pdf",
+        "sha256": "0391e440d9720c402c9b9d82eb657b5a9772a83f7aed4b11d9ae73052a9ccf89",
+        "legacy_keys": [
+          "silver"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/smithsonite.pdf",
+        "sha256": "d077075a7130dbea3d9a46bd56c29f052bbb46ab7da2dfce89555735cac1e07f",
+        "legacy_keys": [
+          "smithsonite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/sphalerite.pdf",
+        "sha256": "9876af6871c024b471b1daf5662da113cf69c9859a78a7fe5595991606b9a934",
+        "legacy_keys": [
+          "sphalerite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/spodumene.pdf",
+        "sha256": "41dafcbfe4bb65c977afd2a9bd74ee7fedf8b002b0bba4ebf658d4f843c0bafa",
+        "legacy_keys": [
+          "spodumene"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/stibnite.pdf",
+        "sha256": "9e8deed840647c0f554e9bfeefb9c48dc9a407eb94e26f62db837523dcd920ec",
+        "legacy_keys": [
+          "antimonite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/sulphur.pdf",
+        "sha256": "a443e6a2a44e77f4bd5c9c6a70bbbda1a019c0c9294bc2c9538c045886fe39a3",
+        "legacy_keys": [
+          "sulfur"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/tetrahedrite.pdf",
+        "sha256": "e7bf944a6c82900cf332b7356cb86c0e988a4c16450329ad1e55455513fd7b70",
+        "legacy_keys": [
+          "tetrahedrite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/titanite.pdf",
+        "sha256": "42ccabdacd9306a57443601213670b0a2ab5462e6077c443ffdae6802c14967a",
+        "legacy_keys": [
+          "titanite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/topaz.pdf",
+        "sha256": "76c4581d3e1ffd152db18725b0e0e69a66f20679db3bb5c2f734574fc549b386",
+        "legacy_keys": [
+          "topaz"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/tremolite.pdf",
+        "sha256": "6e876e649cd95b751ca9d03cf27f7432befec4a43809e66abdcbea82c278e5d3",
+        "legacy_keys": [
+          "tremolite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/vanadinite.pdf",
+        "sha256": "77193c59b3326331f69c8fd887c9501d39982926d5af2350f4125f85a89f23f8",
+        "legacy_keys": [
+          "vanadinite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/vesuvianite.pdf",
+        "sha256": "5171cd121fa2efc0f99d9e029df658f5d14f68cd2a246c3b25b07ee8df7a93af",
+        "legacy_keys": [
+          "vesuvian"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/vivianite.pdf",
+        "sha256": "6ce3ea187c27072393379ac8ccf7e8408657a7de6d0f05e74ed7415f9b819fec",
+        "legacy_keys": [
+          "vivianite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/wollastonite.pdf",
+        "sha256": "5b2fd0e146f71c36d76390ebe6b3d1d39feb26cad1edfe33c27b79d7f5aeaf32",
+        "legacy_keys": [
+          "wollastonite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/wulfenite.pdf",
+        "sha256": "3590911dc9d6c79256bac5c0f876295aa733ca43aacb7d801253030b01e21547",
+        "legacy_keys": [
+          "wulfenite"
+        ]
+      },
+      {
+        "url": "https://www.handbookofmineralogy.org/pdfs/zircon.pdf",
+        "sha256": "492420c0271b712702c671070c26ccb6fe0ca894d34435f66ae2bf3e2bb305a6",
+        "legacy_keys": [
+          "zircon"
+        ]
+      }
+    ]
+  },
+  "counts": {
+    "ima_species": 6239,
+    "official_formulas_in_legacy_kb": 87,
+    "original_kb_labels": 105,
+    "handbook_links": 5366,
+    "physical_legacy_labels": 89,
+    "physical_unique_pdf_sources": 88,
+    "verified_label_fields": 477,
+    "physical_label_field_status_counts": {
+      "verified": 477,
+      "needs_review": 32,
+      "unavailable": 25
+    },
+    "catalog_physical_unique_ima_species": 85,
+    "catalog_unique_species_verified_fields": 457,
+    "catalog_unique_species_field_status_counts": {
+      "verified": 457,
+      "needs_review": 30,
+      "unavailable": 23
+    },
+    "crystal_records": 9895,
+    "crystal_species": 3430,
+    "image_references": 780,
+    "image_species": 130,
+    "training_ready_images": 0
+  },
+  "license_review": {
+    "ima": {
+      "license": "CC BY-SA 3.0 Unported",
+      "attribution_file": "data/licenses/ima-cnmnc-2026-09.txt",
+      "credits_sha256": "c538f33fa0b6e8feda42cac1c8842f7b27c3d51ee05ffb03cb1869252224a3e1"
+    },
+    "handbook": {
+      "citation": "John W. Anthony, Richard A. Bideaux, Kenneth W. Bladh, and Monte C. Nichols, Eds., Handbook of Mineralogy, Mineralogical Society of America.",
+      "permissions_url": "https://msaweb.org/copyright-permission-request-form/",
+      "scope": "Selected scientific facts and source links only; no open PDF/body-text redistribution license identified."
+    },
+    "amcsd": {
+      "scope": "晶胞测量数值、空间群、实验条件与书目元数据；不含论文正文、照片或原子坐标表",
+      "terms": "官方公开批量下载；事实测量数据保留原论文和 AMCSD 归属，未声称论文或图片可自由转载"
+    },
+    "images": {
+      "scope": "Metadata-only candidate references. Commons licenses remain per-file; RRUFF photo reuse permission remains unverified. No pixels copied or trained."
+    },
+    "live_primary_pages_checked": [
+      "https://handbookofmineralogy.org/",
+      "https://msaweb.org/copyright-permission-request-form/",
+      "https://www.rruff.net/about/download-data/"
+    ]
+  },
+  "limitations": [
+    "Original legacy formation, uses and unreplaced attributes are not newly verified.",
+    "Historical Handbook ranges, mixed crystal systems and directional hardness remain as reported.",
+    "Thirty-two uncertain cleavage fields and all unverified facts remain null.",
+    "Acquired files are date-specific; updating an original PDF hash requires another visual review.",
+    "No photograph quality review, training split, model retraining or accuracy validation is asserted.",
+    "License wording and attribution are checked; this report does not grant rights to reproduce complete source works."
+  ],
+  "anomaly_count": 0,
+  "passed": true
+}

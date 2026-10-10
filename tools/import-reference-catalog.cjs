@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const crypto = require('node:crypto');
-const root = path.resolve(__dirname,'../web');
+const root = path.resolve(__dirname,'..');
 const scratch = process.argv[2];
 if (!scratch) throw new Error('Usage: node tools/import-reference-catalog.cjs /path/to/reference-catalog');
 const read = name => JSON.parse(fs.readFileSync(path.join(scratch,name),'utf8'));

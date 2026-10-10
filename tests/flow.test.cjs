@@ -43,7 +43,7 @@ test('prepared reference metadata and attribution remain available after the cur
   const fs=require('node:fs'),vm=require('node:vm'),stored=new Map();
   const caches={open:async name=>{if(!stored.has(name))stored.set(name,new Map());const cache=stored.get(name);return {put:async(request,response)=>cache.set(typeof request==='string'?request:request.url,response),match:async request=>cache.get(typeof request==='string'?request:request.url),delete:async request=>cache.delete(typeof request==='string'?request:request.url)};},keys:async()=>[...stored.keys()],delete:async name=>stored.delete(name)};
   const f=fixture({register:async()=>({})});f.context.caches=caches;f.context.URL=URL;f.context.Request=Request;
-  f.context.fetch=async request=>typeof request==='string'?{ok:true,json:async()=>({models:[]})}:new Response('prepared '+new URL(request.url).pathname);
+  f.context.fetch=async request=>typeof request==='string'?(request.endsWith('reviewed-photo-assets.json')?new Response(JSON.stringify({schema_version:1,assets:[]})):{ok:true,json:async()=>({models:[]})}):new Response('prepared '+new URL(request.url).pathname);
   await f.click('offlineBtn');assert.match(f.node('offlineProgress').textContent,/离线资源已准备/);
   const events={},scope=f.context.location.href,worker={addEventListener:(type,fn)=>{events[type]=fn;},registration:{scope},clients:{claim(){}}};
   const WEB=fs.existsSync(require('node:path').join(__dirname,'../web/sw.js'))?'../web/':'../';
@@ -60,6 +60,6 @@ test('offline models use their complete identity URL and a corrupt exact cache e
   const entries=new Map([[identityURL,new Response(Buffer.from([9]))]]),matches=[],deleted=[],downloads=[];
   const cache={match:async request=>{matches.push(request.url);return entries.get(request.url)?.clone();},delete:async request=>{deleted.push(request.url);return entries.delete(request.url);},put:async(request,response)=>entries.set(request.url,response.clone())};
   const f=fixture({register:async()=>({}),engine:{prepare:async()=>manifest,modelResources:()=>[{...model,url:identityURL}]}});f.context.caches={open:async()=>cache};f.context.URL=URL;f.context.Request=Request;f.context.crypto=crypto.webcrypto;
-  f.context.fetch=async request=>{downloads.push(request.url);return new Response(request.url===identityURL?bytes:'static');};
+  f.context.fetch=async request=>{if(typeof request==='string'&&request.endsWith('reviewed-photo-assets.json'))return new Response(JSON.stringify({schema_version:1,assets:[]}));downloads.push(request.url);return new Response(request.url===identityURL?bytes:'static');};
   await f.click('offlineBtn');assert.match(f.node('offlineProgress').textContent,/离线资源已准备/);assert.deepEqual(matches,[identityURL]);assert.deepEqual(deleted,[identityURL]);assert.equal(downloads.filter(url=>url===identityURL).length,1);assert.deepEqual(Buffer.from(await entries.get(identityURL).arrayBuffer()),bytes);
 });

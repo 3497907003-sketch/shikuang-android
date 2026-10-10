@@ -3,7 +3,7 @@ const vm = require('node:vm');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const root = path.resolve(__dirname, '../web');
-for (const file of ['app.js','native-assets.js','core.js','inference.js','storage.js','sw.js','engine-worker.js','media.js','history.js','reference-loader.js','data/sources.js']) new vm.Script(fs.readFileSync(path.join(root,file),'utf8'), { filename:file });
+for (const file of ['app.js','native-assets.js','core.js','inference.js','storage.js','sw.js','engine-worker.js','media.js','history.js','reference-loader.js','gallery.js','data/sources.js']) new vm.Script(fs.readFileSync(path.join(root,file),'utf8'), { filename:file });
 const context = { window: {} };
 for (const file of ['classes','minerals','imagenet']) vm.runInNewContext(fs.readFileSync(path.join(root,`data/${file}.js`),'utf8'),context);
 const keys = Object.keys(context.window.MINERAL_CLASSES);
@@ -43,6 +43,16 @@ for(const row of catalog.minerals) for(const prop of Object.values(row.physical_
 }
 const images=JSON.parse(fs.readFileSync(path.join(root,'data/image-sources.json'),'utf8'));
 if(images.records.length!==images.stats.image_references||new Set(images.records.map(x=>x.id)).size!==images.records.length)throw new Error('Image count/ID mismatch');
-for(const row of images.records)if(row.training_ready!==false||!row.image_page_url?.startsWith('https://')||!row.original_image_url?.startsWith('https://')||!row.permission_status||!row.identification_evidence)throw new Error('Invalid image provenance: '+row.id);
-if(images.stats.training_ready!==0)throw new Error('Image training review has not been completed');
+const gallery=require('../web/gallery.js'),photos=gallery.validateAssets(JSON.parse(fs.readFileSync(path.join(root,'data/reviewed-photo-assets.json'),'utf8')));
+const local=images.records.filter(row=>row.local_image_url);
+if(images.stats.local_images!==local.length||local.length!==photos.length||images.stats.training_ready!==images.records.filter(row=>row.training_ready===true).length)throw new Error('Reviewed photo count mismatch');
+for(const row of images.records){
+  if(typeof row.training_ready!=='boolean'||!row.image_page_url?.startsWith('https://')||!row.original_image_url?.startsWith('https://')||!row.permission_status||!row.identification_evidence)throw new Error('Invalid image provenance: '+row.id);
+  if(row.local_image_url){
+    const value=gallery.asset(row),declared=photos.find(photo=>photo.path===value.path),review=row.review_evidence;
+    if(!declared||declared.bytes!==value.bytes||declared.sha256!==value.sha256||!review?.pixel_review_performed||!review.source_and_license_review_performed||!review.published_derivative_sha256_verified||row.identification_evidence.independently_verified!==false)throw new Error('Missing reviewed photo evidence: '+row.id);
+    const bytes=fs.readFileSync(path.join(root,value.path));if(bytes.length!==value.bytes||crypto.createHash('sha256').update(bytes).digest('hex')!==value.sha256||bytes[0]!==255||bytes[1]!==216)throw new Error('Reviewed photo checksum mismatch: '+row.id);
+    if(row.label_unit==='mineral_group'&&row.catalog_id)throw new Error('Mineral group cannot claim an exact species ID: '+row.id);
+  }else if(row.training_ready!==false)throw new Error('An unreviewed online source cannot become training-ready: '+row.id);
+}
 console.log(`Syntax, bounded model contract, ${keys.length} ordered labels, ${manifest.models.length} model sizes/checksums/graph metadata, ${catalog.count} reference species and ${recordCount} crystal records verified. Runtime compatibility and accuracy require separate execution tests.`);

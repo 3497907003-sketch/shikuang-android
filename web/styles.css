@@ -97,3 +97,8 @@ dialog{max-height:86vh;max-height:86dvh}
   .result-actions{grid-template-columns:minmax(0,1fr)}
   .evidence-summary>span:not(:last-child){margin-right:8px}
 }
+
+.reference-photo{margin:0 0 14px;padding:10px;border-radius:14px;background:#edf2f4}
+.reference-photo img{display:block;width:auto;max-width:100%;height:auto;max-height:340px;margin:0 auto;object-fit:contain;border-radius:8px}
+.reference-photo img[hidden]{display:none}
+.reference-photo p{margin:10px 0 0}

@@ -190,7 +190,7 @@ jobs:
         shell: bash
         run: |
           python3 - <<'PY'
-          import json
+          import hashlib, json
           from pathlib import Path
           folder = Path('runtime-artifacts/runtime-smoke')
           report = json.loads((folder / 'runtime-report.json').read_text())
@@ -198,6 +198,20 @@ jobs:
           reference = json.loads(Path('web/data/reference-manifest.json').read_text())
           images = json.loads(Path('web/data/image-sources.json').read_text())
           native = json.loads((folder / 'native-contract-runtime.json').read_text())
+          photo_manifest_bytes = Path('web/data/reviewed-photo-assets.json').read_bytes()
+          photo_manifest = json.loads(photo_manifest_bytes)
+          photo = json.loads((folder / 'reviewed-photo-runtime.json').read_text())
+          assert photo['phase'] == 'passed' and photo['sdk'] == ${{ matrix.api }} and photo['pageSize'] == ${{ matrix.pageSize }}
+          assert photo['packageName'] == 'com.shikuang.app.preview' and photo['versionCode'] == 25001 and photo['versionName'] == '2.5.0-preview.1'
+          assert photo['activeNetworkBefore'] is None and photo['activeNetworkAfter'] is None
+          assert photo['photoManifestSha256'] == hashlib.sha256(photo_manifest_bytes).hexdigest()
+          assert photo['photosDecoded'] == reference['counts']['local_reviewed_photos'] == len(photo_manifest['assets'])
+          assert photo['sourceRecords'] == reference['counts']['source_image_records'] == len(images['records'])
+          assert len(photo['photos']) == photo['photosDecoded']
+          expected_photos = {row['path']: (row['sha256'], row['bytes']) for row in photo_manifest['assets']}
+          assert {row['path']: (row['sha256'], row['bytes']) for row in photo['photos']} == expected_photos
+          assert all(row['actualNativeDecode'] is True and min(row['width'], row['height']) >= 224 and max(row['width'], row['height']) <= 512 for row in photo['photos'])
+          print(f"Verified {photo['photosDecoded']} exact packaged JPEGs with the genuine Android decoder while disconnected; no mineral-label or accuracy claim.")
           assert native['phase'] == 'passed' and native['runtimeVersion'] == '1.24.3'
           assert native['sdk'] == ${{ matrix.api }} and native['pageSize'] == ${{ matrix.pageSize }}
           assert {row['id']: row['sha256'] for row in native['graphs']} == {row['id']: row['sha256'] for row in manifest['models']}
@@ -226,6 +240,9 @@ jobs:
           assert report['phase'] == 'passed', report.get('phase')
           assert report['quartz']['engine'] == 'onnx-native-android'
           assert report['network']['native']['pageSize'] == ${{ matrix.pageSize }}
+          assert report['network']['native']['versionCode'] == 25001
+          assert report['network']['native']['versionName'] == '2.5.0-preview.1'
+          assert report['network']['native']['packageName'] == 'com.shikuang.app.preview'
           assert int(Path('runtime-artifacts/device-page-size.txt').read_text().strip()) == ${{ matrix.pageSize }}
           assert report['quartz']['modelCount'] == len(manifest['modes']['ensemble'])
           assert report['quartz']['modelVersion'] == manifest['version']
@@ -238,6 +255,21 @@ jobs:
           assert report['catalog']['imageReferences'] == len(images['records'])
           assert report['catalog']['localFetches'] == 1 + len(reference['files'])
           assert report['catalog']['online'] is False
+          assert report['initialReferenceRequests'] == []
+          quartz_sources = [row for row in images['records'] if row['mineral_name'] == 'Quartz' and row.get('local_image_url')]
+          assert 0 < len(report['galleryPhotos']) == len(report['galleryReopened']) == min(5, len(quartz_sources))
+          assert report['galleryRevokedCount'] == len(report['galleryPhotos'])
+          for index, row in enumerate(report['galleryPhotos']):
+              reopened = report['galleryReopened'][index]
+              assert row['decoded'] is True and row['complete'] is True and reopened['decoded'] is True
+              assert (row['sha256'], row['bytes']) == expected_photos[row['path']]
+              assert (reopened['sha256'], reopened['bytes']) == expected_photos[reopened['path']]
+              assert row['width'] > 0 and row['height'] > 0
+              assert reopened['blobUrl'] != row['blobUrl']
+              assert '?image=' + row['sha256'] in row['url']
+              assert row['sourceUrl'].startswith('https://') and row['licenseUrl'].startswith('https://')
+          assert len(report['catalogPhotoFetches']) >= len(report['galleryPhotos'])
+          assert all(row['local'] is True and row['status'] == 200 and '?image=' in row['url'] for row in report['catalogPhotoFetches'])
           for field in ('network', 'networkAfterCatalog'):
               assert report[field]['native']['activeNetwork'] is None
               assert report[field]['native']['connected'] is False

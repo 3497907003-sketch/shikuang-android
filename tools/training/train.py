@@ -486,6 +486,20 @@ def imagenet_feature_weights(weights, model):
     return {key: tensor for key, tensor in weights.items() if key not in head}, set(head)
 
 
+def configure_training_layers(model, head_names, *, head_only):
+    """Keep pretrained statistics fixed when fitting only the new classifier.
+
+    Call after model.train() every epoch; freezing gradients alone would still
+    overwrite BatchNorm statistics on a small source-labelled corpus.
+    """
+    for name, parameter in model.named_parameters():
+        parameter.requires_grad_(not head_only or name in head_names)
+    if head_only:
+        for layer in model.modules():
+            if isinstance(layer, nn.modules.batchnorm._BatchNorm):
+                layer.eval()
+
+
 def train(args):
     random.seed(args.seed); np.random.seed(args.seed); torch.manual_seed(args.seed)
     if not args.imagenet_source_url.startswith('https://'):
@@ -506,6 +520,11 @@ def train(args):
     mapping = model.load_state_dict(weights, strict=False)
     if mapping.unexpected_keys or set(mapping.missing_keys) != source_head:
         raise ValueError('Pretraining state does not match the requested ImageNet architecture')
+    if args.head_initialization == 'small-normal':
+        classifier = model.get_classifier()
+        nn.init.normal_(classifier.weight, std=0.01)
+        if classifier.bias is not None:
+            nn.init.zeros_(classifier.bias)
     model.to(device)
     train_loader = loader(rows['train'], labels, args, True)
     val_rows = evaluation_rows(rows['val'])
@@ -550,16 +569,14 @@ def train(args):
                   'training_audit_group_class_counts': dict(Counter(audit_group_labels.values())),
                   'hyperparameters': {'epochs': args.epochs, 'lr': args.lr, 'weight_decay': args.weight_decay,
                                       'dropout': args.dropout, 'label_smoothing': args.label_smoothing,
-                                      'augmentation': args.augmentation, 'warmup_epochs': args.warmup_epochs}}
+                                      'augmentation': args.augmentation, 'warmup_epochs': args.warmup_epochs,
+                                      'training_mode': args.training_mode, 'head_initialization': args.head_initialization}}
     print(json.dumps({'device': str(device), 'partitions': {s: {k: audit[s][k] for k in ('images', 'groups')} for s in rows}}, ensure_ascii=False), flush=True)
     for epoch in range(1, args.epochs + 1):
         started = time.monotonic(); model.train()
         warmup = epoch <= args.warmup_epochs
-        for name, parameter in model.named_parameters():
-            parameter.requires_grad_(not warmup or name in source_head)
-        if warmup:
-            for layer in model.modules():
-                if isinstance(layer, nn.modules.batchnorm._BatchNorm): layer.eval()
+        head_only = warmup or args.training_mode == 'linear-probe'
+        configure_training_layers(model, source_head, head_only=head_only)
         total, samples = 0.0, 0
         for images, truth, _ in train_loader:
             images, truth = images.to(device), truth.to(device)
@@ -586,7 +603,7 @@ def train(args):
         entry = {'epoch': epoch, 'train_loss': total / samples, 'validation_group_kappa': score,
                  'validation_group_accuracy': val_metrics['accuracy'], 'validation_group_macro_f1': val_metrics['macro_f1_all_labels'],
                  'train_audit_kappa': train_metrics['kappa'], 'train_validation_kappa_gap': gap,
-                 'seconds': time.monotonic() - started, 'warmup_only': warmup,
+                 'seconds': time.monotonic() - started, 'warmup_only': warmup, 'head_only': head_only,
                  'class_penalty_weights': class_weights.cpu().tolist()}
         history.append(entry)
         save_json(output.with_suffix('.history.json'), dict(provenance, history=history, device=str(device)))
@@ -793,6 +810,8 @@ def main():
     train_parser.add_argument('--backbone', default='efficientnet_b0')
     train_parser.add_argument('--epochs', type=int, default=30)
     train_parser.add_argument('--warmup-epochs', type=int, default=2)
+    train_parser.add_argument('--training-mode', choices=['finetune', 'linear-probe'], default='finetune')
+    train_parser.add_argument('--head-initialization', choices=['architecture-default', 'small-normal'], default='architecture-default')
     train_parser.add_argument('--lr', type=float, default=3e-4)
     train_parser.add_argument('--weight-decay', type=float, default=4e-4)
     train_parser.add_argument('--dropout', type=float, default=0.25)

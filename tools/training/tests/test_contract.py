@@ -32,6 +32,25 @@ def partitions():
 
 
 class PartitionTests(unittest.TestCase):
+    def test_linear_probe_keeps_pretrained_parameters_and_bn_statistics_frozen(self):
+        model = torch.nn.Sequential(torch.nn.Linear(4, 4), torch.nn.BatchNorm1d(4), torch.nn.Linear(4, 2))
+        model.train()
+        original_mean = model[1].running_mean.clone()
+        original_weights = model[0].weight.detach().clone()
+        training.configure_training_layers(model, {'2.weight', '2.bias'}, head_only=True)
+        optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+        optimizer.zero_grad()
+        torch.nn.functional.cross_entropy(model(torch.ones(3, 4)), torch.tensor([0, 1, 0])).backward()
+        optimizer.step()
+        self.assertTrue(torch.equal(model[0].weight, original_weights))
+        self.assertTrue(torch.equal(model[1].running_mean, original_mean))
+        self.assertIsNone(model[0].weight.grad)
+        self.assertIsNotNone(model[2].weight.grad)
+        model.train()
+        training.configure_training_layers(model, {'2.weight', '2.bias'}, head_only=False)
+        self.assertTrue(model[1].training)
+        self.assertTrue(all(parameter.requires_grad for parameter in model.parameters()))
+
     def test_group_ratios_count_groups_not_duplicate_angles(self):
         data = partitions()
         for rows in data.values():

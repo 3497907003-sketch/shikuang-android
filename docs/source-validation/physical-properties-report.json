@@ -1,0 +1,30 @@
+{
+  "count": 89,
+  "unique_pdf_count": 88,
+  "verified_count": 477,
+  "original_missing_entries_supplemented": 56,
+  "property_counts": {
+    "hardness": {
+      "verified": 89
+    },
+    "density_measured": {
+      "verified": 89
+    },
+    "crystal_system": {
+      "verified": 89
+    },
+    "cleavage": {
+      "verified": 51,
+      "needs_review": 32,
+      "unavailable": 6
+    },
+    "luster": {
+      "verified": 88,
+      "unavailable": 1
+    },
+    "streak": {
+      "verified": 71,
+      "unavailable": 18
+    }
+  }
+}

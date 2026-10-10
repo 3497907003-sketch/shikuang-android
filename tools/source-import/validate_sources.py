@@ -17,6 +17,7 @@ import subprocess
 import unicodedata
 from urllib.parse import urlsplit
 import zipfile
+from PIL import Image
 from annotate_crystal_systems import compile_annotations
 
 
@@ -152,10 +153,49 @@ def main():
     check('catalog_crystal_counts_match', [r['id'] for r in species.values() if r['crystal_record_count'] != len(crystals['by_species'].get(r['id'], []))])
 
     rows = images['records']
-    check('image_metadata_exact_to_acquired_import', [] if images == original_images else ['image metadata differs from original acquired import'])
-    check('image_counts_unique_ids_urls', [] if len(rows) == images['stats']['image_references'] == len({r['id'] for r in rows}) == len({r['original_image_url'] for r in rows}) == 780 and len({r['mineral_name'] for r in rows}) == 130 else ['image counts or unique IDs/URLs differ'])
-    check('image_species_use_official_names', [r['id'] for r in rows if normal(r['mineral_name']) not in by_name])
-    check('image_no_training_ready_claims', [r['id'] for r in rows if r['training_ready'] is not False or r['quality_review'] != 'not_performed_pixels_not_downloaded' or not r['training_blockers']])
+    old_rows = {r['id']: r for r in original_images['records']}
+    current_rows = {r['id']: r for r in rows}
+    local_rows = [r for r in rows if r.get('local_image_url')]
+    local_ids = {r['id'] for r in local_rows}
+    original_mismatch = []
+    for key, old in old_rows.items():
+        current = current_rows.get(key)
+        if current is None:
+            original_mismatch.append(key + ':missing')
+        elif key not in local_ids and current != old:
+            original_mismatch.append(key + ':unreviewed_metadata_changed')
+        elif key in local_ids and current.get('previous_source_record_sha256') != hashlib.sha256(json.dumps(old, ensure_ascii=False, sort_keys=True).encode()).hexdigest():
+            original_mismatch.append(key + ':reviewed_previous_source_snapshot_changed')
+    check('original_image_metadata_preserved_or_reviewed_incremental_snapshot', original_mismatch)
+    check('image_counts_unique_ids_urls', [] if len(rows) == images['stats']['image_references'] == len(current_rows) == len({r['original_image_url'] for r in rows}) and len({r['mineral_name'] for r in rows}) == images['stats']['distinct_source_names'] else ['image counts or unique IDs/URLs differ'])
+    check('image_species_use_official_names_or_explicit_unresolved_group', [r['id'] for r in rows if normal(r['mineral_name']) not in by_name and not (r.get('label_unit') == 'mineral_group' and r.get('catalog_id') is None)])
+    check('unreviewed_images_keep_pending_training_status', [r['id'] for r in rows if r['id'] not in local_ids and (r['training_ready'] is not False or r['quality_review'] != 'not_performed_pixels_not_downloaded' or not r['training_blockers'])])
+    assets = read(repo / 'data/reviewed-photo-assets.json')['assets']
+    assets_by_path = {r['path']: r for r in assets}
+    attribution = {r['id']: r for r in read(repo / 'data/licenses/reviewed-photo-attributions.json')['records']}
+    photo_failures = []
+    for row in local_rows:
+        path = row['local_image_url']
+        asset = assets_by_path.get(path)
+        local = repo / path
+        if not re.fullmatch(r'images/reviewed-v25/commons-\d+\.jpg', path) or not asset or not local.is_file():
+            photo_failures.append(row['id'] + ':missing_or_invalid_asset');continue
+        evidence = row.get('review_evidence', {})
+        required = ('pixel_review_performed', 'source_and_license_review_performed', 'download_provenance_verified', 'source_raw_sha256_verified', 'published_derivative_sha256_verified')
+        if row.get('training_ready') is not True or row.get('quality_review_status') != 'pixel_quality_pass' or row.get('source_review_status') != 'per_file_source_label_license_sha_verified' or not all(evidence.get(key) is True for key in required) or evidence.get('source_label_independently_analysed') is not False:
+            photo_failures.append(row['id'] + ':incomplete_review_or_false_analytical_claim')
+        if row.get('sha256') != row.get('crop_sha256') or row.get('sha256') != sha(local) or asset != {'path': path, 'bytes': local.stat().st_size, 'sha256': sha(local), 'source_asset_id': row['source_asset_id']} or row['bytes'] != local.stat().st_size:
+            photo_failures.append(row['id'] + ':published_hash_or_size_mismatch')
+        with Image.open(local) as photo:
+            if photo.format != 'JPEG' or min(photo.size) < 224 or list(photo.size) != [row['width'], row['height']]:
+                photo_failures.append(row['id'] + ':image_dimensions_or_format')
+        credit = attribution.get(row['id'], {})
+        if any(credit.get(key) != row.get(key) for key in ('author', 'license', 'license_url', 'image_page_url', 'sha256', 'modifications')):
+            photo_failures.append(row['id'] + ':license_attribution_mismatch')
+        if not all(re.fullmatch(r'[0-9a-f]{64}', row.get(key, '')) for key in ('source_file_sha256', 'crop_sha256')) or not re.fullmatch(r'[0-9a-f]{40}', row.get('source_original_sha1', '')):
+            photo_failures.append(row['id'] + ':source_hash_missing')
+    check('reviewed_local_photos_source_license_pixels_and_hashes', photo_failures)
+    check('reviewed_photo_counts_and_unique_groups_per_label', [] if len(local_rows) == images['stats']['local_images'] == images['stats']['training_ready'] == len(assets) == len(attribution) and len({r['sha256'] for r in local_rows}) == len(local_rows) else ['local photo count or exact-byte duplicate mismatch'])
     check('image_urls_are_official_https', [r['id'] for r in rows if urlsplit(r['original_image_url']).scheme != 'https' or urlsplit(r['original_image_url']).hostname not in {'www.rruff.net', 'upload.wikimedia.org'}])
     check('commons_individual_author_license_metadata', [r['id'] for r in rows if r['source'] == 'Wikimedia Commons' and (not r['author'] or not r['license'] or not r['permission_evidence_url'])])
     check('rruff_permissions_not_invented', [r['id'] for r in rows if r['source'] == 'RRUFF' and (r['license'] is not None or r['author'] is not None or r['permission_status'] != 'unverified_photo_reuse_permission' or not r['sample_id'])])
@@ -170,8 +210,8 @@ def main():
     catalog_physical_counts = Counter(p['status'] for r in catalog_physical for p in r['physical_properties'].values())
     report['counts'] = {'ima_species': len(species), 'official_formulas_in_legacy_kb': len(legacy_formulas), 'original_kb_labels': len(kb), 'handbook_links': sum(bool(r.get('handbook_url')) for r in species.values()), 'physical_legacy_labels': len(physical['records']), 'physical_unique_pdf_sources': len(physical_sources), 'verified_label_fields': physical_fields['verified'], 'physical_label_field_status_counts': dict(physical_fields), 'catalog_physical_unique_ima_species': len(catalog_physical), 'catalog_unique_species_verified_fields': catalog_physical_counts['verified'], 'catalog_unique_species_field_status_counts': dict(catalog_physical_counts), 'crystal_records': len(crystal_rows), 'crystal_species': len(crystals['by_species']), 'image_references': len(rows), 'image_species': len({r['mineral_name'] for r in rows}), 'training_ready_images': sum(r['training_ready'] for r in rows)}
     report['original_sources'] = {'ima_pdf': {'file': pdf.name, 'sha256': sha(pdf), 'url': catalog['source']['url']}, 'amcsd_zip': {'file': archive.name, 'sha256': sha(archive), 'url': crystals['source']['download_url']}, 'handbook_pdfs': sorted(physical_sources.values(), key=lambda r: r['url'])}
-    report['license_review'] = {'ima': {'license': catalog['source']['license'], 'attribution_file': 'data/licenses/ima-cnmnc-2026-09.txt', 'credits_sha256': sha(repo / 'data/licenses/ima-cnmnc-2026-09.txt')}, 'handbook': {'citation': physical['source']['citation'], 'permissions_url': physical['source']['permissions_url'], 'scope': 'Selected scientific facts and source links only; no open PDF/body-text redistribution license identified.'}, 'amcsd': {'scope': crystals['source']['scope'], 'terms': crystals['source']['terms']}, 'images': {'scope': 'Metadata-only candidate references. Commons licenses remain per-file; RRUFF photo reuse permission remains unverified. No pixels copied or trained.'}, 'live_primary_pages_checked': ['https://handbookofmineralogy.org/', 'https://msaweb.org/copyright-permission-request-form/', 'https://www.rruff.net/about/download-data/']}
-    report['limitations'] = ['Original legacy formation, uses and unreplaced attributes are not newly verified.', 'Historical Handbook ranges, mixed crystal systems and directional hardness remain as reported.', 'Thirty-two uncertain cleavage fields and all unverified facts remain null.', 'Acquired files are date-specific; updating an original PDF hash requires another visual review.', 'No photograph quality review, training split, model retraining or accuracy validation is asserted.', 'License wording and attribution are checked; this report does not grant rights to reproduce complete source works.']
+    report['license_review'] = {'ima': {'license': catalog['source']['license'], 'attribution_file': 'data/licenses/ima-cnmnc-2026-09.txt', 'credits_sha256': sha(repo / 'data/licenses/ima-cnmnc-2026-09.txt')}, 'handbook': {'citation': physical['source']['citation'], 'permissions_url': physical['source']['permissions_url'], 'scope': 'Selected scientific facts and source links only; no open PDF/body-text redistribution license identified.'}, 'amcsd': {'scope': crystals['source']['scope'], 'terms': crystals['source']['terms']}, 'images': {'scope': 'Original pending references plus individually licensed, source/pixel/hash-reviewed local Commons photographs. RRUFF photo reuse permission remains unverified. Gallery inclusion does not assert model training or independent analytical identity.'}, 'live_primary_pages_checked': ['https://handbookofmineralogy.org/', 'https://msaweb.org/copyright-permission-request-form/', 'https://www.rruff.net/about/download-data/']}
+    report['limitations'] = ['Original legacy formation, uses and unreplaced attributes are not newly verified.', 'Historical Handbook ranges, mixed crystal systems and directional hardness remain as reported.', 'Thirty-two uncertain cleavage fields and all unverified facts remain null.', 'Acquired files are date-specific; updating an original PDF hash requires another visual review.', 'Recorded source/pixel review and public photo bytes are checked; training splits, released weights, independent analytical identity and accuracy are not certified by this data audit.', 'License wording and attribution are checked; this report does not grant rights to reproduce complete source works.']
     report['anomaly_count'] = sum(v['count'] for v in report['anomalies'].values())
     report['passed'] = report['anomaly_count'] == 0
     args.output.parent.mkdir(parents=True, exist_ok=True)

@@ -10,7 +10,7 @@
   function checkBackupSize(value) {
     const bytes = typeof value === 'number' ? value : typeof value === 'string' ? new TextEncoder().encode(value).byteLength : NaN;
     if (!Number.isFinite(bytes) || bytes < 0) throw new Error('备份文件大小无效');
-    if (bytes > BACKUP_LIMIT_BYTES) throw new Error('备份文件超过 100 MB，请选择完整的识矿 2.0 备份文件');
+    if (bytes > BACKUP_LIMIT_BYTES) throw new Error('备份文件超过 100 MB，请选择完整的识矿标本备份文件');
     return bytes;
   }
   function softmax(values) {
@@ -252,7 +252,7 @@
   function parseImport(text) {
     checkBackupSize(text);
     const data = JSON.parse(text);
-    if (data?.schema !== 'shikuang-records' || data.version !== 2 || !Array.isArray(data.records) || data.records.length > 100) throw new Error('请选择识矿 2.0 导出的标本文件（最多 100 条）');
+    if (data?.schema !== 'shikuang-records' || data.version !== 2 || !Array.isArray(data.records) || data.records.length > 100) throw new Error('请选择识矿导出的标本文件（最多 100 条）');
     const records = data.records.map(sanitizeRecord);
     if (new Set(records.map(r => r.id)).size !== records.length) throw new Error('导入文件包含重复记录编号');
     return records;

@@ -23,6 +23,7 @@ test('build follows the active two-classifier manifest, excludes unused legacy f
     const data=fixture();data.manifest.models[0].path='models/mobilenet.onnx';
     for(const model of data.manifest.models){const bytes=graph(model.classes);model.bytes=bytes.length;model.sha256=hash(bytes);writeSource(model.path,bytes);}
     writeSource('models/mobilenet_int8.onnx','unused old weight');writeSource('models/efficientnet_legacy.onnx','unused old weight');write('dist/models/orphan.onnx','stale package');
+    writeSource('gallery.js',fs.readFileSync(require.resolve(WEB+'gallery.js')));writeSource('data/reviewed-photo-assets.json',JSON.stringify({schema_version:1,assets:[]}));writeSource('data/image-sources.json',JSON.stringify({schema_version:1,records:[]}));
     writeSource('data/classes.js','window.MINERAL_CLASSES='+JSON.stringify(Object.fromEntries(data.manifest.labels.map(x=>[x,x]))));
     writeSource('model-manifest.json',JSON.stringify(data.manifest));writeSource('core.js',fs.readFileSync(require.resolve(WEB+'core.js')));write('tools/onnx-contract.cjs',fs.readFileSync(require.resolve('../tools/onnx-contract.cjs')));write('tools/build.cjs',build);
     const run=()=>spawnSync(process.execPath,['tools/build.cjs'],{cwd:dir,encoding:'utf8'});

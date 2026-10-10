@@ -13,7 +13,7 @@ def main():
     parser.add_argument('csv', type=Path)
     parser.add_argument('--out', required=True, type=Path)
     args = parser.parse_args()
-    root = Path(__file__).resolve().parent.parent / 'web'
+    root = Path(__file__).resolve().parent.parent / "web"
     manifest_bytes = (root / 'model-manifest.json').read_bytes()
     manifest = json.loads(manifest_bytes)
     manifest_hash = hashlib.sha256(manifest_bytes).hexdigest()

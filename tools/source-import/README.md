@@ -6,7 +6,7 @@
 python3 -m pip install -r tools/source-import/requirements.txt
 ```
 
-原始 PDF、ZIP、页面渲染图与缓存应放在仓库外的私人工作目录，不随 App 发布。下面的 `/path/to/` 是需要替换的路径，脚本中没有开发者目录。官方公开下载仍须遵守来源条款；本目录没有提供书籍全文或照片再利用许可。
+原始 PDF、ZIP、页面渲染图与缓存应放在仓库外的私人工作目录，不随 App 发布。下面的 `/path/to/` 是需要替换的路径，脚本中没有开发者目录。官方公开下载仍须遵守来源条款；本目录没有提供书籍全文或通用照片再利用许可；新本地图只使用逐文件明确许可。
 
 ## IMA-CNMNC 七列名录
 
@@ -77,6 +77,22 @@ python3 tools/source-import/validate_sources.py \
   --output /path/to/output/source-validation.json
 ```
 
-全量检查 6,239 条七列数据及 Unicode/HTML 化学式、87 个原标签的官方公式、89 个物性标签、全部 9,895 条晶胞测量与原 ZIP 的一致性、780 条图片元数据的出处/状态、源文件及发布清单 SHA-256 和 IMA 署名文本。两个 `--re-extracted-*` 参数用于检查当次完整复跑一致性；省略时不报告该项已完成。
+全量检查 6,239 条七列数据及 Unicode/HTML 化学式、87 个原标签的官方公式、89 个物性标签、全部 9,895 条晶胞测量与原 ZIP 的一致性、原780条出处的保留与117个已审核本地图的逐文件来源/许可/像素/哈希状态、源文件及发布清单 SHA-256 和 IMA 署名文本。两个 `--re-extracted-*` 参数用于检查当次完整复跑一致性；省略时不报告该项已完成。
 
 摘要含数量、原文件哈希、核验项与异常数，不含原 PDF、ZIP 文本、图片、Cookie 或凭据。返回码 0 表示这些一致性检查通过，1 表示存在异常。它不能代替照片许可裁定、像素质量检查、现场识别测试或模型准确率验证。
+
+## 已审核真实参考照片出版
+
+`publish_reviewed_reference_photos.py`读取已经完成逐图版权、来源、真实像素和跨批分组审核的登记，重新校验源下载/导图字节，最多选择每标签3个不同来源组。默认只输出独立提案；`--publish-to-app`才合并同source ID出处、复制原导图字节、输出逐图许可和审计、更新图片JSON的reference-manifest哈希。它不修改模型或冻结train/val/test，不能把来源标签当独立化验真值。输入registry包含真实坐标、SHA和review_evidence，未审核候选不可直接传入当准入图。
+
+```sh
+python3 tools/source-import/publish_reviewed_reference_photos.py \
+  --dataset /path/to/private/reviewed-dataset \
+  --registry /path/to/private/grouped-registry.jsonl \
+  --proof-root /path/to/private/audit-project \
+  --kb data/minerals.js --catalog data/catalog.json \
+  --existing-image-sources data/image-sources.json --existing-assets-root . \
+  --output /path/to/new-gallery-proposal --publish-to-app .
+```
+
+公开照片清单为 `data/reviewed-photo-assets.json`，每项path/bytes/sha256/source_asset_id；`data/licenses/reviewed-photos-v25.txt`与`reviewed-photo-attributions.json`保留作者、许可证、原页与裁切/缩放说明。2026-10-11版本117图/53原标签并不等于53个物种：Tetrahedrite仅有旧来源群名，不硬配现代Fe/Zn等后缀种；变种/群/集合体在schema中单列。

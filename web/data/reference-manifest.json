@@ -7,7 +7,10 @@
     "handbook_links": 5366,
     "archive_records": 21503,
     "matched_records": 9895,
-    "species_with_records": 3430
+    "species_with_records": 3430,
+    "source_image_records": 871,
+    "local_reviewed_photos": 117,
+    "local_reference_exact_ima_species": 52
   },
   "files": [
     {
@@ -22,8 +25,8 @@
     },
     {
       "path": "data/image-sources.json",
-      "bytes": 1608654,
-      "sha256": "36917c4750fefe9435020426502c2b321ac961b056654508f1e54c790b4b6515"
+      "bytes": 2038948,
+      "sha256": "7895e0cc81769658fdcbc3067cab1181292cda23f405e7c7acf7a3d295f7fef6"
     }
   ]
 }

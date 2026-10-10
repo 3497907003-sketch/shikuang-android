@@ -1,0 +1,38 @@
+{
+  "schema": "shikuang-legacy-data-audit-v1",
+  "audited_at": "2026-10-10",
+  "audit_source_sha256": "00cefdcbf71b25904e12a108026d18bcfa78a627b6e4142ac178b1f3fd875453",
+  "images": 20896,
+  "image_labels": 98,
+  "old_split_counts": {
+    "train": 16679,
+    "val": 2085,
+    "test": 2132
+  },
+  "exact_duplicate_extra_copies": 11433,
+  "cross_label_conflict_groups": 16,
+  "cross_label_conflict_images": 42,
+  "exact_training_leakage": {
+    "val": {
+      "total": 2085,
+      "also_train_identical_pixels": 1601,
+      "fraction": 0.7678657074340528,
+      "unique_decoded_images": 1930,
+      "nonleaking_unique_images": 440
+    },
+    "test": {
+      "total": 2132,
+      "also_train_identical_pixels": 1664,
+      "fraction": 0.7804878048780488,
+      "unique_decoded_images": 1966,
+      "nonleaking_unique_images": 432
+    }
+  },
+  "retained_physical_specimen_ids": 0,
+  "legacy_kappa_arithmetic_verified": true,
+  "legacy_test_suitable_as_blind_validation": false,
+  "publication_scope": "Diagnostic evidence only. Original image bytes were audited. Near duplicates and true specimen overlap may be greater; this report does not measure new-model or laboratory accuracy.",
+  "new_kappa": null,
+  "target_kappa": 0.95,
+  "training_target_verified": false
+}

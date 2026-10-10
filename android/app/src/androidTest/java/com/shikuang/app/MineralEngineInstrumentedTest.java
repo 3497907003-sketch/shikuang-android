@@ -82,6 +82,10 @@ public class MineralEngineInstrumentedTest {
                 value.set(new JSONObject()
                     .put("sdk", Build.VERSION.SDK_INT)
                     .put("pageSize", pageSize)
+                    .put("deviceAbi", Build.SUPPORTED_ABIS[0])
+                    .put("packageName", activity.getPackageName())
+                    .put("versionName", BuildConfig.VERSION_NAME)
+                    .put("versionCode", BuildConfig.VERSION_CODE)
                     .put("supportedAbis", new JSONArray(java.util.Arrays.asList(Build.SUPPORTED_ABIS)))
                     .put("activeNetwork", active == null ? JSONObject.NULL : active.toString())
                     .put("connected", info != null && info.isConnected())
@@ -283,17 +287,38 @@ public class MineralEngineInstrumentedTest {
         fail("Timed out waiting for " + description + ": " + evaluate("document.getElementById('catalogLoadState')?.textContent || 'No catalog UI'"));
     }
 
+    private JSONArray checkDecodedGalleryPhotos(int expected, String field) throws Exception {
+        awaitUi("document.querySelectorAll('#imageRecords img').length==="+expected+" && [...document.querySelectorAll('#imageRecords img')].every(i=>!i.hidden && i.complete && i.naturalWidth>0 && i.naturalWidth===Number(i.getAttribute('width')) && i.naturalHeight===Number(i.getAttribute('height')))",
+            "genuine offline gallery JPEGs to decode", 30000);
+        evaluate(script(
+            "(async()=>{const s=window.__shikuangRuntimeSmoke;try{const photos=[];",
+            " for(const image of document.querySelectorAll('#imageRecords img')){const record=MINERAL_IMAGE_SOURCES.records.find(row=>'gallery-image-'+row.id===image.id),blob=image.currentSrc||image.src;if(!record||!blob.startsWith('blob:'))throw Error('Gallery does not display the source-bound blob');",
+            " const asset=MineralGallery.asset(record),response=await fetch(blob),bytes=await MineralCore.readResource(response,1048576,asset.bytes,undefined,{timeout:15000}),sha256=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),b=>b.toString(16).padStart(2,'0')).join('');",
+            " if(sha256!==asset.sha256||image.naturalWidth!==record.width||image.naturalHeight!==record.height)throw Error('Displayed photo SHA or decoded dimensions differ from source');",
+            " photos.push({id:record.id,path:asset.path,url:MineralGallery.url(asset,location.href),blobUrl:blob,sha256,bytes:bytes.length,width:image.naturalWidth,height:image.naturalHeight,complete:image.complete,decoded:true,sourceUrl:record.image_page_url,licenseUrl:record.license_url});}",
+            " s["+JSONObject.quote(field)+"]=photos;s.phase="+JSONObject.quote(field+"-passed")+";",
+            " }catch(e){s.phase='failed';s.failure=String(e);}})();"
+        ));
+        JSONArray photos = awaitPhase(field+"-passed",30000).getJSONArray(field);
+        assertEquals(expected,photos.length());
+        for(int i=0;i<photos.length();i++)assertTrue(photos.getJSONObject(i).getBoolean("decoded"));
+        return photos;
+    }
+
     /** Exercise the real lazy loader, SHA-256 checks, searches and detail dialogs while disconnected. */
     private void checkOfflineReferenceCatalog() throws Exception {
         JSONObject reference = bundledJson("data/reference-manifest.json"),counts=reference.getJSONObject("counts");
         int species = counts.getInt("ima_species"),crystals=counts.getInt("species_with_records");
         int images = bundledJson("data/image-sources.json").getJSONArray("records").length();
+        JSONArray photoAssets = bundledJson("data/reviewed-photo-assets.json").getJSONArray("assets");
+        assertEquals(counts.getInt("source_image_records"),images);
+        assertEquals(counts.getInt("local_reviewed_photos"),photoAssets.length());
         assertEquals("Reference collection should not delay mineral inference", "idle",
             evaluate("window.MineralReference?.status"));
         evaluate(script(
-            "(() => {const s=window.__shikuangRuntimeSmoke;s.phase='library-loading';s.catalogFetches=[];",
+            "(() => {const s=window.__shikuangRuntimeSmoke;s.phase='library-loading';s.catalogFetches=[];s.catalogPhotoFetches=[];",
             " const realFetch=window.fetch.bind(window);",
-            " window.fetch=async(...args)=>{const response=await realFetch(...args);const url=new URL(args[0] instanceof Request?args[0].url:String(args[0]),location.href);if(/\\/data\\/(reference-manifest|catalog|crystals|image-sources)\\.json$/.test(url.pathname))s.catalogFetches.push({path:url.pathname,url:url.href,status:response.status,type:response.headers.get('content-type'),local:url.origin===location.origin});return response;};",
+            " window.fetch=async(...args)=>{const response=await realFetch(...args);const url=new URL(args[0] instanceof Request?args[0].url:String(args[0]),location.href);if(/\\/data\\/(reference-manifest|catalog|crystals|image-sources)\\.json$/.test(url.pathname))s.catalogFetches.push({path:url.pathname,url:url.href,status:response.status,type:response.headers.get('content-type'),local:url.origin===location.origin});if(/\\/images\\/reviewed-v25\\/commons-\\d+\\.jpg$/.test(url.pathname))s.catalogPhotoFetches.push({path:url.pathname,url:url.href,status:response.status,local:url.origin===location.origin});return response;};",
             " document.querySelector('[data-view=library]').click();})()"
         ));
         awaitUi("window.MineralReference?.status==='ready' && document.getElementById('catalogLoadState').textContent.includes('" + species + "')",
@@ -307,6 +332,7 @@ public class MineralEngineInstrumentedTest {
         assertEquals(reference.getJSONArray("files").length(), catalog.getInt("completed"));
         assertEquals(80, catalog.getInt("cardsShown"));
         assertFalse("Catalog must load while WebView detects unavailable networking", catalog.getBoolean("online"));
+        assertEquals("Opening the catalogue must not eagerly fetch specimen photos",0,state().getJSONArray("catalogPhotoFetches").length());
         assertTrue(catalog.getString("intro").contains(String.valueOf(images)));
         assertTrue(catalog.getString("intro").contains(String.valueOf(crystals)));
         JSONArray fetches = state().getJSONArray("catalogFetches");
@@ -329,6 +355,7 @@ public class MineralEngineInstrumentedTest {
         assertTrue(evaluate("document.getElementById('crystalRecords').textContent").contains("空间群"));
         assertEquals("5", evaluate("document.querySelectorAll('#crystalRecords .crystal-record').length"));
         evaluate("document.getElementById('detailDialog').scrollTop=0;");
+        assertEquals("Opening mineral facts must not fetch the closed photo section",0,state().getJSONArray("catalogPhotoFetches").length());
         screenshot("quartz-reference-details.png", "#detailTitle");
         evaluate(script(
             "document.querySelector('#detailBody .image-section').open=true;",
@@ -338,9 +365,30 @@ public class MineralEngineInstrumentedTest {
         JSONObject quartzReference = state().getJSONObject("quartzReference");
         assertTrue("Packaged Quartz image-source metadata must be present", quartzReference.getInt("imageRecordsTotal") > 0);
         assertEquals(Math.min(5, quartzReference.getInt("imageRecordsTotal")), quartzReference.getInt("imageRecordsShown"));
-        assertTrue(evaluate("document.getElementById('imageRecords').textContent").contains("尚未通过训练审核"));
-        assertEquals("0", evaluate("document.querySelectorAll('#imageRecords img').length"));
-        screenshot("quartz-image-references.png", "#imageRecords");
+        assertTrue(evaluate("document.getElementById('imageRecords').textContent").contains("不代表随包模型已训练本照片"));
+        int quartzPhotoCount=Integer.parseInt(evaluate("Math.min(5,MINERAL_IMAGE_SOURCES.records.filter(row=>row.mineral_name==='Quartz'&&row.local_image_url).length)"));
+        assertTrue("Reviewed Quartz reference photos must be included",quartzPhotoCount>0);
+        JSONArray gallery = checkDecodedGalleryPhotos(quartzPhotoCount,"galleryPhotos");
+        evaluate("document.querySelector('#imageRecords .reference-photo').scrollIntoView({block:'start',behavior:'instant'});");
+        screenshot("quartz-image-references.png", "#imageRecords .reference-photo img");
+        evaluate("document.getElementById('closeDetail').click();");
+        evaluate(script(
+            "(async()=>{const s=window.__shikuangRuntimeSmoke;try{await new Promise(resolve=>setTimeout(resolve,250));let revoked=0;",
+            " for(const photo of s.galleryPhotos){let stillReadable=false;try{await fetch(photo.blobUrl);stillReadable=true;}catch(_){revoked++;}if(stillReadable)throw Error('Gallery blob survived dialog close');}",
+            " s.galleryRevokedCount=revoked;s.phase='gallery-released';}catch(e){s.phase='failed';s.failure=String(e);}})();"
+        ));
+        assertEquals(gallery.length(),awaitPhase("gallery-released",10000).getInt("galleryRevokedCount"));
+        evaluate("document.querySelector('#libraryList [data-detail=quartz]').click();");
+        awaitUi("document.getElementById('detailDialog').open && document.getElementById('detailTitle').textContent==='石英'", "Quartz gallery reopen", 10000);
+        evaluate("document.querySelector('#detailBody .image-section').open=true;");
+        JSONArray reopened = checkDecodedGalleryPhotos(quartzPhotoCount,"galleryReopened");
+        for(int i=0;i<reopened.length();i++)assertNotEquals(gallery.getJSONObject(i).getString("blobUrl"),reopened.getJSONObject(i).getString("blobUrl"));
+        JSONArray photoFetches=state().getJSONArray("catalogPhotoFetches");
+        for(int i=0;i<photoFetches.length();i++){
+            JSONObject request=photoFetches.getJSONObject(i);
+            assertTrue("Photo request left packaged origin",request.getBoolean("local"));assertEquals(200,request.getInt("status"));
+            assertTrue("Photo request is missing SHA identity",request.getString("url").matches(".*[?&]image=[a-f0-9]{64}.*"));
+        }
         evaluate("document.getElementById('closeDetail').click();const rareSearch=document.getElementById('librarySearch');rareSearch.value='Abellaite';rareSearch.dispatchEvent(new Event('input',{bubbles:true}));");
         awaitUi("document.querySelector('#libraryList [data-detail=\"catalog:ima-abellaite\"]')", "Abellaite search card", 10000);
         evaluate("document.querySelector('#libraryList [data-detail=\"catalog:ima-abellaite\"]').click();");
@@ -446,6 +494,7 @@ public class MineralEngineInstrumentedTest {
             evaluate(script(
                 "window.__shikuangRuntimeSmoke={phase:'started',logs:[],errors:[],origin:location.origin,online:navigator.onLine,userAgent:navigator.userAgent,secureContext:isSecureContext,wasm:typeof WebAssembly,labels:Object.keys(MINERAL_CLASSES).length};",
                 "const smoke=window.__shikuangRuntimeSmoke;",
+                "smoke.initialReferenceRequests=performance.getEntriesByType('resource').filter(row=>/\\/data\\/(catalog|crystals|image-sources)\\.json(?:[?#]|$)|\\/images\\/reviewed-v25\\//.test(row.name)).map(row=>row.name);",
                 "const log=(kind,value)=>{smoke.logs.push({kind,value:String(value)});if(smoke.logs.length>60)smoke.logs.shift();};",
                 "addEventListener('error',e=>smoke.errors.push({message:e.message,file:e.filename,line:e.lineno,column:e.colno}));",
                 "addEventListener('unhandledrejection',e=>smoke.errors.push({rejection:String(e.reason)}));",
@@ -464,6 +513,7 @@ public class MineralEngineInstrumentedTest {
                 " }catch(e){smoke.phase='failed';smoke.failure=String(e);}})();"
             ));
             JSONObject resources = awaitPhase("resources", 60000);
+            assertEquals("Startup must not fetch the large reference JSON or specimen photos",0,resources.getJSONArray("initialReferenceRequests").length());
             JSONObject contract = resources.getJSONObject("modelContract");
             assertEquals(bundledJson("model-manifest.json").getJSONArray("labels").length(),resources.getInt("labels"));
             assertEquals(contract.getInt("labels"),resources.getInt("labels"));
