@@ -1,0 +1,286 @@
+{
+  "reviewed_at": "2026-10-10",
+  "review_method": "Visual reading of 15 contact sheets for all sources; additional full-page review for Chromite/Magnetite scans. Manual overrides represent only the requested scientific facts visibly present in the official original PDF.",
+  "reviewed_source_hashes": {
+    "actinolite": "8c008e014f2bf45fee4c936eaa7f2bd746f0b6aac140db41c6ca0ad2b35c8d53",
+    "aegirine": "4afa8b5836aa52045a11cf9665c6725d44e4c5c334db5593e1494fc3e70a2e24",
+    "albite": "5732f5da9f88cc505c2f032729dbd641a71a5faec124731877aba78b854a688b",
+    "almandine": "75a808d5015e1c6dcdd94ac1e0d2e8d5defe349ff4afccac2ec2c4a0020c9d8c",
+    "analcim": "d22afc99d107f9caed29ee45eeb615677f98b3deaa7f5679c9056fe9ad43bdc8",
+    "andalusite": "26f6048863f8ec172b5d60a097cbede178843e7a0a441bca519a1d4ecad35435",
+    "andradite": "61504fd67164c6c28aceff137da10ea5ca1f5fe8496966f9aa688f3520ad5f73",
+    "antimonite": "9e8deed840647c0f554e9bfeefb9c48dc9a407eb94e26f62db837523dcd920ec",
+    "aragonite": "ed2c4e9c023838281f838bbc483922f0d6626eceb267d936244abaf14ee99184",
+    "arsenic": "49c5f17fe83cf346fac98cdd5a35554d9af7110768664781530bc62eb3964937",
+    "arsenopyrite": "4b28e764a7f23e1cc74d2c2aa2455a4d8a92c91eff2a865e2f109db0babe3509",
+    "augite": "54db86e5ca3348d2a4ab3b66aad1bdd0311203c0ebb276cb9f26edd9658b1894",
+    "azurite": "790565c74eb83ef9330179375f2ac3d185919640ba64261926741b7a09d4319a",
+    "barite": "b9cfef5a68974832b739dcbf8480924b840a70077a232ef9e92b9bb9d01b6009",
+    "beryl": "2f624de70655dcbbabae2c9e3da96a27759617f70e78879752fdabebb566e0ca",
+    "bismuth": "996431afe93bb2f48b6dd8fdbb4d18f919097e94ba695e748ed095941bc2c1dd",
+    "bournonite": "c9f4ef916efdcdc9706f1ab6af6ea3df600fb901af054cf8ae288cd4137b89f9",
+    "calcite": "84e244ab0fc205558685a97b27e962eca5cddc44e9619e5208a91099cc093a67",
+    "cancrinit": "2046236868b32663f6d4461846f1f97d1d84422a29901518a962f752a515115c",
+    "cassiterite": "3c626e73fb0065fd19cb53b014c6b331e56b79f274ad7b9fb897e60644bfb768",
+    "celestine": "3b98ca4a5d71cf22b2746949d3ac6261d7433cdeb4fec108a19aab95be3830b2",
+    "cerussite": "c2fcc6049ef72f2b504cb8f06bc0653afcdf18c6fd350f6dc04b62565510ca5b",
+    "chalcopyrite": "a1bd89be4d83657f6d4093c8cda143a860eb1f2eb52f6a445ebb763269564c7c",
+    "chromite": "dd36fd02136edffae24f286cf666621df3edbb93948f6c654693cc75e5e37214",
+    "chrysoberyl": "c390097d7b513acdb1beb4ca6f1c7641eb7916f8107599770d25613ebf2881e1",
+    "cinnabar": "d4fbdcded67d455015b034e7141db8ca13a9f62b5f793f02212b86b5b1a59f23",
+    "cobaltin": "58c44e56047ad15e55675f42c9c31ab310e52d37dbea4cabc0a0af0fbd8a3909",
+    "copper": "2d4e8d5e4f4d65bed89360f97baba53fd65ca2eb84ba65d894b22cf922e83136",
+    "corundum": "82534bfdab90a7610e32febf73438be0c776b9812ddd4d175ca6a72e3d1f80dd",
+    "credit": "9d75343238248dc7e98675d4b4e3b148fd00c5684a537696c40a2d15f4da8f53",
+    "cuprite": "0c997255b34d37b24ed561941d7d732c614bff942d07ba3a7b778681bec78466",
+    "diopside": "8588ef216e58bd94742c0dbea25822ca08be5b088f5649a4550d80ad7ee3a6fd",
+    "dioptase": "85b0766b741892a31fab28dc2a72a2883bf696bd24a67a71d0045a9010e3a7d0",
+    "dolomite": "8bdc0dcd52f6067111c152988f16b96a6bccd3e025b302d451035ec1d43853ad",
+    "elbait": "14e880157679bf30da411b87d5053d44e9596a1b10bbaba173ded112ac0403b0",
+    "elbaite": "14e880157679bf30da411b87d5053d44e9596a1b10bbaba173ded112ac0403b0",
+    "epidote": "52d66c2bd257d296f1e45355d4e92a53c8cfd79528d601ed80d6e759c76b1185",
+    "eudialyte": "eeb10e72fbfbebfd81d61fb197ca83a0578abc40b79607064569a3a4bdf56f41",
+    "fluorapatite": "32bb586c37a7b0904cde6308de998de75c6e06f2db870197564e549d70cce360",
+    "fluorite": "a27ebb33934a0c4eff8dd9f3667a06b1eecd120a5ce3a2d0c8b9ce4e228c2737",
+    "galena": "0f936addd4f10b98356e7a1b9ce6ddd2d6571f5ca9cac34722dab7df6d9deaeb",
+    "goethite": "15af1e1877347467699bc2b1b4a26c902fd3abb4c4a4583f5264287ca0c90245",
+    "gold": "414c519b2092e652bebde36b78c029cc64ee2d3772489919fd1f00321cd19ec8",
+    "graphite": "a70cc68e42a8e91264056dfb4eecbce0c4c957988bbdb4ba9e6b56e255cf687e",
+    "grossular": "2e6e8d03815897099bc3df3becd7493f09a99566463a67b315903034f134ec5d",
+    "gypsum": "f6765b6656c81cccdfc1f8e79d595de9815e9bf18e08112aaec1dce7c67d8ec7",
+    "hedenbergite": "1016400ddd4ee86240c6f3e07d908b46b684a6f18a817df2cc192f89541c11c6",
+    "hematite": "f517fa6c6558a6362075267ae81853ed71dc852450bc8173afe44125060b2612",
+    "ilmenite": "065c67757642efe3f8e98a3dde684ebd763a4edeb00da9587adb68845aedc7d7",
+    "kyanite": "6da87d8a1f1e8b359fb823112fa04c8fa2f93791a81f0097e74b542059fb0af6",
+    "labrador": "b22d8c96f9d687e06a3c98f479ecac5f2e2e22d5260f46511d67e193b585174c",
+    "magnetite": "5de270faee31cbb37ca222a8e0279a65d765bd391c9d81b1376006eb95c23b03",
+    "malachite": "35ef1533a9da65d544b754833308090d2b77fd62521d89992d0ba90292e2490d",
+    "marcasite": "1afb213232c909b98fc49e40583c23de3635f5d98fff3c988c4132c4d28789be",
+    "microcline": "bd122fa9bcdfb3cc338aceff86d8b5b637daf0e21088524a45d853b6f7ba5c59",
+    "molybdenite": "02057fb7a97bc8fdfeb6acbee9ae3a874b0fa7d3b3a3db96141a7fecb0ef6d65",
+    "muscovite": "1bb11d18d2b37373f211eb2f10dde3cdfe80498fe70861583dffd130941e62c6",
+    "natrolite": "84b389d36df419a29c95ac63d45ac891151f3baf05685f213958f988e9dcdcc5",
+    "oligoclase": "29965ed7c2847292750602a40b245863283dd623dbef20ff80bcdf3736e5171b",
+    "orthoclase": "915fa3d94e2e0699e86a4a79411737e1d7a98dbbaa6ff86b48bacefab28e3878",
+    "pectolite": "74d8840a6eb05f61fdc3b82fe283b1e2f0c65956402da7118f7cd6fc0c80ef84",
+    "pollucite": "1d0cdc4d3a13b1c36e4f3e901516536d679089d667ca36036494a358cb4d3b06",
+    "prehnite": "f786201f42980c1b5c38a9b84d5b2d29d6d5d553c824ba8b0f4d1c6359f5c027",
+    "proustite": "5f5f8340b3f070b7f8c2ff3b08c84f0857e4af1eb8a710fdaaeba628ff18c0dd",
+    "pyrargyrite": "92b3240e1cde2123d1fa64e7f5b42db1e3e8cbe6f896b25ee2887cc7d713dab9",
+    "pyrite": "8daf2cfd3cb68e4d65ee8e16ffad7198e23a711d304837d15c8d694446d99914",
+    "pyrrhotite": "b362807c0b729c796ca548bccc33c9b2cd5972b6f3645d9425d5fcd64674948c",
+    "quartz": "cfe6f7472ed885212f1221ad8314c3eed7654032a7d8824f2f07ea3bdfe07aec",
+    "rhodochrosite": "84c061904399b847e222d694651ee47678981078b921491d47976367c40b81a1",
+    "rhodonite": "c636a23202fe073347fac5ce4f389f4cb3195a9d625c772bb5060ed8d7593a67",
+    "rutile": "298ebad9113f88906816cebd76e86a79663f8425cc40e46ceb2e596e8e8b1a83",
+    "scheelit": "0a10d7a3f01c2b21e331d20057363346c8ffb9d46a44511d4c68ecba97a3e97e",
+    "siderite": "18e99c253836e2ebb233ab80208224079e0d6b5bc9b1b2add677464da2ee1ebd",
+    "silver": "0391e440d9720c402c9b9d82eb657b5a9772a83f7aed4b11d9ae73052a9ccf89",
+    "smithsonite": "d077075a7130dbea3d9a46bd56c29f052bbb46ab7da2dfce89555735cac1e07f",
+    "sphalerite": "9876af6871c024b471b1daf5662da113cf69c9859a78a7fe5595991606b9a934",
+    "spinel": "909424ca5791b897e03a45efd1a8294b58c23c6e466bcd1942aee4e03daf5294",
+    "spodumene": "41dafcbfe4bb65c977afd2a9bd74ee7fedf8b002b0bba4ebf658d4f843c0bafa",
+    "sulfur": "a443e6a2a44e77f4bd5c9c6a70bbbda1a019c0c9294bc2c9538c045886fe39a3",
+    "tetrahedrite": "e7bf944a6c82900cf332b7356cb86c0e988a4c16450329ad1e55455513fd7b70",
+    "titanite": "42ccabdacd9306a57443601213670b0a2ab5462e6077c443ffdae6802c14967a",
+    "topaz": "76c4581d3e1ffd152db18725b0e0e69a66f20679db3bb5c2f734574fc549b386",
+    "tremolite": "6e876e649cd95b751ca9d03cf27f7432befec4a43809e66abdcbea82c278e5d3",
+    "vanadinite": "77193c59b3326331f69c8fd887c9501d39982926d5af2350f4125f85a89f23f8",
+    "vesuvian": "5171cd121fa2efc0f99d9e029df658f5d14f68cd2a246c3b25b07ee8df7a93af",
+    "vivianite": "6ce3ea187c27072393379ac8ccf7e8408657a7de6d0f05e74ed7415f9b819fec",
+    "wollastonite": "5b2fd0e146f71c36d76390ebe6b3d1d39feb26cad1edfe33c27b79d7f5aeaf32",
+    "wulfenite": "3590911dc9d6c79256bac5c0f876295aa733ca43aacb7d801253030b01e21547",
+    "zircon": "492420c0271b712702c671070c26ccb6fe0ca894d34435f66ae2bf3e2bb305a6"
+  },
+  "needs_review": {
+    "aegirine": [
+      "cleavage"
+    ],
+    "arsenic": [
+      "cleavage"
+    ],
+    "augite": [
+      "cleavage"
+    ],
+    "bismuth": [
+      "cleavage"
+    ],
+    "cancrinit": [
+      "cleavage"
+    ],
+    "cinnabar": [
+      "cleavage"
+    ],
+    "dolomite": [
+      "cleavage"
+    ],
+    "elbait": [
+      "cleavage"
+    ],
+    "elbaite": [
+      "cleavage"
+    ],
+    "eudialyte": [
+      "cleavage"
+    ],
+    "fluorapatite": [
+      "cleavage"
+    ],
+    "hedenbergite": [
+      "cleavage"
+    ],
+    "ilmenite": [
+      "cleavage"
+    ],
+    "kyanite": [
+      "cleavage"
+    ],
+    "oligoclase": [
+      "cleavage"
+    ],
+    "orthoclase": [
+      "cleavage"
+    ],
+    "proustite": [
+      "cleavage"
+    ],
+    "pyrargyrite": [
+      "cleavage"
+    ],
+    "siderite": [
+      "cleavage"
+    ],
+    "spodumene": [
+      "cleavage"
+    ],
+    "wollastonite": [
+      "cleavage"
+    ],
+    "calcite": [
+      "cleavage"
+    ],
+    "corundum": [
+      "cleavage"
+    ],
+    "diopside": [
+      "cleavage"
+    ],
+    "dioptase": [
+      "cleavage"
+    ],
+    "hematite": [
+      "cleavage"
+    ],
+    "malachite": [
+      "cleavage"
+    ],
+    "microcline": [
+      "cleavage"
+    ],
+    "quartz": [
+      "cleavage"
+    ],
+    "rhodochrosite": [
+      "cleavage"
+    ],
+    "rhodonite": [
+      "cleavage"
+    ],
+    "smithsonite": [
+      "cleavage"
+    ]
+  },
+  "overrides": {
+    "antimonite": {
+      "hardness": "2"
+    },
+    "chromite": {
+      "hardness": "5.5",
+      "density_measured": "4.5–4.8",
+      "cleavage": "Parting may develop along {111}."
+    },
+    "magnetite": {
+      "hardness": "5.5–6.5",
+      "density_measured": "5.175",
+      "cleavage": "Parting on {111}, very good."
+    },
+    "goethite": {
+      "cleavage": "{010}, perfect; {100}, less perfect."
+    },
+    "graphite": {
+      "cleavage": "Perfect on {0001}."
+    },
+    "marcasite": {
+      "cleavage": "{101}, rather distinct; {110} in traces."
+    },
+    "molybdenite": {
+      "cleavage": "Perfect on {0001}."
+    },
+    "muscovite": {
+      "luster": "Vitreous to pearly or silky."
+    },
+    "oligoclase": {
+      "luster": "Vitreous to pearly."
+    },
+    "pyrrhotite": {
+      "cleavage": "Parting on {0001}, distinct."
+    },
+    "rutile": {
+      "cleavage": "{110}, good; {100}, moderate; {111}, in traces."
+    },
+    "scheelit": {
+      "cleavage": "On {101}, distinct; on {112}, interrupted; on {001}, indistinct."
+    },
+    "sulfur": {
+      "cleavage": "Imperfect on {001}, {110}, {111}; parting on {111}."
+    },
+    "vesuvian": {
+      "luster": "Vitreous to resinous."
+    },
+    "vivianite": {
+      "cleavage": "Perfect on {010}."
+    },
+    "aragonite": {
+      "cleavage": "{010}, distinct; {110} and {011}, imperfect."
+    },
+    "azurite": {
+      "cleavage": "On {011}, perfect but interrupted; on {100}, fair; on {110}, poor.",
+      "luster": "Vitreous to subadamantine."
+    },
+    "calcite": {
+      "luster": "Vitreous; pearly on cleavages and {0001}.",
+      "streak": "White."
+    },
+    "celestine": {
+      "cleavage": "On {001}, perfect; on {210}, good; on {010}, poor."
+    },
+    "cerussite": {
+      "cleavage": "{110} and {021}, good; {010} and {012}, poor."
+    },
+    "chalcopyrite": {
+      "cleavage": "Poor on {011} and {111}."
+    },
+    "fluorite": {
+      "cleavage": "{111}, perfect; on {011}, parting, poor."
+    },
+    "galena": {
+      "cleavage": "Perfect on {001}; parting or cleavage on {111}."
+    },
+    "gypsum": {
+      "cleavage": "{010}, perfect; {100}, distinct; {011}.",
+      "luster": "Subvitreous, pearly on {010} cleavages, silky if fibrous."
+    },
+    "pyrite": {
+      "cleavage": "Indistinct on {001}; partings on {011} and {111}, indistinct."
+    },
+    "quartz": {
+      "hardness": "7, variable by direction and form."
+    },
+    "sphalerite": {
+      "cleavage": "Perfect on {011}."
+    },
+    "wulfenite": {
+      "cleavage": "On {011}, distinct; on {001}, {013}, indistinct."
+    }
+  }
+}

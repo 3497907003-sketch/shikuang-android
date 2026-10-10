@@ -1,0 +1,824 @@
+识矿 2.5 已审核参考照片逐图归属
+
+各照片分别遵循原页注明的许可；照片许可不改变 App 软件许可。
+本地文件仅由真实来源照片转正、裁切或缩小产生，没有生成或合成图片。
+来源标签与像素审核不等于实验室 XRD/化学独立鉴定。
+
+images/reviewed-v25/commons-10144208.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Actinolite-139964.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：d62b1fd9339ac9998ddc2bd09a76121c8aac15e366378223457edae82e560d69
+
+images/reviewed-v25/commons-10450332.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Actinolite-k-161aa.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：50def54eddc35bb7be70e8058230ccb1b5915af132a08589928b1bd9f3157d51
+
+images/reviewed-v25/commons-10166578.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Actinolite-247713.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：5a69e5d19a3240586f15e09d8d1ba403218e3b095855b843f38f210f6237ff26
+
+images/reviewed-v25/commons-2084999.jpg
+作者：G.dallorto
+许可：CC BY-SA 2.5 it — https://creativecommons.org/licenses/by-sa/2.5/it/deed.en
+来源：https://commons.wikimedia.org/wiki/File:9140_-_Milano_-_Museo_storia_naturale_-_Aegirina_-_Foto_Giovanni_Dall%27Orto_22-Apr-2007.jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：62ebc1cdb4b7a5740c8e3895913ee31388787af17fd116105493ed395f0ee14c
+
+images/reviewed-v25/commons-10173377.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Albite-288010.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：41efb2a20d358d30cbf7f476ca48d7214126e1a07fa2f101745c739e3503b946
+
+images/reviewed-v25/commons-10152879.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Albite-180558.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：6b3e8d4a6e6a96f335d67e010bb2a4dc093821e84ef9aea2f1732e6da5ce36fb
+
+images/reviewed-v25/commons-10138883.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Albite-117711.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：ff1563413608c420f06a99452ffe7fa3408abdc1bdd5a15903ab7eb7909e8a32
+
+images/reviewed-v25/commons-113719513.jpg
+作者：Koreller
+许可：CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0
+来源：https://commons.wikimedia.org/wiki/File:Mus%C3%A9um_de_Nantes_-_134_-_Z%C3%A9olite_Analcime_(Inde).jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：f29b5782fdd6d66dfb92de92c983e3995f86cb2349199da8527cfb12dcf666ba
+
+images/reviewed-v25/commons-113719510.jpg
+作者：Koreller
+许可：CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0
+来源：https://commons.wikimedia.org/wiki/File:Mus%C3%A9um_de_Nantes_-_129_-_Analcime_(Autriche).jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：591347ca356628b4d8d587bb439b2471cd370193a720e904477ca21ea39ec855
+
+images/reviewed-v25/commons-113719509.jpg
+作者：Koreller
+许可：CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0
+来源：https://commons.wikimedia.org/wiki/File:Mus%C3%A9um_de_Nantes_-_130_-_Analcime_(Autriche).jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：a2bd55a29d7636fd2c0b2de31048bcbb8ae4a2b1c4c5068d53885e7d9a37f066
+
+images/reviewed-v25/commons-7431030.jpg
+作者：Ra'ike (see also: de:Benutzer:Ra'ike )
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Andradit_(Kalkeisengranat)_-_Vask%C3%B6,_Banat,_Rum%C3%A4nien.jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：3dcb7108f581c9eb38c55ddb1ea019d82ec70ace1a7a0a9d19e57e080331c984
+
+images/reviewed-v25/commons-10474589.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Stibnite-stibnite_china_giant1.jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：67971aa0701aaddea2bd74ab979de6f33f1723cde0f701e9be4fca401585e6be
+
+images/reviewed-v25/commons-8544658.jpg
+作者：H. Zell
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Antimonit_02.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：5913d67a602101c77ea96bb780e9202186df9cbf86a2c0121d9a52143f2e4855
+
+images/reviewed-v25/commons-10154590.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Stibnite-187682.jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：233d9725cdfb6c890d0d6eee7cf58ecdaf011844c371403fbd7bba2f342290d2
+
+images/reviewed-v25/commons-22811346.jpg
+作者：AnemoneProjectors ( talk )
+许可：CC BY-SA 2.0 — https://creativecommons.org/licenses/by-sa/2.0
+来源：https://commons.wikimedia.org/wiki/File:Natural_History_Museum_151_(8047049658).jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：7377ee3bef75b9f6c6cbeae654173fa57b6204d8af751f0779fbca0c6e4605e0
+
+images/reviewed-v25/commons-48740104.jpg
+作者：Vassil
+许可：CC0 — https://creativecommons.org/publicdomain/zero/1.0/deed.en
+来源：https://commons.wikimedia.org/wiki/File:Aragonite_Teylers_Museum_7112012.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：303fc0ab5fda7c0567fe516c34e7f12b2346b6f8b05b9eee9ee547e69cdf79fc
+
+images/reviewed-v25/commons-23353487.jpg
+作者：DerHexer , Wikimedia Commons
+许可：CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0
+来源：https://commons.wikimedia.org/wiki/File:Harvard_Museum_of_Natural_History._Arsenopyrite._Palmillas,_near_Parral,_Chihuahua,_Mexico_(DerHexer)_2012-07-20.jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：abdac975542a4ab4f29bb9b591c863ba3b4c83d3fce191e05aba43ff73fa3d3b
+
+images/reviewed-v25/commons-81761078.jpg
+作者：Kaarel Tiidus
+许可：CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0
+来源：https://commons.wikimedia.org/wiki/File:Estonian_Museum_of_Natural_History_Specimen_No_201781_photo_(g27_g27-114_jpg).jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：0577ff1374e1d36f566e2a3816aad4f8e4d5a6be7d07fc839588f21639b65740
+
+images/reviewed-v25/commons-81634183.jpg
+作者：Kaarel Tiidus
+许可：CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0
+来源：https://commons.wikimedia.org/wiki/File:Estonian_Museum_of_Natural_History_Specimen_No_201780_photo_(g27_g27-113_jpg).jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：6eb4374a715d6b9960005a071d125f70b1e5ac74071ad54755eb301502565243
+
+images/reviewed-v25/commons-62542030.jpg
+作者：Tiia Monto
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Tampere_Mineral_Museum_-_azurite.jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：0a9f5d19a046947ee749d0f1e9dabf30d2d90ca4752adc4e486fb91274fdfffe
+
+images/reviewed-v25/commons-89143979.jpg
+作者：CP Hoffman from Washington, DC, United States
+许可：CC BY-SA 2.0 — https://creativecommons.org/licenses/by-sa/2.0
+来源：https://commons.wikimedia.org/wiki/File:Azurite,_Royal_Ontario_Museum_(5784830572).jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：559ae41ec5a7ad1ea3a6cf15382c95214cf05ffc15ba4494f84824d1a900a838
+
+images/reviewed-v25/commons-22811363.jpg
+作者：AnemoneProjectors ( talk )
+许可：CC BY-SA 2.0 — https://creativecommons.org/licenses/by-sa/2.0
+来源：https://commons.wikimedia.org/wiki/File:Natural_History_Museum_169_(8047044514).jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：7fae29fb56db2c92eadc3e6475b1b7476e844d1e13431086fe48a466ac7c1fb4
+
+images/reviewed-v25/commons-26969513.jpg
+作者：Daderot
+许可：CC0 — https://creativecommons.org/publicdomain/zero/1.0/deed.en
+来源：https://commons.wikimedia.org/wiki/File:Barite_roses,_Norman,_Oklahoma_-_Natural_History_Museum_of_Utah_-_DSC07466.JPG
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：1d8d1112d49e24e31be82a55b18066f09ea373d17e1dfbf4dd2b4bffea324543
+
+images/reviewed-v25/commons-28126826.jpg
+作者：Leo za1
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Transvaal_Museum-016.jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：b1e990fbe6b51b4e2f0b10484ee39f4c826bfc6324fcdf816959d10d5e5062b3
+
+images/reviewed-v25/commons-10140343.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Beryl-120843.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：ab61adde8f7f4c072ee00c2231d1a5b4548d4c909358ac784a66f4e771acca9c
+
+images/reviewed-v25/commons-88345393.jpg
+作者：掬茶
+许可：CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0
+来源：https://commons.wikimedia.org/wiki/File:Beryl_displayed_at_Mining_Museum_of_Akita_University.jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：324b4bbf177f2bdd1275015d4674f7e6ffe7c46faf3c0714ffa20c20770a269a
+
+images/reviewed-v25/commons-6272701.jpg
+作者：Ra'ike (see also: de:Benutzer:Ra'ike )
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Bournonit_-_Neudorf,_Harz.jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：339a783a18e73065b85ee427d84561084fd5c2bba8e5077bd2af780ba973e94d
+
+images/reviewed-v25/commons-61927646.jpg
+作者：Tiia Monto
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Calcite_3.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：ed327f21367c8bbfbff2491b6f97196fb030b7cc6738f922d65fb127dbbf3fd1
+
+images/reviewed-v25/commons-10141340.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Calcite-Mottramite-130376.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：abae3d294372927ba6df5de7d09a4e3ea9cb7ac8abc057daee462d723aa8aae1
+
+images/reviewed-v25/commons-10169888.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Calcite-Copper-264034.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：27009d7d82ceab6aaf16d49d53fafdb95c6203f14fcefa18d3b7e1583aff6b37
+
+images/reviewed-v25/commons-23353561.jpg
+作者：DerHexer , Wikimedia Commons
+许可：CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0
+来源：https://commons.wikimedia.org/wiki/File:Harvard_Museum_of_Natural_History._Cassiterite._Araca,_La_Paz,_Bolivia_(DerHexer)_2012-07-20.jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：af4c81e49bcb129a89d6cf56e3c84eb1304ecb60a39c148b5fba5c31623ef9d4
+
+images/reviewed-v25/commons-10149852.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Celestine-170713.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：ecf4e842fd649573a41b93c945c9cf45322cffc45dcf7b623bf70727eddb681c
+
+images/reviewed-v25/commons-10140421.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Celestine-121053.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：be2365c228e91b1d798dec8ffddb80125c016918a27e713b8e1de8e243fdf969
+
+images/reviewed-v25/commons-10154504.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Celestine-187522.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：633d3d5ca49d928cb723879cb65ed672accef0cd2910f01a12d48bccf0db82ea
+
+images/reviewed-v25/commons-20523497.jpg
+作者：Chris857
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Chalcopyrite2_(A.E._Seaman_Mineral_Museum).jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：1e16e58a9d227500264340259c65ace2baccc673a38dcdff6434743e6d95888c
+
+images/reviewed-v25/commons-10124263.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Creedite-33966.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：7ab603e2b67dd28511533dda7b8f92e8a26d2ef4a22a1d1eca134f6133d5362e
+
+images/reviewed-v25/commons-10155060.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Cuprite-190286.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：359a3e63bf0cc33b63d4123066f6c6ab0dd2c6ee8c074971cfa5b93f5fc6bd80
+
+images/reviewed-v25/commons-10139477.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Cuprite-118847.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：3659fb50da4d670ce84c3e3bb60779424b6bb245abc545799a9817b4ddf05307
+
+images/reviewed-v25/commons-10169906.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Cuprite-264114.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：246e5f8c37d625cc59710d4cf635edd760ad1e25aa4f3c1d62076f728cbacd5a
+
+images/reviewed-v25/commons-10124411.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Diopside-34582.jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：cd4880aaa67a3a14890c46c18fd5f5c4a8555b46a817243f84bb85af7bc048ae
+
+images/reviewed-v25/commons-10145923.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Diopside-150493.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：2f81318e8b29f13d9c02d229c207cebce093c0889dd166b22f908b366f40b368
+
+images/reviewed-v25/commons-10133006.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Diopside-48223.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：7a1794222c717cbebce4e737ef7c61f1652ae499b550d70676638c8ad0062ffd
+
+images/reviewed-v25/commons-23353586.jpg
+作者：DerHexer , Wikimedia Commons
+许可：CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0
+来源：https://commons.wikimedia.org/wiki/File:Harvard_Museum_of_Natural_History._Flor_de_Liz._Red_Elbaite,_Gem_tourmaline._Conselheiro_Pena,_Minas_Gerais,_Brazil_(DerHexer)_2012-07-20.jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：5966ad067dbf80ab6163c729052f2032cbcd97b47b4c957e1f9839351861003d
+
+images/reviewed-v25/commons-35734484.jpg
+作者：Photograph by Mike Peel ( www.mikepeel.net ).
+许可：CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0
+来源：https://commons.wikimedia.org/wiki/File:Elbaite_at_the_American_Museum_of_Natural_History.jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：8e343039a5c2c9e2f73ef47c979a2011034841f889566bf9848e8cc45e8d7def
+
+images/reviewed-v25/commons-88345702.jpg
+作者：掬茶
+许可：CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0
+来源：https://commons.wikimedia.org/wiki/File:Elbaite_displayed_at_Mining_Museum_of_Akita_University.jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：7ced2f292170dee985f34f2aa8011bf853e3333888d83b673b3af4ebf6d788ec
+
+images/reviewed-v25/commons-83993375.jpg
+作者：Daderot
+许可：CC0 — https://creativecommons.org/publicdomain/zero/1.0/deed.en
+来源：https://commons.wikimedia.org/wiki/File:Epidote,_Gilgit,_Pakistan_-_University_of_Arizona_Mineral_Museum_-_University_of_Arizona_-_Tucson,_AZ_-_DSC08559.jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：d4ce8f9744eccb8729c282df1c7f72e0f419a6e3d365b958fe121346dcf88540
+
+images/reviewed-v25/commons-23353587.jpg
+作者：DerHexer , Wikimedia Commons
+许可：CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0
+来源：https://commons.wikimedia.org/wiki/File:Harvard_Museum_of_Natural_History._Fluorapatite._(Otter_Lake)_Yates_Mine,_Huddersfield_township,_Pontiac_Co.,_Quebec_(DerHexer)_2012-07-20_1.jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：36a474b00cbca2df22a0bdcc14d86de226d63dd823b7e2662606cb9944c197bd
+
+images/reviewed-v25/commons-10161137.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Fluorite-214760.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：03cfed8cfaa1af9b0b2987092fb9151f1690156db41d0139c63acd2b3d25e563
+
+images/reviewed-v25/commons-10149991.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Fluorite-171769.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：9c4933f677d9c66f78e70310966921b6d88d124fab704e72b22c818469d37754
+
+images/reviewed-v25/commons-10164533.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Fluorite-235610.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：8fb6190d2bd51d552c96728cd9b990e8b9de9f3558f0a523d536b3f1264bc592
+
+images/reviewed-v25/commons-10164385.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Galena-235246.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：d4c90848dd8c0583fc716145e20efbf28838252a345fc4e35cfbc28cd73e24c2
+
+images/reviewed-v25/commons-120671960.jpg
+作者：BVBurton
+许可：CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0
+来源：https://commons.wikimedia.org/wiki/File:Galena_with_hopper_at_Oxford_Museum_of_Natural_History.jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：02492f4852981ae135b785e900e68dd2fb6a68e546b586cb6614f3f16730a243
+
+images/reviewed-v25/commons-10146886.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Galena-157364.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：6cad28ad6cd4ca769cf5de2002d969ebe5719079e0a8bf3d2b0bcea3c1282263
+
+images/reviewed-v25/commons-81373454.jpg
+作者：Kaarel Tiidus
+许可：CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0
+来源：https://commons.wikimedia.org/wiki/File:Estonian_Museum_of_Natural_History_Specimen_No_176121_photo_(g286_g286-118_jpg).jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：3b94887a59eab696041ec84419436f0e135022f0b70f8a9cb2938ca68102f6a0
+
+images/reviewed-v25/commons-17912330.jpg
+作者：Daderot
+许可：CC0 — https://creativecommons.org/publicdomain/zero/1.0/deed.en
+来源：https://commons.wikimedia.org/wiki/File:Goethite_from_Laurium,_Greece_-_Royal_Ontario_Museum_-_DSC00227.JPG
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：53b11ca02593054c55762e93afb9cbe72f0f922aa04a2e77a50fc0b2ca78d1b2
+
+images/reviewed-v25/commons-20523498.jpg
+作者：Chris857
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Goethite_(A.E._Seaman_Mineral_Museum).jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：6464a072fb130ccb384e1b1192c94a728103521620a7758cb49dada9c74e0667
+
+images/reviewed-v25/commons-23353616.jpg
+作者：DerHexer , Wikimedia Commons
+许可：CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0
+来源：https://commons.wikimedia.org/wiki/File:Harvard_Museum_of_Natural_History._Grossular._Morelos,_Coahuila,_Mexico_(DerHexer)_2012-07-20.jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：3d1d3d36294e2e352087067e5dc0d79044949055e6f2428f952a386c855bce91
+
+images/reviewed-v25/commons-75395651.jpg
+作者：Stephencdickson
+许可：CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0
+来源：https://commons.wikimedia.org/wiki/File:Grossular_garnet_from_Quebec,_collected_by_Dr_John_Hunter_in_the_18th_century,_Hunterian_Museum,_Glasgow.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：047f8b9dd0f0b49c68f83777c76a6d43d21befe5de4eddfb53e872ba4d9805de
+
+images/reviewed-v25/commons-57994143.jpg
+作者：Velopilger
+许可：CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0
+来源：https://commons.wikimedia.org/wiki/File:GeoMuseum_Koeln_(V-0988-2017).jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：b9fc1dd3a3b61013f11eaffb07a7446b1a5d63d4736578bfedc7bde28ede9682
+
+images/reviewed-v25/commons-123461877.jpg
+作者：Ra'ike (Wikipedia)
+许可：CC BY-SA 3.0 de — https://creativecommons.org/licenses/by-sa/3.0/de/deed.en
+来源：https://commons.wikimedia.org/wiki/File:Hedenbergite_(GeoMuseum_Cologne).JPG
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：34409c2cdb85c46010330ce76b833de5b90f65ae79dc022aacd5103f15e4852d
+
+images/reviewed-v25/commons-10429386.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Andradite-Hematite-cktsr-36a.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：f0d2255d45eaa9bca1ec3d7f8b50d9d6bae2ca492e7eeb09d63014089f0be461
+
+images/reviewed-v25/commons-10158537.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Hematite-199480.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：fae5e789f4279c3124ca5f6216b7f229fb82cbf0837fd8287b840a4ef344ebc7
+
+images/reviewed-v25/commons-10147934.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Hematite-162631.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：59468fc17682b4b11d29da025b2b6abe6bc406416437f70b7f19839796869040
+
+images/reviewed-v25/commons-6358171.jpg
+作者：Ra'ike (see also: de:Benutzer:Ra'ike )
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Ilmenit_-_Miask,_Ural.jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：65d626cb5d438fa1b7fe42af7aab48bb971005eac28efce76d7b7990440cb850
+
+images/reviewed-v25/commons-10158675.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Ilmenite-199873.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：47dbd6d55248e433b3e44a7a9c2ca5cf4681fe40e13cb9e6db62f0ee6cab4bb1
+
+images/reviewed-v25/commons-23353629.jpg
+作者：DerHexer , Wikimedia Commons
+许可：CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0
+来源：https://commons.wikimedia.org/wiki/File:Harvard_Museum_of_Natural_History._Ilmenite._Arendal,_Aust-Agder,_Norway_(DerHexer)_2012-07-20.jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：7700974ffe70b430462dc26c5f6754ffc1b1df769911392351351ba299b6cab6
+
+images/reviewed-v25/commons-152918866.jpg
+作者：Daderot
+许可：CC0 — https://creativecommons.org/publicdomain/zero/1.0/deed.en
+来源：https://commons.wikimedia.org/wiki/File:Kyanite,_blue-grey_prisms,_Carrowtrasna,_Donegal_-_Natural_History_Museum,_London_-_DSC05266.jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：a96e5fc5e81d2d8d6080941108ed3b8b7a7d7868d6f474a21b89d4a11d289e45
+
+images/reviewed-v25/commons-10120842.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Magnetite-22965.jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：21468d365dc1d997a1d1e28b25f55d943d82f44c436a1167f399725974806ed0
+
+images/reviewed-v25/commons-10164926.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Magnetite-238648.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：9eaae3870402a7b203ca12120394bd0d8a2244fbe2b52c63f296cb23be476691
+
+images/reviewed-v25/commons-10121819.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Magnetite-23757.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：c2d82226158b549184435b5835841d0d942a24ff88d243a4b986c2179fb64b0c
+
+images/reviewed-v25/commons-22811369.jpg
+作者：AnemoneProjectors ( talk )
+许可：CC BY-SA 2.0 — https://creativecommons.org/licenses/by-sa/2.0
+来源：https://commons.wikimedia.org/wiki/File:Natural_History_Museum_191_(8047037365).jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：58dc1e8afe751a65486a65579ae5022bcb54de9a9622dd16296b10f522c8dcc1
+
+images/reviewed-v25/commons-10139951.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Malachite-119957.jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：f29b2525919c8fc1469b640c5d949cc8c678c02c9d29b6b375238ebd0920ad72
+
+images/reviewed-v25/commons-10143855.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Malachite-139136.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：a074685dccc7c97f7dc5dfb270294ba10a939a9bbe8d56ae1f828f7cf4a53615
+
+images/reviewed-v25/commons-10137699.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Marcasite-71144.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：7d30f2a33c19bb7cff958bfa5ff2e3728e5a47895a671022f74999a0bca88fe6
+
+images/reviewed-v25/commons-80949951.jpg
+作者：Kaarel Tiidus
+许可：CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0
+来源：https://commons.wikimedia.org/wiki/File:Estonian_Museum_of_Natural_History_Specimen_No_201774_photo_(g27_g27-107_jpg).jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：cffe2ed0748fe23a0d9f49874447bc2655f78e9696bba4782344a375806f389e
+
+images/reviewed-v25/commons-10120131.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Marcasite-20890.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：083d5ae749418def870b85f143f8d23b4443383dbdbf9c75a32b6cbd62e6c777
+
+images/reviewed-v25/commons-81483462.jpg
+作者：Kaarel Tiidus
+许可：CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0
+来源：https://commons.wikimedia.org/wiki/File:Estonian_Museum_of_Natural_History_Specimen_No_201716_photo_(g27_g27-49_jpg).jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：4ead9baf0800e6ed22b60c516f3a1cc30fbee0b578f65750364fa9c0ac509214
+
+images/reviewed-v25/commons-163704157.jpg
+作者：Motekov
+许可：CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0
+来源：https://commons.wikimedia.org/wiki/File:MOLYBDENITE_-_CRYSTAL_FROM_VITOSHA,_COLL._YOVCHO_YOVCHEV_-_EARTH_AND_MAN_NATIONAL_MUSEUM.jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：085d557504f385eaa18deb68f102e98099a1d64a667ab0339d6c6c4c19328b49
+
+images/reviewed-v25/commons-28360701.jpg
+作者：Anagoria
+许可：CC BY 3.0 — https://creativecommons.org/licenses/by/3.0
+来源：https://commons.wikimedia.org/wiki/File:2013-03_Molybd%C3%A4nit_im_Museum_anagoria.JPG
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：e12b6ce7233c107518f7aba8c5b7a80eafc6ffdf669b2af32a6c91631be89719
+
+images/reviewed-v25/commons-10138470.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Pectolite-112882.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：c90afd5af59d379d2975965213ec577ab609f27c1627b0cca16d5a10277e22bf
+
+images/reviewed-v25/commons-87652780.jpg
+作者：Marie-Lan Taÿ Pamart
+许可：CC BY 4.0 — https://creativecommons.org/licenses/by/4.0
+来源：https://commons.wikimedia.org/wiki/File:Pollucite_Paprok_MNHN_Min%C3%A9ralogie.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：35ccd2c5a98aa82b8716c52eec37ab1d9a8944ab0cfe1bd395ce6a649eeed9de
+
+images/reviewed-v25/commons-23353676.jpg
+作者：DerHexer , Wikimedia Commons
+许可：CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0
+来源：https://commons.wikimedia.org/wiki/File:Harvard_Museum_of_Natural_History._Pollucite._Paprook._Konar,_Afghanistan_(DerHexer)_2012-07-20.jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：4da4295d2f6b35b47d30010d6fd35e317d45c8efa359a519964fcc2d64b84c10
+
+images/reviewed-v25/commons-5752734.jpg
+作者：User:Captmondo
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0/
+来源：https://commons.wikimedia.org/wiki/File:Pollucite-RoyalOntarioMuseum-Jan18-09.jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：b0263991c7f00bbbf1c2f9e5a76a78ded6f89abd14b3405e6cc96a32ad24e19f
+
+images/reviewed-v25/commons-82998858.jpg
+作者：Tõnis Saadre
+许可：CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0
+来源：https://commons.wikimedia.org/wiki/File:Estonian_Museum_of_Natural_History_Specimen_No_174644_photo_(g286_g286-20_jpg).jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：0f2ea75065c948c1476617b553b1ac31387bbde1db26509bfe4b2d8e5a727d99
+
+images/reviewed-v25/commons-10139215.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Pyrargyrite-118465.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：38078d7fe7279b190198fec0a075cb102e5fc1b56578d10c89293fceec03e93d
+
+images/reviewed-v25/commons-10138649.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Pyrargyrite-114123.jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：d806e377240f1f5a252195940db7e530900af0fda7298526cdc0f276f96e745e
+
+images/reviewed-v25/commons-10120105.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Pyrargyrite-20873.jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：1aae12add5b0d326f0353b5215c459e664451077608be52de3f60d0e3366497a
+
+images/reviewed-v25/commons-10149800.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Pyrite-170599.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：355a656906973c4b70aaa767ca6526fdb3c3e6036eae4f208445a7544d1c2bcb
+
+images/reviewed-v25/commons-10162608.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Pyrite-223964.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：66b584d72576d31ecc934fbfd7e7d8c0e29b1ee83b26088e2a0284d3d8ab7618
+
+images/reviewed-v25/commons-10148297.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Pyrite-163986.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：1b9689caa50fac73531033929ca89377e8ee133b8e4204577ccff17e4b255cbf
+
+images/reviewed-v25/commons-113716240.jpg
+作者：Koreller
+许可：CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0
+来源：https://commons.wikimedia.org/wiki/File:Mus%C3%A9um_de_Nantes_-_023_-_Pyrrhotite_(Russie).jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：d5e742d1daa7c5b214b8afececa60ae51f56f05d2c3333f4b935864959c8d11f
+
+images/reviewed-v25/commons-81693178.jpg
+作者：Kaarel Tiidus
+许可：CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0
+来源：https://commons.wikimedia.org/wiki/File:Estonian_Museum_of_Natural_History_Specimen_No_201758_photo_(g27_g27-91_jpg).jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：cd7b4038bba05af3b25cf2cb8b02c3f9e198bae826b285db28493fccca55c459
+
+images/reviewed-v25/commons-159651758.jpg
+作者：Artyom Svetlov
+许可：CC BY 4.0 — https://creativecommons.org/licenses/by/4.0
+来源：https://commons.wikimedia.org/wiki/File:Moscow_State_University_pyrrhotite_2014-01_1389529115.JPG
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：f9f5a48a05af0c5e7d6a24347d3f2346da17f7c31c29ae72a2c73109b5a31ce7
+
+images/reviewed-v25/commons-10156983.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Quartz-195596.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：b9a9b1e3c96eb35941db7acc66dbae15ac7c001320992dc3a59771e6e506640b
+
+images/reviewed-v25/commons-10122617.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Quartz-27437.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：962485fbe1a20de88dab3c29541e8505d8b1d0aae8fa7ede817b609979d26380
+
+images/reviewed-v25/commons-10166671.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Quartz-247873.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：0a6fce5d7d35c43c736ff44cd4c87c0f74020010be8ee1c04bc3bf5649f5fa0d
+
+images/reviewed-v25/commons-159705791.jpg
+作者：Artyom Svetlov
+许可：CC BY 4.0 — https://creativecommons.org/licenses/by/4.0
+来源：https://commons.wikimedia.org/wiki/File:Moscow_State_University_rhodonite_2014-01_1389530950.JPG
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：430f9c465ccb0130f992903ab39960e5e494ad50ed4e8af6dd31d97b71799ba8
+
+images/reviewed-v25/commons-75644838.jpg
+作者：Tim Evanson from Cleveland Heights, Ohio, USA
+许可：CC BY-SA 2.0 — https://creativecommons.org/licenses/by-sa/2.0
+来源：https://commons.wikimedia.org/wiki/File:Rutile_-_Cleveland_Museum_of_Natural_History_-_2014-12-26_(21045315496).jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：e2e85bb0e4c2ffa4abe35d0bf8f9f99431601fa5d3317ac9874e86c4ecd98576
+
+images/reviewed-v25/commons-23353744.jpg
+作者：DerHexer , Wikimedia Commons
+许可：CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0
+来源：https://commons.wikimedia.org/wiki/File:Harvard_Museum_of_Natural_History._Siderite._Gilman,_Eagle_Co.,_CO_(DerHexer)_2012-07-20.jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：224ef4b41a18a47c178fdc0a8913f773362197afd97399829d8675397bec1eff
+
+images/reviewed-v25/commons-83015722.jpg
+作者：Kaarel Tiidus
+许可：CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0
+来源：https://commons.wikimedia.org/wiki/File:Estonian_Museum_of_Natural_History_Specimen_No_175779_photo_(g286_g286-71_jpg).jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：9e77d2cd3dab00b685332e6f5c20763bb2de7ec3734bac04473256efba2b9cbb
+
+images/reviewed-v25/commons-22811333.jpg
+作者：AnemoneProjectors ( talk )
+许可：CC BY-SA 2.0 — https://creativecommons.org/licenses/by-sa/2.0
+来源：https://commons.wikimedia.org/wiki/File:Natural_History_Museum_142_(8047046063).jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：2b30bac428e1aab1f7893c053da8acb546d2322f31128e08710abe0875169613
+
+images/reviewed-v25/commons-10140884.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Spinel-122202.jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：fb0a4c7fe3c4f51a3745ae97a79e00a9bb4e5fd52e1dcc1bcb58178ef15d3949
+
+images/reviewed-v25/commons-10146291.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Spinel-153496.jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：80e430e9fe08307a2ca7cf2e91a3a57c6d209cf53ff7c346134b9d08d15d84ec
+
+images/reviewed-v25/commons-10141368.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Spinel-130902.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：b54d277b323f2f99e454fa04f4c989cb95a65ceed5ada6d738a3902e78d913e6
+
+images/reviewed-v25/commons-10139598.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Spodumene-119298.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：fcc4adead70bf530188a826808e60b6977c03c06c14211ec127e0906bb498dfb
+
+images/reviewed-v25/commons-10138750.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Spodumene-114537.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：00a1a25c51cef93f98c4ee4506cb1e01c6ee2684ec389fbc1a60c24aa1188a93
+
+images/reviewed-v25/commons-133644741.jpg
+作者：Zde
+许可：CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0
+来源：https://commons.wikimedia.org/wiki/File:Sulphur,_Milos_Mining_Museum,_Greece,_236868.jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：a2de01f890dc57a11594d0bf5954668ebe12131b413de8d622f59a4a54fa7db2
+
+images/reviewed-v25/commons-10150174.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Tetrahedrite-172085.jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：1f83f77696b074954999720ff37ad24cfd476d45788b6bb5993e17e19134196d
+
+images/reviewed-v25/commons-10165069.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Tetrahedrite-238903.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：b2ac8fdd861c4bca08fc0b7947489283ec04d90bae093a0e7f16b58dff537c99
+
+images/reviewed-v25/commons-10133234.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Tetrahedrite-49072.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：9825c7a12a25be4d3e7138a3d7244279ce65cb825543270e1e18ac08bdd6acec
+
+images/reviewed-v25/commons-35734535.jpg
+作者：Photograph by Mike Peel ( www.mikepeel.net ).
+许可：CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0
+来源：https://commons.wikimedia.org/wiki/File:Topaz_at_the_American_Museum_of_Natural_History.jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：cf54ca9603f076f3802323b3db1e6e20cc95d1b02065eb6eccf16ba6d3862484
+
+images/reviewed-v25/commons-75644649.jpg
+作者：Tim Evanson from Cleveland Heights, Ohio, USA
+许可：CC BY-SA 2.0 — https://creativecommons.org/licenses/by-sa/2.0
+来源：https://commons.wikimedia.org/wiki/File:Topaz_-_Cleveland_Museum_of_Natural_History_(33634328234).jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：9161320f7e69f331bf3996bad23297f3d110542f7670b0b853f8c6dc03e3a302
+
+images/reviewed-v25/commons-10140515.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Tremolite-121232.jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：c734be500616a32ed0270f93276d236f4edd53fd19ca82c2dee33a2447b75d35
+
+images/reviewed-v25/commons-50305943.jpg
+作者：user:Lamiot
+许可：CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0
+来源：https://commons.wikimedia.org/wiki/File:Tr%C3%A9moliteEspagneGrenadeMGL39772bisLamiotMus%C3%A9umHistoireNaturelleLilleGLAM2016a2.jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：2314acf06100936b1c8846f357ec6b427f2190eab24b2ac1ef6db233282be0d6
+
+images/reviewed-v25/commons-10166945.jpg
+作者：Robert M. Lavinsky
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Tremolite-249316.jpg
+修改：EXIF transpose; full downloaded frame retained; no ROI crop; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：a0f17344e129ac70bca410c7f39b894606c8158f2514bccab7b83f79a043cf40
+
+images/reviewed-v25/commons-15275385.jpg
+作者：Vassia Atanassova - Spiritia
+许可：CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0
+来源：https://commons.wikimedia.org/wiki/File:Earth-and-Man--Vivianite.jpg
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale only within 512 square; JPEG quality95 4:4:4
+本地 SHA-256：82ffcb02801c48b11b4e88b24e5ae6315a76d7fd204a24cefb4e00ec0f844691
+
+images/reviewed-v25/commons-159705677.jpg
+作者：Artyom Svetlov
+许可：CC BY 4.0 — https://creativecommons.org/licenses/by/4.0
+来源：https://commons.wikimedia.org/wiki/File:Moscow_State_University_wollastonite_2014-01_1389530734.JPG
+修改：EXIF transpose; source-bound normalized ROI; bilinear downscale within 512 square only if 224px short side preserved; never upscale; JPEG quality95 4:4:4
+本地 SHA-256：7d873c5280a06bd134bf75d21aa518e12649294cc92da6e842ad45d82a2664cf

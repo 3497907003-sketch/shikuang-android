@@ -1,0 +1,599 @@
+{
+  "schema_version": 1,
+  "review_scope": "Selected factual point-group annotations for original Handbook Hexagonal fields. All 23 PDF headers actually rendered and visually reviewed; original crystal-system fields are preserved unchanged. Classification is a documented inference using IUCr seven crystal systems, not an analytical determination of a photographed specimen.",
+  "classification_sources": [
+    {
+      "title": "IUCr International Tables for Crystallography (2016), Volume A, Table 1.3.4.3, page40",
+      "url": "https://it.iucr.org/Ac/ch1o3v0001/table1o3o4o3.pdf",
+      "retrieved_at": "2026-10-11",
+      "local_pdf_download": "HTTP403; read through web source; no fabricated original-byte checksum"
+    },
+    {
+      "title": "IUCr Online Dictionary of Crystallography — Crystal family",
+      "url": "https://dictionary.iucr.org/Crystal_family",
+      "retrieved_at": "2026-10-11"
+    }
+  ],
+  "records": [
+    {
+      "legacy_keys": [
+        "quartz"
+      ],
+      "name_en": "Quartz",
+      "source_url": "https://www.handbookofmineralogy.org/pdfs/quartz.pdf",
+      "source_page": 1,
+      "source_pdf_sha256": "cfe6f7472ed885212f1221ad8314c3eed7654032a7d8824f2f07ea3bdfe07aec",
+      "source_original_value": "Hexagonal",
+      "point_groups": [
+        {
+          "source_symbol": "32",
+          "standard_symbol": "32",
+          "condition_zh": "本页所列低温结构；原页注明低于573°C稳定"
+        }
+      ],
+      "visual_review": {
+        "reviewer": "/root/product_flow_audit",
+        "reviewed_at": "2026-10-10T16:52:31.142541+00:00",
+        "page": 1,
+        "render_sha256": "819d544ec1ddf3147cbc6a75224da0f2d1370a566586504caa02342d733d65bc",
+        "scope": "Actual rendered source-page Point Group header checked, including vector overbars; text extraction alone is not verification."
+      },
+      "note_zh": "归类限本页点群32及低于573°C的结构；不从照片推定当前标本晶相，也不将高温β晶相套用到本值。"
+    },
+    {
+      "legacy_keys": [
+        "calcite"
+      ],
+      "name_en": "Calcite",
+      "source_url": "https://www.handbookofmineralogy.org/pdfs/calcite.pdf",
+      "source_page": 1,
+      "source_pdf_sha256": "84e244ab0fc205558685a97b27e962eca5cddc44e9619e5208a91099cc093a67",
+      "source_original_value": "Hexagonal",
+      "point_groups": [
+        {
+          "source_symbol": "−3 2/m",
+          "standard_symbol": "-3m",
+          "condition_zh": ""
+        }
+      ],
+      "visual_review": {
+        "reviewer": "/root/product_flow_audit",
+        "reviewed_at": "2026-10-10T16:52:31.142914+00:00",
+        "page": 1,
+        "render_sha256": "b599ebd7832dcec088bd894599ca77c5ef19d3771a399e90f1406263b3571b0d",
+        "scope": "Actual rendered source-page Point Group header checked, including vector overbars; text extraction alone is not verification."
+      }
+    },
+    {
+      "legacy_keys": [
+        "hematite"
+      ],
+      "name_en": "Hematite",
+      "source_url": "https://www.handbookofmineralogy.org/pdfs/hematite.pdf",
+      "source_page": 1,
+      "source_pdf_sha256": "f517fa6c6558a6362075267ae81853ed71dc852450bc8173afe44125060b2612",
+      "source_original_value": "Hexagonal",
+      "point_groups": [
+        {
+          "source_symbol": "−3 2/m",
+          "standard_symbol": "-3m",
+          "condition_zh": ""
+        }
+      ],
+      "visual_review": {
+        "reviewer": "/root/product_flow_audit",
+        "reviewed_at": "2026-10-10T16:52:31.143074+00:00",
+        "page": 1,
+        "render_sha256": "869e9a9d5ab0645bf78d205d81a9c1100ea6810822b863e6bb2f3449c4f7ff5b",
+        "scope": "Actual rendered source-page Point Group header checked, including vector overbars; text extraction alone is not verification."
+      }
+    },
+    {
+      "legacy_keys": [
+        "rhodochrosite"
+      ],
+      "name_en": "Rhodochrosite",
+      "source_url": "https://www.handbookofmineralogy.org/pdfs/rhodochrosite.pdf",
+      "source_page": 1,
+      "source_pdf_sha256": "84c061904399b847e222d694651ee47678981078b921491d47976367c40b81a1",
+      "source_original_value": "Hexagonal",
+      "point_groups": [
+        {
+          "source_symbol": "−3 2/m",
+          "standard_symbol": "-3m",
+          "condition_zh": ""
+        }
+      ],
+      "visual_review": {
+        "reviewer": "/root/product_flow_audit",
+        "reviewed_at": "2026-10-10T16:52:31.143304+00:00",
+        "page": 1,
+        "render_sha256": "821cd0d1eaeacd63a342029e6d13df9e48187a4f33d3459aa982e3315c8052b9",
+        "scope": "Actual rendered source-page Point Group header checked, including vector overbars; text extraction alone is not verification."
+      }
+    },
+    {
+      "legacy_keys": [
+        "smithsonite"
+      ],
+      "name_en": "Smithsonite",
+      "source_url": "https://www.handbookofmineralogy.org/pdfs/smithsonite.pdf",
+      "source_page": 1,
+      "source_pdf_sha256": "d077075a7130dbea3d9a46bd56c29f052bbb46ab7da2dfce89555735cac1e07f",
+      "source_original_value": "Hexagonal",
+      "point_groups": [
+        {
+          "source_symbol": "−3 2/m",
+          "standard_symbol": "-3m",
+          "condition_zh": ""
+        }
+      ],
+      "visual_review": {
+        "reviewer": "/root/product_flow_audit",
+        "reviewed_at": "2026-10-10T16:52:31.143461+00:00",
+        "page": 1,
+        "render_sha256": "7c8c5b067c52124626cb722f4afdb7c9e45e273b6d1fc00cc801ed747f938c8d",
+        "scope": "Actual rendered source-page Point Group header checked, including vector overbars; text extraction alone is not verification."
+      }
+    },
+    {
+      "legacy_keys": [
+        "vanadinite"
+      ],
+      "name_en": "Vanadinite",
+      "source_url": "https://www.handbookofmineralogy.org/pdfs/vanadinite.pdf",
+      "source_page": 1,
+      "source_pdf_sha256": "77193c59b3326331f69c8fd887c9501d39982926d5af2350f4125f85a89f23f8",
+      "source_original_value": "Hexagonal",
+      "point_groups": [
+        {
+          "source_symbol": "6/m",
+          "standard_symbol": "6/m",
+          "condition_zh": ""
+        }
+      ],
+      "visual_review": {
+        "reviewer": "/root/product_flow_audit",
+        "reviewed_at": "2026-10-10T16:52:31.143602+00:00",
+        "page": 1,
+        "render_sha256": "3311ed1ef86fe488ecebe22d814f2d2c78eef407beeb3409148c4f8ffd9ec63e",
+        "scope": "Actual rendered source-page Point Group header checked, including vector overbars; text extraction alone is not verification."
+      }
+    },
+    {
+      "legacy_keys": [
+        "dioptase"
+      ],
+      "name_en": "Dioptase",
+      "source_url": "https://www.handbookofmineralogy.org/pdfs/dioptase.pdf",
+      "source_page": 1,
+      "source_pdf_sha256": "85b0766b741892a31fab28dc2a72a2883bf696bd24a67a71d0045a9010e3a7d0",
+      "source_original_value": "Hexagonal",
+      "point_groups": [
+        {
+          "source_symbol": "−3",
+          "standard_symbol": "-3",
+          "condition_zh": ""
+        }
+      ],
+      "visual_review": {
+        "reviewer": "/root/product_flow_audit",
+        "reviewed_at": "2026-10-10T16:52:31.143749+00:00",
+        "page": 1,
+        "render_sha256": "ba511bc91e4b0ecc7d7e46a8c9babcc8d53c4116f9c79b56bc4f104d4f30baa7",
+        "scope": "Actual rendered source-page Point Group header checked, including vector overbars; text extraction alone is not verification."
+      }
+    },
+    {
+      "legacy_keys": [
+        "elbaite",
+        "elbait"
+      ],
+      "name_en": "Elbaite",
+      "source_url": "https://www.handbookofmineralogy.org/pdfs/elbaite.pdf",
+      "source_page": 1,
+      "source_pdf_sha256": "14e880157679bf30da411b87d5053d44e9596a1b10bbaba173ded112ac0403b0",
+      "source_original_value": "Hexagonal",
+      "point_groups": [
+        {
+          "source_symbol": "3m",
+          "standard_symbol": "3m",
+          "condition_zh": ""
+        }
+      ],
+      "visual_review": {
+        "reviewer": "/root/product_flow_audit",
+        "reviewed_at": "2026-10-10T16:52:31.143959+00:00",
+        "page": 1,
+        "render_sha256": "f936c5d51342be6e6f90d7d9d55226049faab9089c20fee7febcfa068a96ed36",
+        "scope": "Actual rendered source-page Point Group header checked, including vector overbars; text extraction alone is not verification."
+      }
+    },
+    {
+      "legacy_keys": [
+        "beryl"
+      ],
+      "name_en": "Beryl",
+      "source_url": "https://www.handbookofmineralogy.org/pdfs/beryl.pdf",
+      "source_page": 1,
+      "source_pdf_sha256": "2f624de70655dcbbabae2c9e3da96a27759617f70e78879752fdabebb566e0ca",
+      "source_original_value": "Hexagonal",
+      "point_groups": [
+        {
+          "source_symbol": "6/m 2/m 2/m",
+          "standard_symbol": "6/mmm",
+          "condition_zh": ""
+        }
+      ],
+      "visual_review": {
+        "reviewer": "/root/product_flow_audit",
+        "reviewed_at": "2026-10-10T16:52:31.144097+00:00",
+        "page": 1,
+        "render_sha256": "ae55462739362886fd58c86e13d7c8e82b2741623a3bb6dbbadb6d056557b3dd",
+        "scope": "Actual rendered source-page Point Group header checked, including vector overbars; text extraction alone is not verification."
+      }
+    },
+    {
+      "legacy_keys": [
+        "corundum"
+      ],
+      "name_en": "Corundum",
+      "source_url": "https://www.handbookofmineralogy.org/pdfs/corundum.pdf",
+      "source_page": 1,
+      "source_pdf_sha256": "82534bfdab90a7610e32febf73438be0c776b9812ddd4d175ca6a72e3d1f80dd",
+      "source_original_value": "Hexagonal",
+      "point_groups": [
+        {
+          "source_symbol": "−3 2/m",
+          "standard_symbol": "-3m",
+          "condition_zh": ""
+        }
+      ],
+      "visual_review": {
+        "reviewer": "/root/product_flow_audit",
+        "reviewed_at": "2026-10-10T16:52:31.144237+00:00",
+        "page": 1,
+        "render_sha256": "9bec4254cf8060f9f5118f8c0700e35623e4abfb048bde0a19cfda02cc984ca1",
+        "scope": "Actual rendered source-page Point Group header checked, including vector overbars; text extraction alone is not verification."
+      }
+    },
+    {
+      "legacy_keys": [
+        "graphite"
+      ],
+      "name_en": "Graphite",
+      "source_url": "https://www.handbookofmineralogy.org/pdfs/graphite.pdf",
+      "source_page": 1,
+      "source_pdf_sha256": "a70cc68e42a8e91264056dfb4eecbce0c4c957988bbdb4ba9e6b56e255cf687e",
+      "source_original_value": "Hexagonal",
+      "point_groups": [
+        {
+          "source_symbol": "6/m 2/m 2/m",
+          "standard_symbol": "6/mmm",
+          "condition_zh": "2H多型"
+        },
+        {
+          "source_symbol": "−3 2/m",
+          "standard_symbol": "-3m",
+          "condition_zh": "3R多型"
+        }
+      ],
+      "visual_review": {
+        "reviewer": "/root/product_flow_audit",
+        "reviewed_at": "2026-10-10T16:52:31.144402+00:00",
+        "page": 1,
+        "render_sha256": "8b66c0d6d545dcbb2ce0732f1de439418555d238e38b7dd3b407de714eb43e00",
+        "scope": "Actual rendered source-page Point Group header checked, including vector overbars; text extraction alone is not verification."
+      },
+      "note_zh": "原页分别列出2H与3R多型；不同多型的晶系不同，不能凭照片替当前标本选择。原页3R晶胞数据标为synthetic（人工合成），不证明当前样品天然或人工。"
+    },
+    {
+      "legacy_keys": [
+        "pyrargyrite"
+      ],
+      "name_en": "Pyrargyrite",
+      "source_url": "https://www.handbookofmineralogy.org/pdfs/pyrargyrite.pdf",
+      "source_page": 1,
+      "source_pdf_sha256": "92b3240e1cde2123d1fa64e7f5b42db1e3e8cbe6f896b25ee2887cc7d713dab9",
+      "source_original_value": "Hexagonal",
+      "point_groups": [
+        {
+          "source_symbol": "3m",
+          "standard_symbol": "3m",
+          "condition_zh": ""
+        }
+      ],
+      "visual_review": {
+        "reviewer": "/root/product_flow_audit",
+        "reviewed_at": "2026-10-10T16:52:31.144546+00:00",
+        "page": 1,
+        "render_sha256": "10e173f9d2b499a0504b35af8ff9845a87ee1414ccc061063884f1214268f28f",
+        "scope": "Actual rendered source-page Point Group header checked, including vector overbars; text extraction alone is not verification."
+      }
+    },
+    {
+      "legacy_keys": [
+        "arsenic"
+      ],
+      "name_en": "Arsenic",
+      "source_url": "https://www.handbookofmineralogy.org/pdfs/arsenic.pdf",
+      "source_page": 1,
+      "source_pdf_sha256": "49c5f17fe83cf346fac98cdd5a35554d9af7110768664781530bc62eb3964937",
+      "source_original_value": "Hexagonal",
+      "point_groups": [
+        {
+          "source_symbol": "−3 2/m",
+          "standard_symbol": "-3m",
+          "condition_zh": ""
+        }
+      ],
+      "visual_review": {
+        "reviewer": "/root/product_flow_audit",
+        "reviewed_at": "2026-10-10T16:52:31.144712+00:00",
+        "page": 1,
+        "render_sha256": "aa681e5143f2630769ba6939a86a2ecacecb3f003b58c2ba6a6c563b1d74d41c",
+        "scope": "Actual rendered source-page Point Group header checked, including vector overbars; text extraction alone is not verification."
+      }
+    },
+    {
+      "legacy_keys": [
+        "bismuth"
+      ],
+      "name_en": "Bismuth",
+      "source_url": "https://www.handbookofmineralogy.org/pdfs/bismuth.pdf",
+      "source_page": 1,
+      "source_pdf_sha256": "996431afe93bb2f48b6dd8fdbb4d18f919097e94ba695e748ed095941bc2c1dd",
+      "source_original_value": "Hexagonal",
+      "point_groups": [
+        {
+          "source_symbol": "−3 2/m",
+          "standard_symbol": "-3m",
+          "condition_zh": ""
+        }
+      ],
+      "visual_review": {
+        "reviewer": "/root/product_flow_audit",
+        "reviewed_at": "2026-10-10T16:52:31.144953+00:00",
+        "page": 1,
+        "render_sha256": "33d23549089580e24b8d31fdfd8f0be09fa136de87111f281d9a995ea28ad8aa",
+        "scope": "Actual rendered source-page Point Group header checked, including vector overbars; text extraction alone is not verification."
+      }
+    },
+    {
+      "legacy_keys": [
+        "cinnabar"
+      ],
+      "name_en": "Cinnabar",
+      "source_url": "https://www.handbookofmineralogy.org/pdfs/cinnabar.pdf",
+      "source_page": 1,
+      "source_pdf_sha256": "d4fbdcded67d455015b034e7141db8ca13a9f62b5f793f02212b86b5b1a59f23",
+      "source_original_value": "Hexagonal",
+      "point_groups": [
+        {
+          "source_symbol": "32",
+          "standard_symbol": "32",
+          "condition_zh": ""
+        }
+      ],
+      "visual_review": {
+        "reviewer": "/root/product_flow_audit",
+        "reviewed_at": "2026-10-10T16:52:31.145081+00:00",
+        "page": 1,
+        "render_sha256": "3cec2d80fc7787bd91e9eaf9da3fb9f55f9eee92828b76fbf150198e1f214b4f",
+        "scope": "Actual rendered source-page Point Group header checked, including vector overbars; text extraction alone is not verification."
+      }
+    },
+    {
+      "legacy_keys": [
+        "proustite"
+      ],
+      "name_en": "Proustite",
+      "source_url": "https://www.handbookofmineralogy.org/pdfs/proustite.pdf",
+      "source_page": 1,
+      "source_pdf_sha256": "5f5f8340b3f070b7f8c2ff3b08c84f0857e4af1eb8a710fdaaeba628ff18c0dd",
+      "source_original_value": "Hexagonal",
+      "point_groups": [
+        {
+          "source_symbol": "−3 2/m",
+          "standard_symbol": "-3m",
+          "condition_zh": "原页点群与空间群不同，点群值待复核"
+        }
+      ],
+      "visual_review": {
+        "reviewer": "/root/product_flow_audit",
+        "reviewed_at": "2026-10-10T16:52:31.145228+00:00",
+        "page": 1,
+        "render_sha256": "5ec0e39aebde9832609a65e83d6e5643c92b6b062f8c3bd95e1ba31e1546536c",
+        "scope": "Actual rendered source-page Point Group header checked, including vector overbars; text extraction alone is not verification."
+      },
+      "note_zh": "原页点群写为−3 2/m，但同页空间群R3c对应3m，二者不一致；均属三方晶系，点群具体值待复核，保留原文而不擅改。",
+      "source_internal_discrepancy": {
+        "point_group_source": "−3 2/m",
+        "space_group_source": "R3c",
+        "classification_point_group_for_space_group": "3m",
+        "reference_url": "https://it.iucr.org/Ac/ch1o3v0001/table1o3o4o3.pdf",
+        "space_group_render_sha256": "bc3fa05d457f1ca36e97559ab65dde700fc99b42e0c10e07613aa07e449c8f4a"
+      }
+    },
+    {
+      "legacy_keys": [
+        "ilmenite"
+      ],
+      "name_en": "Ilmenite",
+      "source_url": "https://www.handbookofmineralogy.org/pdfs/ilmenite.pdf",
+      "source_page": 1,
+      "source_pdf_sha256": "065c67757642efe3f8e98a3dde684ebd763a4edeb00da9587adb68845aedc7d7",
+      "source_original_value": "Hexagonal",
+      "point_groups": [
+        {
+          "source_symbol": "−3",
+          "standard_symbol": "-3",
+          "condition_zh": ""
+        }
+      ],
+      "visual_review": {
+        "reviewer": "/root/product_flow_audit",
+        "reviewed_at": "2026-10-10T16:52:31.145500+00:00",
+        "page": 1,
+        "render_sha256": "0dd1c3c9fc5408090540d8abdd2de068b3bd940c69f81468e67a9c349b2fd7c3",
+        "scope": "Actual rendered source-page Point Group header checked, including vector overbars; text extraction alone is not verification."
+      }
+    },
+    {
+      "legacy_keys": [
+        "dolomite"
+      ],
+      "name_en": "Dolomite",
+      "source_url": "https://www.handbookofmineralogy.org/pdfs/dolomite.pdf",
+      "source_page": 1,
+      "source_pdf_sha256": "8bdc0dcd52f6067111c152988f16b96a6bccd3e025b302d451035ec1d43853ad",
+      "source_original_value": "Hexagonal",
+      "point_groups": [
+        {
+          "source_symbol": "−3",
+          "standard_symbol": "-3",
+          "condition_zh": ""
+        }
+      ],
+      "visual_review": {
+        "reviewer": "/root/product_flow_audit",
+        "reviewed_at": "2026-10-10T16:52:31.145633+00:00",
+        "page": 1,
+        "render_sha256": "c9f405b27c2223963fc21639251156534014541781dabcc80edabc3a729a0ec5",
+        "scope": "Actual rendered source-page Point Group header checked, including vector overbars; text extraction alone is not verification."
+      }
+    },
+    {
+      "legacy_keys": [
+        "cancrinit"
+      ],
+      "name_en": "Cancrinite",
+      "source_url": "https://www.handbookofmineralogy.org/pdfs/cancrinite.pdf",
+      "source_page": 1,
+      "source_pdf_sha256": "2046236868b32663f6d4461846f1f97d1d84422a29901518a962f752a515115c",
+      "source_original_value": "Hexagonal",
+      "point_groups": [
+        {
+          "source_symbol": "6",
+          "standard_symbol": "6",
+          "condition_zh": ""
+        }
+      ],
+      "visual_review": {
+        "reviewer": "/root/product_flow_audit",
+        "reviewed_at": "2026-10-10T16:52:31.145761+00:00",
+        "page": 1,
+        "render_sha256": "ac37a4d0fb2e8496da40a2a8e8af03b8066bdf079dabb9933dc8b5c6a70b42d3",
+        "scope": "Actual rendered source-page Point Group header checked, including vector overbars; text extraction alone is not verification."
+      }
+    },
+    {
+      "legacy_keys": [
+        "eudialyte"
+      ],
+      "name_en": "Eudialyte",
+      "source_url": "https://www.handbookofmineralogy.org/pdfs/eudialyte.pdf",
+      "source_page": 1,
+      "source_pdf_sha256": "eeb10e72fbfbebfd81d61fb197ca83a0578abc40b79607064569a3a4bdf56f41",
+      "source_original_value": "Hexagonal",
+      "point_groups": [
+        {
+          "source_symbol": "−3 2/m",
+          "standard_symbol": "-3m",
+          "condition_zh": ""
+        }
+      ],
+      "visual_review": {
+        "reviewer": "/root/product_flow_audit",
+        "reviewed_at": "2026-10-10T16:52:31.145970+00:00",
+        "page": 1,
+        "render_sha256": "0be8a9fa34f283fd4b910b527f2c287cad7dde6a627efe0c74b33e8c469e6318",
+        "scope": "Actual rendered source-page Point Group header checked, including vector overbars; text extraction alone is not verification."
+      }
+    },
+    {
+      "legacy_keys": [
+        "molybdenite"
+      ],
+      "name_en": "Molybdenite",
+      "source_url": "https://www.handbookofmineralogy.org/pdfs/molybdenite.pdf",
+      "source_page": 1,
+      "source_pdf_sha256": "02057fb7a97bc8fdfeb6acbee9ae3a874b0fa7d3b3a3db96141a7fecb0ef6d65",
+      "source_original_value": "Hexagonal",
+      "point_groups": [
+        {
+          "source_symbol": "6/m 2/m 2/m",
+          "standard_symbol": "6/mmm",
+          "condition_zh": "2H多型"
+        },
+        {
+          "source_symbol": "3m",
+          "standard_symbol": "3m",
+          "condition_zh": "3R多型"
+        }
+      ],
+      "visual_review": {
+        "reviewer": "/root/product_flow_audit",
+        "reviewed_at": "2026-10-10T16:52:31.146105+00:00",
+        "page": 1,
+        "render_sha256": "936c72ef45d6aefd1ae52377806485b29f345d3a5250b4c550cf471451054cdb",
+        "scope": "Actual rendered source-page Point Group header checked, including vector overbars; text extraction alone is not verification."
+      },
+      "note_zh": "原页分别列出2H与3R多型；不同多型的晶系不同，不能凭照片替当前标本选择。"
+    },
+    {
+      "legacy_keys": [
+        "siderite"
+      ],
+      "name_en": "Siderite",
+      "source_url": "https://www.handbookofmineralogy.org/pdfs/siderite.pdf",
+      "source_page": 1,
+      "source_pdf_sha256": "18e99c253836e2ebb233ab80208224079e0d6b5bc9b1b2add677464da2ee1ebd",
+      "source_original_value": "Hexagonal",
+      "point_groups": [
+        {
+          "source_symbol": "−3 2/m",
+          "standard_symbol": "-3m",
+          "condition_zh": ""
+        }
+      ],
+      "visual_review": {
+        "reviewer": "/root/product_flow_audit",
+        "reviewed_at": "2026-10-10T16:52:31.146242+00:00",
+        "page": 1,
+        "render_sha256": "16a802df8bfb1bd360b98725b500c2d4aac450b66267b3307fd336998451811b",
+        "scope": "Actual rendered source-page Point Group header checked, including vector overbars; text extraction alone is not verification."
+      }
+    },
+    {
+      "legacy_keys": [
+        "fluorapatite"
+      ],
+      "name_en": "Fluorapatite",
+      "source_url": "https://www.handbookofmineralogy.org/pdfs/fluorapatite.pdf",
+      "source_page": 1,
+      "source_pdf_sha256": "32bb586c37a7b0904cde6308de998de75c6e06f2db870197564e549d70cce360",
+      "source_original_value": "Hexagonal or monoclinic",
+      "point_groups": [
+        {
+          "source_symbol": "6/m",
+          "standard_symbol": "6/m",
+          "condition_zh": "源页六方结构"
+        },
+        {
+          "source_symbol": "2/m",
+          "standard_symbol": "2/m",
+          "condition_zh": "源页单斜结构"
+        }
+      ],
+      "visual_review": {
+        "reviewer": "/root/product_flow_audit",
+        "reviewed_at": "2026-10-10T16:52:31.146367+00:00",
+        "page": 1,
+        "render_sha256": "423602fae1b329b042dbb330ca4cb392a395424b25ad220857e9bc1736d01b29",
+        "scope": "Actual rendered source-page Point Group header checked, including vector overbars; text extraction alone is not verification."
+      },
+      "note_zh": "原页同时列六方与单斜结构；具体结构需检测确认，不能凭外观任选一种。"
+    }
+  ]
+}

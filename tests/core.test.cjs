@@ -2,7 +2,8 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const C = require('../web/core.js');
 const keys = ['quartz','calcite','fluorite'];
-const knowledge = { quartz:{hardness:7,luster:'玻璃光泽'},calcite:{hardness:3,luster:'玻璃至珍珠光泽'},fluorite:{hardness:4,luster:'玻璃光泽'} };
+const sourceFacts=(hardness,luster)=>({hardness,luster,verified_properties:{hardness:{value:hardness,status:'verified',source_url:'https://www.handbookofmineralogy.org/pdfs/quartz.pdf'},luster:{value:luster,status:'verified',source_url:'https://www.handbookofmineralogy.org/pdfs/quartz.pdf'}}});
+const knowledge = { quartz:sourceFacts(7,'玻璃光泽'),calcite:sourceFacts(3,'玻璃至珍珠光泽'),fluorite:sourceFacts(4,'玻璃光泽') };
 test('stable softmax handles extreme logits and rejects nonfinite outputs',()=>{
   const p=C.softmax([1000,999,-1000]);assert.ok(p.every(Number.isFinite));assert.ok(Math.abs(p.reduce((a,b)=>a+b)-1)<1e-12);
   assert.throws(()=>C.softmax([NaN,1]));assert.throws(()=>C.softmax([]));

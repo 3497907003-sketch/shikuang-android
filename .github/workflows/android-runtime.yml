@@ -30,7 +30,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        api: ${{ fromJSON(inputs.network_probe && '[35]' || '[30,35]') }}
+        include: ${{ fromJSON(inputs.network_probe && '[{"api":35,"id":"35","tag":"google_apis","pageSize":4096}]' || '[{"api":24,"id":"24","tag":"google_apis","pageSize":4096},{"api":30,"id":"30","tag":"google_apis","pageSize":4096},{"api":35,"id":"35","tag":"google_apis","pageSize":4096},{"api":35,"id":"35-16k","tag":"google_apis_ps16k","pageSize":16384}]') }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -53,14 +53,14 @@ jobs:
           SHIKUANG_ANDROID_SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
           "$SHIKUANG_ANDROID_SDK/cmdline-tools/latest/bin/sdkmanager" \
             "platform-tools" "emulator" \
-            "system-images;android-${{ matrix.api }};google_apis;x86_64"
+            "system-images;android-${{ matrix.api }};${{ matrix.tag }};x86_64"
           printf '%s\n' "$SHIKUANG_ANDROID_SDK/platform-tools" >> "$GITHUB_PATH"
           mkdir -p "$ANDROID_AVD_HOME"
           printf 'no\n' | "$SHIKUANG_ANDROID_SDK/cmdline-tools/latest/bin/avdmanager" create avd \
-            --name "shikuang-api${{ matrix.api }}" \
-            --package "system-images;android-${{ matrix.api }};google_apis;x86_64" \
-            --device pixel_2 --path "$ANDROID_AVD_HOME/shikuang-api${{ matrix.api }}.avd" --force
-          test -f "$ANDROID_AVD_HOME/shikuang-api${{ matrix.api }}.ini"
+            --name "shikuang-api${{ matrix.id }}" \
+            --package "system-images;android-${{ matrix.api }};${{ matrix.tag }};x86_64" \
+            --device pixel_2 --path "$ANDROID_AVD_HOME/shikuang-api${{ matrix.id }}.avd" --force
+          test -f "$ANDROID_AVD_HOME/shikuang-api${{ matrix.id }}.ini"
           "$SHIKUANG_ANDROID_SDK/emulator/emulator" -list-avds
           sudo chmod 666 /dev/kvm
       - name: Boot emulator and disconnect device networking
@@ -69,28 +69,63 @@ jobs:
           mkdir -p runtime-artifacts
           SHIKUANG_ANDROID_SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
           nohup "$SHIKUANG_ANDROID_SDK/emulator/emulator" \
-            -avd "shikuang-api${{ matrix.api }}" -no-window -no-audio \
+            -avd "shikuang-api${{ matrix.id }}" -no-window -no-audio \
             -no-boot-anim -no-snapshot -gpu swiftshader_indirect \
             -camera-back none -camera-front none -memory 3072 -cores 2 -accel on \
             > runtime-artifacts/emulator.log 2>&1 &
           timeout 180 adb wait-for-device
           timeout 180 bash -c 'until [[ "$(adb shell getprop sys.boot_completed | tr -d "\r")" == "1" ]]; do sleep 2; done'
+          # Check the actual kernel/libc page size. No property override simulates this gate.
+          if (( ${{ matrix.api }} < 26 )); then
+            # Android 7 has no getconf binary. Read an actual mapped kernel page;
+            # the instrumented Java Os.sysconf check independently confirms it.
+            adb shell cat /proc/self/smaps > runtime-artifacts/device-page-mappings.txt
+            awk '/^KernelPageSize:/ {print $2 * 1024; found=1; exit} END {if (!found) exit 1}' runtime-artifacts/device-page-mappings.txt > runtime-artifacts/device-page-size.txt
+          else
+            adb shell getconf PAGE_SIZE > runtime-artifacts/device-page-size.txt
+          fi
+          test "$(tr -d '\r\n' < runtime-artifacts/device-page-size.txt)" = "${{ matrix.pageSize }}"
+          printf '%s\n' "system-images;android-${{ matrix.api }};${{ matrix.tag }};x86_64" > runtime-artifacts/system-image.txt
           adb shell input keyevent 82
           adb shell settings put global window_animation_scale 0
           adb shell settings put global transition_animation_scale 0
           adb shell settings put global animator_duration_scale 0
-          adb root
-          timeout 60 adb wait-for-device
-          test "$(adb shell id -u | tr -d '\r')" = 0
+          # Starting adbd as root may close the first transport while Android
+          # finishes booting. Retry only this finite connection transition;
+          # root UID and every genuine offline/page-size gate remain required.
+          SHIKUANG_ROOT_READY=false
+          for SHIKUANG_ROOT_ATTEMPT in 1 2 3 4 5; do
+            printf 'attempt=%s\n' "$SHIKUANG_ROOT_ATTEMPT" >> runtime-artifacts/adb-root-transition.txt
+            timeout 20 adb root >> runtime-artifacts/adb-root-transition.txt 2>&1 || true
+            timeout 30 adb wait-for-device >> runtime-artifacts/adb-root-transition.txt 2>&1 || true
+            SHIKUANG_ROOT_UID="$(timeout 10 adb shell id -u 2>> runtime-artifacts/adb-root-transition.txt | tr -d '\r' || true)"
+            printf 'uid=%s\n' "$SHIKUANG_ROOT_UID" >> runtime-artifacts/adb-root-transition.txt
+            if [[ "$SHIKUANG_ROOT_UID" = 0 ]]; then SHIKUANG_ROOT_READY=true; break; fi
+            sleep 2
+          done
+          test "$SHIKUANG_ROOT_READY" = true
           # The Google API image carries MOBILE[LTE] on eth0. Wait for SIM setup
           # before disabling its radio, so first-boot telephony cannot restore it.
-          timeout 90 bash -c 'until [[ "$(adb shell getprop gsm.sim.state)" == *LOADED* ]]; do sleep 2; done'
+          if (( ${{ matrix.api }} < 29 )); then
+            timeout 90 bash -c 'until [[ "$(adb shell getprop gsm.sim.state)" =~ (LOADED|READY) ]]; do sleep 2; done'
+            sleep 10
+          else
+            timeout 90 bash -c 'until [[ "$(adb shell getprop gsm.sim.state)" == *LOADED* ]]; do sleep 2; done'
+          fi
           adb shell getprop gsm.sim.state > runtime-artifacts/sim-state.txt
           adb shell cmd connectivity help > runtime-artifacts/connectivity-shell-help.txt 2>&1 || true
           # Official ConnectivityService shell API writes the persistent mode and broadcasts it.
           # https://android.googlesource.com/platform/packages/modules/Connectivity/+/refs/heads/android15-release/service/src/com/android/server/ConnectivityService.java
-          adb shell cmd connectivity airplane-mode enable
-          test "$(adb shell cmd connectivity airplane-mode | tr -d '\r')" = enabled
+          if (( ${{ matrix.api }} < 29 )); then
+            # Android 7's official Settings uses this same setting + protected broadcast.
+            # https://android.googlesource.com/platform/packages/apps/Settings/+/android-7.0.0_r1/src/com/android/settings/AirplaneModeEnabler.java
+            adb shell settings put global airplane_mode_on 1
+            adb shell am broadcast -a android.intent.action.AIRPLANE_MODE --ez state true
+            test "$(adb shell settings get global airplane_mode_on | tr -d '\r')" = 1
+          else
+            adb shell cmd connectivity airplane-mode enable
+            test "$(adb shell cmd connectivity airplane-mode | tr -d '\r')" = enabled
+          fi
           adb shell svc wifi disable
           adb shell svc data disable
           adb shell 'for device in eth0 eth1 wlan0; do if ip link show "$device" >/dev/null 2>&1; then ip link set "$device" down; fi; done'
@@ -103,7 +138,7 @@ jobs:
           adb shell dumpsys ethernet > runtime-artifacts/ethernet.txt 2>&1 || true
           adb shell dumpsys connectivity > runtime-artifacts/connectivity.txt
           adb shell service check ethernet > runtime-artifacts/ethernet-service-availability.txt 2>&1 || true
-          adb shell cmd connectivity airplane-mode > runtime-artifacts/airplane-mode.txt
+          adb shell settings get global airplane_mode_on > runtime-artifacts/airplane-mode.txt
           adb shell dumpsys telephony.registry > runtime-artifacts/telephony.txt
           adb shell getprop ro.product.cpu.abi > runtime-artifacts/device-abi.txt
           adb shell getprop ro.product.cpu.abilist > runtime-artifacts/device-supported-abis.txt
@@ -142,46 +177,149 @@ jobs:
       - name: Run packaged WebView with actual native ONNX inference
         if: ${{ !inputs.network_probe }}
         working-directory: android
-        run: ./gradlew --no-daemon --max-workers=2 -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true connectedDebugAndroidTest
+        run: ./gradlew --no-daemon --max-workers=2 -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true -Pandroid.testInstrumentationRunnerArguments.expectedPageSize=${{ matrix.pageSize }} connectedDebugAndroidTest
       - name: Capture runtime diagnostics
         if: always()
         shell: bash
         run: |
           mkdir -p runtime-artifacts
+          ps -ef > runtime-artifacts/host-processes-final.txt
+          free -m > runtime-artifacts/host-memory-final.txt
+          timeout 15 adb reconnect offline > runtime-artifacts/adb-reconnect-final.txt 2>&1 || true
+          timeout 20 adb wait-for-device >> runtime-artifacts/adb-reconnect-final.txt 2>&1 || true
           timeout 20 adb exec-out screencap -p > runtime-artifacts/final-screen.png || true
           timeout 20 adb shell dumpsys webviewupdate > runtime-artifacts/webview-provider-final.txt || true
           timeout 20 adb shell dumpsys ethernet > runtime-artifacts/ethernet-final.txt || true
           timeout 20 adb shell dumpsys connectivity > runtime-artifacts/connectivity-final.txt || true
           timeout 20 adb shell ip route show table all > runtime-artifacts/ipv4-all-route-tables-final.txt || true
           timeout 20 adb shell ip -6 route show table all > runtime-artifacts/ipv6-all-route-tables-final.txt || true
-          timeout 60 adb pull /sdcard/Android/data/com.shikuang.app.preview/files/runtime-smoke runtime-artifacts/ || true
+          # A live streaming adb log may disconnect when the test driver resets
+          # its connection. Preserve final buffers and process exit reasons too.
+          timeout 30 adb logcat -b all -d -v threadtime > runtime-artifacts/logcat-final.txt || true
+          timeout 20 adb shell dumpsys activity exit-info com.shikuang.app.preview > runtime-artifacts/app-exit-info.txt 2>&1 || true
+          timeout 20 adb shell ps -A > runtime-artifacts/processes-final.txt 2>&1 || true
+          timeout 20 adb shell dmesg > runtime-artifacts/kernel-final.txt 2>&1 || true
+          mkdir -p runtime-artifacts/runtime-smoke
+          timeout 60 adb pull /sdcard/googletest/test_outputfiles/. runtime-artifacts/runtime-smoke/ || true
+          # The official AndroidX test storage provider owns this directory.
+          # AGP's UTP collector copies genuine files before
+          # later Gradle tasks finish. Preserve that export if post-test ADB drops.
+          python3 - <<'PYOUTPUT'
+          from pathlib import Path
+          import hashlib, shutil
+          source = Path('android/app/build/outputs/connected_android_test_additional_output')
+          target = Path('runtime-artifacts/runtime-smoke')
+          for file in source.rglob('*') if source.exists() else []:
+              if not file.is_file() or file.suffix not in ('.json', '.png'):
+                  continue
+              target.mkdir(parents=True, exist_ok=True)
+              output = target / file.name
+              if output.exists():
+                  assert output.read_bytes() == file.read_bytes(), f'Device and UTP evidence differ: {file.name}'
+              else:
+                  shutil.copy2(file, output)
+          PYOUTPUT
       - name: Require screenshots and JSON from successful runtime tests
         if: ${{ success() && !inputs.network_probe }}
         shell: bash
         run: |
           python3 - <<'PY'
-          import json
+          import hashlib, json
           from pathlib import Path
           folder = Path('runtime-artifacts/runtime-smoke')
+          report = json.loads((folder / 'runtime-report.json').read_text())
+          manifest = json.loads(Path('web/model-manifest.json').read_text())
+          reference = json.loads(Path('web/data/reference-manifest.json').read_text())
+          images = json.loads(Path('web/data/image-sources.json').read_text())
+          native = json.loads((folder / 'native-contract-runtime.json').read_text())
+          photo_manifest_bytes = Path('web/data/reviewed-photo-assets.json').read_bytes()
+          photo_manifest = json.loads(photo_manifest_bytes)
+          photo = json.loads((folder / 'reviewed-photo-runtime.json').read_text())
+          assert photo['phase'] == 'passed' and photo['sdk'] == ${{ matrix.api }} and photo['pageSize'] == ${{ matrix.pageSize }}
+          assert photo['packageName'] == 'com.shikuang.app.preview' and photo['versionCode'] == 25001 and photo['versionName'] == '2.5.0-preview.1'
+          assert photo['activeNetworkBefore'] is None and photo['activeNetworkAfter'] is None
+          assert photo['photoManifestSha256'] == hashlib.sha256(photo_manifest_bytes).hexdigest()
+          assert photo['photosDecoded'] == reference['counts']['local_reviewed_photos'] == len(photo_manifest['assets'])
+          assert photo['sourceRecords'] == reference['counts']['source_image_records'] == len(images['records'])
+          assert len(photo['photos']) == photo['photosDecoded']
+          expected_photos = {row['path']: (row['sha256'], row['bytes']) for row in photo_manifest['assets']}
+          assert {row['path']: (row['sha256'], row['bytes']) for row in photo['photos']} == expected_photos
+          assert all(row['actualNativeDecode'] is True and min(row['width'], row['height']) >= 224 and max(row['width'], row['height']) <= 512 for row in photo['photos'])
+          print(f"Verified {photo['photosDecoded']} exact packaged JPEGs with the genuine Android decoder while disconnected; no mineral-label or accuracy claim.")
+          assert native['phase'] == 'passed' and native['runtimeVersion'] == '1.24.3'
+          assert native['sdk'] == ${{ matrix.api }} and native['pageSize'] == ${{ matrix.pageSize }}
+          assert {row['id']: row['sha256'] for row in native['graphs']} == {row['id']: row['sha256'] for row in manifest['models']}
+          assert all(row['finiteOutput'] for row in native['graphs'])
+          if report['phase'] == 'unsupported-webview-recovery-passed':
+              assert ${{ matrix.api }} == 24 and report['photoRecognitionVerified'] is False
+              assert report['boot']['supported'] is False and report['boot']['missing']
+              assert report['network']['native']['activeNetwork'] is None and report['network']['native']['connected'] is False
+              assert '本机标本和历史记录会保留' in report['recovery']
+              content = (folder / 'legacy-webview-recovery.png').read_bytes()
+              assert content.startswith(b'\x89PNG\r\n\x1a\n') and len(content) > 1024
+              print('API24 factory WebView recovery UI and actual Java ONNX graph compatibility verified; photo UI recognition not claimed.')
+              raise SystemExit(0)
+          migration = json.loads((folder / 'asset-migration-report.json').read_text())
+          assert migration['phase'] == 'migration-passed' and migration['historyPreserved'] is True
+          assert migration['controller'] is False and migration['registrationCount'] == 0 and migration['poisonedPage'] is False
+          assert migration['cacheSeeded'] is True
+          if migration['registration_supported']:
+              assert migration['controllerSeeded'] is True
+          else:
+              assert migration['controllerSeeded'] is False and migration['registration_error']
+              print('Native service-worker registration unavailable: verified real CacheStorage and IndexedDB migration; no controlled-page migration claim.')
           for filename in ['quartz-result.png', 'dog-rejection.png', 'library-offline-overview.png', 'quartz-reference-details.png', 'quartz-image-references.png', 'abellaite-reference-details.png']:
               content = (folder / filename).read_bytes()
               assert content.startswith(b'\x89PNG\r\n\x1a\n') and len(content) > 1024, filename
-          report = json.loads((folder / 'runtime-report.json').read_text())
           assert report['phase'] == 'passed', report.get('phase')
           assert report['quartz']['engine'] == 'onnx-native-android'
-          assert report['catalog']['imaSpecies'] == 6239
-          assert report['catalog']['crystalSpecies'] == 3430
-          assert report['catalog']['imageReferences'] == 780
-          assert report['catalog']['localFetches'] == 4
+          assert report['network']['native']['pageSize'] == ${{ matrix.pageSize }}
+          assert report['network']['native']['versionCode'] == 25001
+          assert report['network']['native']['versionName'] == '2.5.0-preview.1'
+          assert report['network']['native']['packageName'] == 'com.shikuang.app.preview'
+          assert int(Path('runtime-artifacts/device-page-size.txt').read_text().strip()) == ${{ matrix.pageSize }}
+          assert report['quartz']['modelCount'] == len(manifest['modes']['ensemble'])
+          assert report['quartz']['modelVersion'] == manifest['version']
+          assert report['fast']['modelCount'] == 1
+          assert report['fast']['engine'] == 'onnx-native-android'
+          assert report['fast']['diagnostics']['residentSessionCount'] <= 2
+          assert report['fast']['manifestSha256'] == report['quartz']['manifestSha256']
+          assert report['catalog']['imaSpecies'] == reference['counts']['ima_species']
+          assert report['catalog']['crystalSpecies'] == reference['counts']['species_with_records']
+          assert report['catalog']['imageReferences'] == len(images['records'])
+          assert report['catalog']['localFetches'] == 1 + len(reference['files'])
           assert report['catalog']['online'] is False
+          assert report['initialReferenceRequests'] == [] and report['visibleVersion'] == '2.5'
+          quartz_sources = [row for row in images['records'] if row['mineral_name'] == 'Quartz' and row.get('local_image_url')]
+          assert 0 < len(report['galleryPhotos']) == len(report['galleryReopened']) == min(5, len(quartz_sources))
+          assert report['galleryRevokedCount'] == len(report['galleryPhotos'])
+          for index, row in enumerate(report['galleryPhotos']):
+              reopened = report['galleryReopened'][index]
+              assert row['decoded'] is True and row['complete'] is True and reopened['decoded'] is True
+              assert (row['sha256'], row['bytes']) == expected_photos[row['path']]
+              assert (reopened['sha256'], reopened['bytes']) == expected_photos[reopened['path']]
+              assert row['width'] > 0 and row['height'] > 0
+              assert reopened['blobUrl'] != row['blobUrl']
+              assert '?image=' + row['sha256'] in row['url']
+              assert row['sourceUrl'].startswith('https://') and row['licenseUrl'].startswith('https://')
+          assert len(report['catalogPhotoFetches']) >= len(report['galleryPhotos'])
+          assert all(row['local'] is True and row['status'] == 200 and '?image=' in row['url'] for row in report['catalogPhotoFetches'])
+          for field in ('network', 'networkAfterCatalog'):
+              assert report[field]['native']['activeNetwork'] is None
+              assert report[field]['native']['connected'] is False
+          assert report['photoGeometry']['exifOrientation'] == 6
+          assert len(report['photoGeometry']['crops']) == 3
+          assert len(report['screenshots']) == 6
+          assert all(row['visualStateSynchronized'] for row in report['screenshots'])
           print('Preserved native inference, offline catalog JSON and six genuine app screenshots.')
           PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ${{ inputs.network_probe && 'shikuang-network-probe-api35' || format('shikuang-runtime-api-{0}', matrix.api) }}
+          name: ${{ inputs.network_probe && 'shikuang-network-probe-api35' || format('shikuang-runtime-api-{0}', matrix.id) }}
           path: |
             runtime-artifacts/
             android/app/build/reports/androidTests/
             android/app/build/outputs/androidTest-results/
+            android/app/build/outputs/connected_android_test_additional_output/
           if-no-files-found: warn

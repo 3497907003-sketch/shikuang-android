@@ -1,0 +1,29 @@
+{
+  "validated_at": "2026-10-10T14:26:51.713539+00:00",
+  "checks": {
+    "minimum_100_species_200_image_references": true,
+    "minimum_20_existing_model_species": true,
+    "unique_record_ids_and_original_urls": true,
+    "canonical_species_in_official_ima_catalog": true,
+    "no_training_ready_claims": true,
+    "commons_per_image_author_and_license_or_public_domain_claim": true,
+    "rruff_sample_ids_and_exact_image_record_links": true,
+    "rruff_no_explicitly_synthetic_samples": true,
+    "commons_specific_mineral_category_evidence": true,
+    "all_original_urls_https_official_host": true,
+    "metadata_requests_without_errors": true
+  },
+  "stats": {
+    "image_references": 780,
+    "distinct_species": 130,
+    "model_species_represented": 79,
+    "rruff_images": 482,
+    "commons_images": 298,
+    "rruff_specimens": 327,
+    "commons_species": 111,
+    "training_ready": 0,
+    "analytically_supported_rruff_images": 435
+  },
+  "json_bytes": 1893106,
+  "scope": "Metadata structure and source relations only; no pixels downloaded, visual quality review, licensing adjudication or ML accuracy validation performed."
+}

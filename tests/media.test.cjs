@@ -14,7 +14,7 @@ function fixture({metadata=true,onSeek}={}){
   const canvas={getContext:()=>({drawImage:()=>draws.push(video.time)}),toDataURL:()=>`frame-${video.time}`};
   const ctx={module:{exports:{}},setTimeout,clearTimeout,Number,Error,URL:{createObjectURL:()=> 'blob:video',revokeObjectURL:url=>revoked.push(url)},document:{createElement:type=>type==='video'?video:canvas}};
   vm.runInNewContext(fs.readFileSync(require.resolve('../web/media.js'),'utf8'),ctx,{filename:'media.js'});
-  return {api:ctx.module.exports,video,events,revoked,draws};
+  return {api:ctx.module.exports,video,canvas,events,revoked,draws};
 }
 const file={name:'specimen.mp4',type:'video/mp4',size:100};
 
@@ -34,4 +34,10 @@ test('cancel during seek prevents late frames being drawn or returned',async()=>
 test('successful video extraction returns chronological distinct frames and cleans resources',async()=>{
   const f=fixture();const result=await f.api.extractVideo(file);
   assert.deepEqual(Array.from(result.frames,x=>x.time),[.6,2,3.4]);assert.deepEqual(f.draws,[.6,2,3.4]);assert.deepEqual(f.revoked,['blob:video']);assert.equal(f.video.paused,true);
+});
+test('zero, non-finite and oversized video dimensions reject before Canvas allocation and release video resources',async()=>{
+  for(const [width,height] of [[0,480],[640,0],[NaN,480],[Infinity,480],[9000,9000]]){
+    const f=fixture();f.video.videoWidth=width;f.video.videoHeight=height;
+    await assert.rejects(f.api.extractVideo(file));assert.equal(f.canvas.width,undefined);assert.equal(f.draws.length,0);assert.equal(f.video.paused,true);assert.deepEqual(f.revoked,['blob:video']);
+  }
 });

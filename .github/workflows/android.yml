@@ -1,4 +1,4 @@
-name: Validate and build Shikuang 2.0
+name: Validate and build Shikuang 2.5
 on:
   pull_request:
     branches: [main]
@@ -26,6 +26,7 @@ jobs:
       - run: npm audit --audit-level=high
       - run: npm test
       - run: npm run check
+      - run: python3 tests/test_apk_compatibility.py
       - run: npm run sync
       - name: Prepare persistent preview signing key
         env:
@@ -51,11 +52,23 @@ jobs:
           "$SHIKUANG_ANDROID_SDK/build-tools/34.0.0/apksigner" verify --verbose --print-certs \
             android/app/build/outputs/apk/debug/app-debug.apk \
             | tee android/app/build/outputs/apk/debug/apk-signature-verification.txt
+      - name: Check four ABI libraries and 16 KB ELF and ZIP compatibility
+        shell: bash
+        run: |
+          SHIKUANG_ANDROID_SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          "$SHIKUANG_ANDROID_SDK/cmdline-tools/latest/bin/sdkmanager" "build-tools;35.0.0"
+          python3 tools/inspect_apk.py android/app/build/outputs/apk/debug/app-debug.apk \
+            --require-16k --output android/app/build/outputs/apk/debug/apk-native-compatibility.json
+          "$SHIKUANG_ANDROID_SDK/build-tools/35.0.0/zipalign" -v -c -P 16 4 \
+            android/app/build/outputs/apk/debug/app-debug.apk \
+            | tee android/app/build/outputs/apk/debug/apk-zipalign-16k.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: shikuang-2.0-preview-apk
+          name: shikuang-2.5-preview-apk
           path: |
             android/app/build/outputs/apk/debug/app-debug.apk
             android/app/build/outputs/apk/debug/apk-signature-verification.txt
+            android/app/build/outputs/apk/debug/apk-native-compatibility.json
+            android/app/build/outputs/apk/debug/apk-zipalign-16k.txt
             android/app/build/reports/lint-results-debug.html
           if-no-files-found: error

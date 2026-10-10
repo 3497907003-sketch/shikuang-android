@@ -1,0 +1,9 @@
+# Versions actually exercised on Python 3.11 / macOS ARM64; retain platform evidence.
+torch==2.14.0
+torchvision==0.29.0
+timm==1.0.29
+safetensors==0.8.0
+numpy==2.4.6
+Pillow==12.3.0
+onnx==1.23.0
+onnxruntime==1.30.0

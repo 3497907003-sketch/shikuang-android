@@ -1,1 +1,1 @@
-split,specimen_id,scene,label,image,crop,hardness,luster
+split,specimen_namespace,specimen_id,scene,label,label_basis,image,crop,hardness,luster

@@ -1,0 +1,3599 @@
+{
+  "handbook_index_count": 5663,
+  "unique_original_urls": 5663,
+  "matched_count": 5366,
+  "ambiguous_count": 8,
+  "unmatched_count": 865,
+  "ambiguous": [
+    {
+      "id": "ima-berryite",
+      "name_en": "Berryite",
+      "candidates": [
+        {
+          "name_en": "Berryite",
+          "handbook_url": "https://handbookofmineralogy.org/pdfs/Berryite-.pdf",
+          "original_url": "https://handbookofmineralogy.org/pdfs/Berryite-.pdf"
+        },
+        {
+          "name_en": "berryite",
+          "handbook_url": "https://handbookofmineralogy.org/pdfs/berryite.pdf",
+          "original_url": "http://handbookofmineralogy.org/pdfs/berryite.pdf"
+        }
+      ]
+    },
+    {
+      "id": "ima-gorgeyite",
+      "name_en": "Görgeyite",
+      "candidates": [
+        {
+          "name_en": "gorgeyite",
+          "handbook_url": "https://www.handbookofmineralogy.org/pdfs/gorgeyite.pdf",
+          "original_url": "http://www.handbookofmineralogy.org/pdfs/gorgeyite.pdf"
+        },
+        {
+          "name_en": "Görgeyite",
+          "handbook_url": "https://www.handbookofmineralogy.org/pdfs/Görgeyite.pdf",
+          "original_url": "http://www.handbookofmineralogy.org/pdfs/Görgeyite.pdf"
+        }
+      ]
+    },
+    {
+      "id": "ima-hugelite",
+      "name_en": "Hügelite",
+      "candidates": [
+        {
+          "name_en": "hugelite",
+          "handbook_url": "https://www.handbookofmineralogy.org/pdfs/hugelite.pdf",
+          "original_url": "http://www.handbookofmineralogy.org/pdfs/hugelite.pdf"
+        },
+        {
+          "name_en": "Hügelite",
+          "handbook_url": "https://handbookofmineralogy.org/wp-content/uploads/2022/07/Hu%CC%88gelite.pdf",
+          "original_url": "https://handbookofmineralogy.org/wp-content/uploads/2022/07/Hu%CC%88gelite.pdf"
+        }
+      ]
+    },
+    {
+      "id": "ima-kupcikite",
+      "name_en": "Kupčíkite",
+      "candidates": [
+        {
+          "name_en": "kupcikite",
+          "handbook_url": "https://handbookofmineralogy.org/pdfs/kupcikite.pdf",
+          "original_url": "http://handbookofmineralogy.org/pdfs/kupcikite.pdf"
+        },
+        {
+          "name_en": "kupcíkite",
+          "handbook_url": "https://handbookofmineralogy.org/wp-content/uploads/2022/08/kupc%CC%81i%CC%81kite.pdf",
+          "original_url": "https://handbookofmineralogy.org/wp-content/uploads/2022/08/kupc%CC%81i%CC%81kite.pdf"
+        }
+      ]
+    },
+    {
+      "id": "ima-neustadtelite",
+      "name_en": "Neustädtelite",
+      "candidates": [
+        {
+          "name_en": "neustadtelite",
+          "handbook_url": "https://www.handbookofmineralogy.org/pdfs/neustadtelite.pdf",
+          "original_url": "http://www.handbookofmineralogy.org/pdfs/neustadtelite.pdf"
+        },
+        {
+          "name_en": "Neustädtelite",
+          "handbook_url": "https://handbookofmineralogy.org/wp-content/uploads/2022/07/Neusta%CC%88dtelite.pdf",
+          "original_url": "https://handbookofmineralogy.org/wp-content/uploads/2022/07/Neusta%CC%88dtelite.pdf"
+        }
+      ]
+    },
+    {
+      "id": "ima-plombierite",
+      "name_en": "Plombièrite",
+      "candidates": [
+        {
+          "name_en": "Plombièrite",
+          "handbook_url": "https://handbookofmineralogy.org/wp-content/uploads/2022/08/Plombie%CC%80rite.pdf",
+          "original_url": "https://handbookofmineralogy.org/wp-content/uploads/2022/08/Plombie%CC%80rite.pdf"
+        },
+        {
+          "name_en": "plombierite",
+          "handbook_url": "https://www.handbookofmineralogy.org/pdfs/plombierite.pdf",
+          "original_url": "http://www.handbookofmineralogy.org/pdfs/plombierite.pdf"
+        }
+      ]
+    },
+    {
+      "id": "ima-uvite",
+      "name_en": "Uvite",
+      "candidates": [
+        {
+          "name_en": "Uvite",
+          "handbook_url": "https://handbookofmineralogy.org/pdfs/Uvite.pdf",
+          "original_url": "https://handbookofmineralogy.org/pdfs/Uvite.pdf"
+        },
+        {
+          "name_en": "uvite",
+          "handbook_url": "https://www.handbookofmineralogy.org/pdfs/uvite.pdf",
+          "original_url": "http://www.handbookofmineralogy.org/pdfs/uvite.pdf"
+        }
+      ]
+    },
+    {
+      "id": "ima-wolsendorfite",
+      "name_en": "Wölsendorfite",
+      "candidates": [
+        {
+          "name_en": "wolsendorfite",
+          "handbook_url": "https://handbookofmineralogy.org/pdfs/wolsendorfite.pdf",
+          "original_url": "http://handbookofmineralogy.org/pdfs/wolsendorfite.pdf"
+        },
+        {
+          "name_en": "Wölsendorfite",
+          "handbook_url": "https://handbookofmineralogy.org/wp-content/uploads/2022/07/Wo%CC%88lsendorfite.pdf",
+          "original_url": "https://handbookofmineralogy.org/wp-content/uploads/2022/07/Wo%CC%88lsendorfite.pdf"
+        }
+      ]
+    }
+  ],
+  "unmatched": [
+    {
+      "id": "ima-abelloemringerite",
+      "name_en": "Abelloemringerite"
+    },
+    {
+      "id": "ima-abenakiite-ce",
+      "name_en": "Abenakiite-(Ce)"
+    },
+    {
+      "id": "ima-achavalite",
+      "name_en": "Achávalite"
+    },
+    {
+      "id": "ima-aegirine-augite",
+      "name_en": "Aegirine-augite"
+    },
+    {
+      "id": "ima-agujaite",
+      "name_en": "Agujaite"
+    },
+    {
+      "id": "ima-akasakaite-ce",
+      "name_en": "Akasakaite-(Ce)"
+    },
+    {
+      "id": "ima-akasakaite-la",
+      "name_en": "Akasakaite-(La)"
+    },
+    {
+      "id": "ima-alexearlite",
+      "name_en": "Alexearlite"
+    },
+    {
+      "id": "ima-alexshubnikovite",
+      "name_en": "Alexshubnikovite"
+    },
+    {
+      "id": "ima-alfredcasparite",
+      "name_en": "Alfredcasparite"
+    },
+    {
+      "id": "ima-allanite-sm",
+      "name_en": "Allanite-(Sm)"
+    },
+    {
+      "id": "ima-allanite-y",
+      "name_en": "Allanite-(Y)"
+    },
+    {
+      "id": "ima-allanpringite",
+      "name_en": "Allanpringite"
+    },
+    {
+      "id": "ima-almagreraite",
+      "name_en": "Almagreraite"
+    },
+    {
+      "id": "ima-altisite",
+      "name_en": "Altisite"
+    },
+    {
+      "id": "ima-alum-k",
+      "name_en": "Alum-(K)"
+    },
+    {
+      "id": "ima-alum-na",
+      "name_en": "Alum-(Na)"
+    },
+    {
+      "id": "ima-aluminoceladonite",
+      "name_en": "Aluminoceladonite"
+    },
+    {
+      "id": "ima-aluminocerite-ceca",
+      "name_en": "Aluminocerite-(CeCa)"
+    },
+    {
+      "id": "ima-aluminotaipingite-ceca",
+      "name_en": "Aluminotaipingite-(CeCa)"
+    },
+    {
+      "id": "ima-alumoakermanite",
+      "name_en": "Alumoåkermanite"
+    },
+    {
+      "id": "ima-alumolukrahnite",
+      "name_en": "Alumolukrahnite"
+    },
+    {
+      "id": "ima-alvesite",
+      "name_en": "Alvesite"
+    },
+    {
+      "id": "ima-amableite-ce",
+      "name_en": "Amableite-(Ce)"
+    },
+    {
+      "id": "ima-amaterasuite",
+      "name_en": "Amaterasuite"
+    },
+    {
+      "id": "ima-amoraite",
+      "name_en": "Amoraite"
+    },
+    {
+      "id": "ima-amurselite",
+      "name_en": "Amurselite"
+    },
+    {
+      "id": "ima-anatolygurbanovite",
+      "name_en": "Anatolygurbanovite"
+    },
+    {
+      "id": "ima-andreybulakhite",
+      "name_en": "Andreybulakhite"
+    },
+    {
+      "id": "ima-andrieslombaardite",
+      "name_en": "Andrieslombaardite"
+    },
+    {
+      "id": "ima-anhydrokainite",
+      "name_en": "Anhydrokainite"
+    },
+    {
+      "id": "ima-anningite-ce",
+      "name_en": "Anningite-(Ce)"
+    },
+    {
+      "id": "ima-annivite-zn",
+      "name_en": "Annivite-(Zn)"
+    },
+    {
+      "id": "ima-anorthoroselite",
+      "name_en": "Anorthoroselite"
+    },
+    {
+      "id": "ima-anorthoyttrialite-y",
+      "name_en": "Anorthoyttrialite-(Y)"
+    },
+    {
+      "id": "ima-antipovite",
+      "name_en": "Antipovite"
+    },
+    {
+      "id": "ima-ardennite-as",
+      "name_en": "Ardennite-(As)"
+    },
+    {
+      "id": "ima-argentobaumhauerite",
+      "name_en": "Argentobaumhauerite"
+    },
+    {
+      "id": "ima-argentopolybasite",
+      "name_en": "Argentopolybasite"
+    },
+    {
+      "id": "ima-argentotennantite-fe",
+      "name_en": "Argentotennantite-(Fe)"
+    },
+    {
+      "id": "ima-argentotennantite-zn",
+      "name_en": "Argentotennantite-(Zn)"
+    },
+    {
+      "id": "ima-argentotetrahedrite-cd",
+      "name_en": "Argentotetrahedrite-(Cd)"
+    },
+    {
+      "id": "ima-armbrusterite",
+      "name_en": "Armbrusterite"
+    },
+    {
+      "id": "ima-arsenobenauite",
+      "name_en": "Arsenobenauite"
+    },
+    {
+      "id": "ima-arsenogoldfieldite",
+      "name_en": "Arsenogoldfieldite"
+    },
+    {
+      "id": "ima-arsenosabugalite",
+      "name_en": "Arsenosabugalite"
+    },
+    {
+      "id": "ima-arsenoustalecite",
+      "name_en": "Arsenoústalečite"
+    },
+    {
+      "id": "ima-arzamastsevite",
+      "name_en": "Arzamastsevite"
+    },
+    {
+      "id": "ima-arzrunite",
+      "name_en": "Arzrunite"
+    },
+    {
+      "id": "ima-asagiite",
+      "name_en": "Asagiite"
+    },
+    {
+      "id": "ima-asgruvanite-ce",
+      "name_en": "Åsgruvanite-(Ce)"
+    },
+    {
+      "id": "ima-atencioite",
+      "name_en": "Atencioite"
+    },
+    {
+      "id": "ima-auropearceite",
+      "name_en": "Auropearceite"
+    },
+    {
+      "id": "ima-auropolybasite",
+      "name_en": "Auropolybasite"
+    },
+    {
+      "id": "ima-auroselenide",
+      "name_en": "Auroselenide"
+    },
+    {
+      "id": "ima-axinite-fe",
+      "name_en": "Axinite-(Fe)"
+    },
+    {
+      "id": "ima-axinite-mg",
+      "name_en": "Axinite-(Mg)"
+    },
+    {
+      "id": "ima-axinite-mn",
+      "name_en": "Axinite-(Mn)"
+    },
+    {
+      "id": "ima-babunaite-nd",
+      "name_en": "Babunaite-(Nd)"
+    },
+    {
+      "id": "ima-bacaferrite",
+      "name_en": "Bacaferrite"
+    },
+    {
+      "id": "ima-baiamareite",
+      "name_en": "Baiamareite"
+    },
+    {
+      "id": "ima-bainbridgeite-ndce",
+      "name_en": "Bainbridgeite-(NdCe)"
+    },
+    {
+      "id": "ima-bakakinite",
+      "name_en": "Bakakinite"
+    },
+    {
+      "id": "ima-baliczunicite",
+      "name_en": "Balićžunićite"
+    },
+    {
+      "id": "ima-bariolakargiite",
+      "name_en": "Bariolakargiite"
+    },
+    {
+      "id": "ima-bario-orthojoaquinite",
+      "name_en": "Bario-orthojoaquinite"
+    },
+    {
+      "id": "ima-bariopharmacosiderite",
+      "name_en": "Bariopharmacosiderite"
+    },
+    {
+      "id": "ima-barkovite",
+      "name_en": "Barkovite"
+    },
+    {
+      "id": "ima-barronite",
+      "name_en": "Barronite"
+    },
+    {
+      "id": "ima-barrydawsonite-y",
+      "name_en": "Barrydawsonite-(Y)"
+    },
+    {
+      "id": "ima-batoniite",
+      "name_en": "Batoniite"
+    },
+    {
+      "id": "ima-baumhauerite-ii",
+      "name_en": "Baumhauerite II"
+    },
+    {
+      "id": "ima-bayanoboite-y",
+      "name_en": "Bayanoboite-(Y)"
+    },
+    {
+      "id": "ima-beaverite-cu",
+      "name_en": "Beaverite-(Cu)"
+    },
+    {
+      "id": "ima-belmonteite",
+      "name_en": "Belmonteite"
+    },
+    {
+      "id": "ima-belomarinaite",
+      "name_en": "Belomarinaite"
+    },
+    {
+      "id": "ima-bergbauerite",
+      "name_en": "Bergbauerite"
+    },
+    {
+      "id": "ima-bernardevansite",
+      "name_en": "Bernardevansite"
+    },
+    {
+      "id": "ima-berndlehmannite",
+      "name_en": "Berndlehmannite"
+    },
+    {
+      "id": "ima-bernwoodite",
+      "name_en": "Bernwoodite"
+    },
+    {
+      "id": "ima-birunite",
+      "name_en": "Birunite"
+    },
+    {
+      "id": "ima-bixbyite-fe",
+      "name_en": "Bixbyite-(Fe)"
+    },
+    {
+      "id": "ima-bixbyite-mn",
+      "name_en": "Bixbyite-(Mn)"
+    },
+    {
+      "id": "ima-blakeite",
+      "name_en": "Blakeite"
+    },
+    {
+      "id": "ima-blueridgeite",
+      "name_en": "Blueridgeite"
+    },
+    {
+      "id": "ima-boevskite",
+      "name_en": "Boevskite"
+    },
+    {
+      "id": "ima-b-ggildite",
+      "name_en": "Bøggildite"
+    },
+    {
+      "id": "ima-b-gvadite",
+      "name_en": "Bøgvadite"
+    },
+    {
+      "id": "ima-bohuslavite",
+      "name_en": "Bohuslavite"
+    },
+    {
+      "id": "ima-bolivarite",
+      "name_en": "Bolivarite"
+    },
+    {
+      "id": "ima-bonaccorsiite",
+      "name_en": "Bonaccorsiite"
+    },
+    {
+      "id": "ima-boojumite",
+      "name_en": "Boojumite"
+    },
+    {
+      "id": "ima-borzeckiite",
+      "name_en": "Borzęckiite"
+    },
+    {
+      "id": "ima-branchite",
+      "name_en": "Branchite"
+    },
+    {
+      "id": "ima-brewsterite-ba",
+      "name_en": "Brewsterite-Ba"
+    },
+    {
+      "id": "ima-brewsterite-sr",
+      "name_en": "Brewsterite-Sr"
+    },
+    {
+      "id": "ima-brinrobertsite",
+      "name_en": "Brinrobertsite"
+    },
+    {
+      "id": "ima-brunovskyite",
+      "name_en": "Brunovskyite"
+    },
+    {
+      "id": "ima-brusnitsynite",
+      "name_en": "Brusnitsynite"
+    },
+    {
+      "id": "ima-buserite",
+      "name_en": "Buserite"
+    },
+    {
+      "id": "ima-bushmakinite",
+      "name_en": "Bushmakinite"
+    },
+    {
+      "id": "ima-buynite",
+      "name_en": "Buynite"
+    },
+    {
+      "id": "ima-cabrerite",
+      "name_en": "Cabrerite"
+    },
+    {
+      "id": "ima-cadsulfohite",
+      "name_en": "Cadsulfohite"
+    },
+    {
+      "id": "ima-cadvanite",
+      "name_en": "Cadvanite"
+    },
+    {
+      "id": "ima-cafeosite",
+      "name_en": "Cafeosite"
+    },
+    {
+      "id": "ima-calcio-olivine",
+      "name_en": "Calcio-olivine"
+    },
+    {
+      "id": "ima-calciopharmacoalumite",
+      "name_en": "Calciopharmacoalumite"
+    },
+    {
+      "id": "ima-calcioursilite",
+      "name_en": "Calcioursilite"
+    },
+    {
+      "id": "ima-calcybeborosilite-y",
+      "name_en": "Calcybeborosilite-(Y)"
+    },
+    {
+      "id": "ima-carboferriphoxite",
+      "name_en": "Carboferriphoxite"
+    },
+    {
+      "id": "ima-carboirite",
+      "name_en": "Carboirite"
+    },
+    {
+      "id": "ima-catalanoite",
+      "name_en": "Catalanoite"
+    },
+    {
+      "id": "ima-cerite-ceca",
+      "name_en": "Cerite-(CeCa)"
+    },
+    {
+      "id": "ima-cerium",
+      "name_en": "Cerium"
+    },
+    {
+      "id": "ima-changesite-ce",
+      "name_en": "Changesite-(Ce)"
+    },
+    {
+      "id": "ima-changesite-y",
+      "name_en": "Changesite-(Y)"
+    },
+    {
+      "id": "ima-chenguodaite",
+      "name_en": "Chenguodaite"
+    },
+    {
+      "id": "ima-chenowethite",
+      "name_en": "Chenowethite"
+    },
+    {
+      "id": "ima-chenzhangruite",
+      "name_en": "Chenzhangruite"
+    },
+    {
+      "id": "ima-cherokeeite",
+      "name_en": "Cherokeeite"
+    },
+    {
+      "id": "ima-chihmingite",
+      "name_en": "Chihmingite"
+    },
+    {
+      "id": "ima-chihuahuaite",
+      "name_en": "Chihuahuaite"
+    },
+    {
+      "id": "ima-chinleite-ce",
+      "name_en": "Chinleite-(Ce)"
+    },
+    {
+      "id": "ima-chinleite-nd",
+      "name_en": "Chinleite-(Nd)"
+    },
+    {
+      "id": "ima-chinnerite",
+      "name_en": "Chinnerite"
+    },
+    {
+      "id": "ima-chistyakovaite",
+      "name_en": "Chistyakovaite"
+    },
+    {
+      "id": "ima-chivruaiite",
+      "name_en": "Chivruaiite"
+    },
+    {
+      "id": "ima-chlormayenite",
+      "name_en": "Chlormayenite"
+    },
+    {
+      "id": "ima-chloromagnesite",
+      "name_en": "Chloromagnesite"
+    },
+    {
+      "id": "ima-chorazewiczite",
+      "name_en": "Chorążewiczite"
+    },
+    {
+      "id": "ima-chromium-dravite",
+      "name_en": "Chromium-dravite"
+    },
+    {
+      "id": "ima-chromphyllite",
+      "name_en": "Chromphyllite"
+    },
+    {
+      "id": "ima-chromviskontite",
+      "name_en": "Chromviskontite"
+    },
+    {
+      "id": "ima-chrysotile",
+      "name_en": "Chrysotile"
+    },
+    {
+      "id": "ima-chukhrovite-nd",
+      "name_en": "Chukhrovite-(Nd)"
+    },
+    {
+      "id": "ima-cirrolite",
+      "name_en": "Cirrolite"
+    },
+    {
+      "id": "ima-clinofergusonite-ce",
+      "name_en": "Clinofergusonite-(Ce)"
+    },
+    {
+      "id": "ima-clinofergusonite-nd",
+      "name_en": "Clinofergusonite-(Nd)"
+    },
+    {
+      "id": "ima-clinofergusonite-y",
+      "name_en": "Clinofergusonite-(Y)"
+    },
+    {
+      "id": "ima-clino-ferri-holmquistite",
+      "name_en": "Clino-ferri-holmquistite"
+    },
+    {
+      "id": "ima-clino-ferro-ferri-holmquistite",
+      "name_en": "Clino-ferro-ferri-holmquistite"
+    },
+    {
+      "id": "ima-clinoptilolite-ca",
+      "name_en": "Clinoptilolite-Ca"
+    },
+    {
+      "id": "ima-clinoptilolite-k",
+      "name_en": "Clinoptilolite-K"
+    },
+    {
+      "id": "ima-clinoptilolite-na",
+      "name_en": "Clinoptilolite-Na"
+    },
+    {
+      "id": "ima-clinosulphur",
+      "name_en": "Clinosulphur"
+    },
+    {
+      "id": "ima-clogauite",
+      "name_en": "Clogauite"
+    },
+    {
+      "id": "ima-cloudite",
+      "name_en": "Cloudite"
+    },
+    {
+      "id": "ima-cobaltkieserite",
+      "name_en": "Cobaltkieserite"
+    },
+    {
+      "id": "ima-coccinite",
+      "name_en": "Coccinite"
+    },
+    {
+      "id": "ima-colchesterite",
+      "name_en": "Colchesterite"
+    },
+    {
+      "id": "ima-columbite-fe",
+      "name_en": "Columbite-(Fe)"
+    },
+    {
+      "id": "ima-columbite-mg",
+      "name_en": "Columbite-(Mg)"
+    },
+    {
+      "id": "ima-columbite-mn",
+      "name_en": "Columbite-(Mn)"
+    },
+    {
+      "id": "ima-cordylite-ce",
+      "name_en": "Cordylite-(Ce)"
+    },
+    {
+      "id": "ima-cuatrocapaite-nh-4",
+      "name_en": "Cuatrocapaite-(NH ) 4"
+    },
+    {
+      "id": "ima-cubo-ice",
+      "name_en": "Cubo-ice"
+    },
+    {
+      "id": "ima-cuproauride",
+      "name_en": "Cuproauride"
+    },
+    {
+      "id": "ima-cuprocherokeeite",
+      "name_en": "Cuprocherokeeite"
+    },
+    {
+      "id": "ima-cuprodobrovolskyite",
+      "name_en": "Cuprodobrovolskyite"
+    },
+    {
+      "id": "ima-cupropearceite",
+      "name_en": "Cupropearceite"
+    },
+    {
+      "id": "ima-cuprosenandorite",
+      "name_en": "Cuprosenandorite"
+    },
+    {
+      "id": "ima-dachiardite-ca",
+      "name_en": "Dachiardite-Ca"
+    },
+    {
+      "id": "ima-dachiardite-na",
+      "name_en": "Dachiardite-Na"
+    },
+    {
+      "id": "ima-dacostaite",
+      "name_en": "Dacostaite"
+    },
+    {
+      "id": "ima-d-ansite",
+      "name_en": "D'ansite"
+    },
+    {
+      "id": "ima-d-ansite-fe",
+      "name_en": "D'ansite-(Fe)"
+    },
+    {
+      "id": "ima-d-ansite-mn",
+      "name_en": "D'ansite-(Mn)"
+    },
+    {
+      "id": "ima-davidbrownite-nh-4",
+      "name_en": "Davidbrownite-(NH ) 4"
+    },
+    {
+      "id": "ima-delchiaroite",
+      "name_en": "Delchiaroite"
+    },
+    {
+      "id": "ima-deloneite",
+      "name_en": "Deloneite"
+    },
+    {
+      "id": "ima-deltanitrogen",
+      "name_en": "Deltanitrogen"
+    },
+    {
+      "id": "ima-dendoraite-nh-4",
+      "name_en": "Dendoraite-(NH ) 4"
+    },
+    {
+      "id": "ima-desorite",
+      "name_en": "Désorite"
+    },
+    {
+      "id": "ima-dinilawiite",
+      "name_en": "Dinilawiite"
+    },
+    {
+      "id": "ima-dioskouriite",
+      "name_en": "Dioskouriite"
+    },
+    {
+      "id": "ima-dmitrievite",
+      "name_en": "Dmitrievite"
+    },
+    {
+      "id": "ima-dmitryvarlamovite",
+      "name_en": "Dmitryvarlamovite"
+    },
+    {
+      "id": "ima-dobrovolskyite",
+      "name_en": "Dobrovolskyite"
+    },
+    {
+      "id": "ima-domitrovicite",
+      "name_en": "Domitrovicite"
+    },
+    {
+      "id": "ima-downsite",
+      "name_en": "Downsite"
+    },
+    {
+      "id": "ima-dozyite",
+      "name_en": "Dozyite"
+    },
+    {
+      "id": "ima-driekopite",
+      "name_en": "Driekopite"
+    },
+    {
+      "id": "ima-drobecite",
+      "name_en": "Drobecite"
+    },
+    {
+      "id": "ima-dubinskaite",
+      "name_en": "Dubińskaite"
+    },
+    {
+      "id": "ima-dulanggouite",
+      "name_en": "Dulanggouite"
+    },
+    {
+      "id": "ima-dusmatovite",
+      "name_en": "Dusmatovite"
+    },
+    {
+      "id": "ima-eastonite",
+      "name_en": "Eastonite"
+    },
+    {
+      "id": "ima-ebnerite",
+      "name_en": "Ebnerite"
+    },
+    {
+      "id": "ima-edwindavisite",
+      "name_en": "Edwindavisite"
+    },
+    {
+      "id": "ima-effenbergerite",
+      "name_en": "Effenbergerite"
+    },
+    {
+      "id": "ima-ehrigite",
+      "name_en": "Ehrigite"
+    },
+    {
+      "id": "ima-elaliite",
+      "name_en": "Elaliite"
+    },
+    {
+      "id": "ima-elkinstantonite",
+      "name_en": "Elkinstantonite"
+    },
+    {
+      "id": "ima-elramlyite-ce",
+      "name_en": "Elramlyite-(Ce)"
+    },
+    {
+      "id": "ima-enricofrancoite",
+      "name_en": "Enricofrancoite"
+    },
+    {
+      "id": "ima-epiebnerite",
+      "name_en": "Epiebnerite"
+    },
+    {
+      "id": "ima-erionite-ca",
+      "name_en": "Erionite-Ca"
+    },
+    {
+      "id": "ima-erionite-k",
+      "name_en": "Erionite-K"
+    },
+    {
+      "id": "ima-erionite-na",
+      "name_en": "Erionite-Na"
+    },
+    {
+      "id": "ima-ermeloite",
+      "name_en": "Ermeloite"
+    },
+    {
+      "id": "ima-ertlite",
+      "name_en": "Ertlite"
+    },
+    {
+      "id": "ima-evanichite",
+      "name_en": "Evanichite"
+    },
+    {
+      "id": "ima-ezochiite",
+      "name_en": "Ezochiite"
+    },
+    {
+      "id": "ima-fabritzite",
+      "name_en": "Fabritzite"
+    },
+    {
+      "id": "ima-falkmanite",
+      "name_en": "Falkmanite"
+    },
+    {
+      "id": "ima-fanfaniite",
+      "name_en": "Fanfaniite"
+    },
+    {
+      "id": "ima-fanguangite",
+      "name_en": "Fanguangite"
+    },
+    {
+      "id": "ima-faujasite-ca",
+      "name_en": "Faujasite-Ca"
+    },
+    {
+      "id": "ima-faujasite-mg",
+      "name_en": "Faujasite-Mg"
+    },
+    {
+      "id": "ima-faujasite-na",
+      "name_en": "Faujasite-Na"
+    },
+    {
+      "id": "ima-fengruiite",
+      "name_en": "Fengruiite"
+    },
+    {
+      "id": "ima-ferriandrosite-ce",
+      "name_en": "Ferriandrosite-(Ce)"
+    },
+    {
+      "id": "ima-ferricerite-laca",
+      "name_en": "Ferricerite-(LaCa)"
+    },
+    {
+      "id": "ima-ferrierite-k",
+      "name_en": "Ferrierite-K"
+    },
+    {
+      "id": "ima-ferrierite-mg",
+      "name_en": "Ferrierite-Mg"
+    },
+    {
+      "id": "ima-ferrierite-na",
+      "name_en": "Ferrierite-Na"
+    },
+    {
+      "id": "ima-ferrierite-nh-4",
+      "name_en": "Ferrierite-NH 4"
+    },
+    {
+      "id": "ima-ferri-fluoro-leakeite",
+      "name_en": "Ferri-fluoro-leakeite"
+    },
+    {
+      "id": "ima-ferri-ghoseite",
+      "name_en": "Ferri-ghoseite"
+    },
+    {
+      "id": "ima-ferri-hellandite-ce",
+      "name_en": "Ferri-hellandite-(Ce)"
+    },
+    {
+      "id": "ima-ferrihollandite",
+      "name_en": "Ferrihollandite"
+    },
+    {
+      "id": "ima-ferri-katophorite",
+      "name_en": "Ferri-katophorite"
+    },
+    {
+      "id": "ima-ferri-leakeite",
+      "name_en": "Ferri-leakeite"
+    },
+    {
+      "id": "ima-ferrimuirite",
+      "name_en": "Ferrimuirite"
+    },
+    {
+      "id": "ima-ferri-pedrizite",
+      "name_en": "Ferri-pedrizite"
+    },
+    {
+      "id": "ima-ferriphoxite",
+      "name_en": "Ferriphoxite"
+    },
+    {
+      "id": "ima-ferrirockbridgeite",
+      "name_en": "Ferrirockbridgeite"
+    },
+    {
+      "id": "ima-ferro-actinolite",
+      "name_en": "Ferro-actinolite"
+    },
+    {
+      "id": "ima-ferroakermanite",
+      "name_en": "Ferroåkermanite"
+    },
+    {
+      "id": "ima-ferroaluminoceladonite",
+      "name_en": "Ferroaluminoceladonite"
+    },
+    {
+      "id": "ima-ferro-anthophyllite",
+      "name_en": "Ferro-anthophyllite"
+    },
+    {
+      "id": "ima-ferro-bosiite",
+      "name_en": "Ferro-bosiite"
+    },
+    {
+      "id": "ima-ferroceladonite",
+      "name_en": "Ferroceladonite"
+    },
+    {
+      "id": "ima-ferrodimolybdenite",
+      "name_en": "Ferrodimolybdenite"
+    },
+    {
+      "id": "ima-ferro-edenite",
+      "name_en": "Ferro-edenite"
+    },
+    {
+      "id": "ima-ferroefremovite",
+      "name_en": "Ferroefremovite"
+    },
+    {
+      "id": "ima-ferro-ferri-fluoro-leakeite",
+      "name_en": "Ferro-ferri-fluoro-leakeite"
+    },
+    {
+      "id": "ima-ferro-ferri-holmquistite",
+      "name_en": "Ferro-ferri-holmquistite"
+    },
+    {
+      "id": "ima-ferro-ferri-obertiite",
+      "name_en": "Ferro-ferri-obertiite"
+    },
+    {
+      "id": "ima-ferro-ferri-pedrizite",
+      "name_en": "Ferro-ferri-pedrizite"
+    },
+    {
+      "id": "ima-ferro-fluoro-pedrizite",
+      "name_en": "Ferro-fluoro-pedrizite"
+    },
+    {
+      "id": "ima-ferro-gedrite",
+      "name_en": "Ferro-gedrite"
+    },
+    {
+      "id": "ima-ferro-glaucophane",
+      "name_en": "Ferro-glaucophane"
+    },
+    {
+      "id": "ima-ferrohogbomite-2n2s",
+      "name_en": "Ferrohögbomite-2N2S"
+    },
+    {
+      "id": "ima-ferro-holmquistite",
+      "name_en": "Ferro-holmquistite"
+    },
+    {
+      "id": "ima-ferro-hornblende",
+      "name_en": "Ferro-hornblende"
+    },
+    {
+      "id": "ima-ferroinnelite",
+      "name_en": "Ferroinnelite"
+    },
+    {
+      "id": "ima-ferro-katophorite",
+      "name_en": "Ferro-katophorite"
+    },
+    {
+      "id": "ima-ferrolaueite",
+      "name_en": "Ferrolaueite"
+    },
+    {
+      "id": "ima-ferro-pargasite",
+      "name_en": "Ferro-pargasite"
+    },
+    {
+      "id": "ima-ferropseudobrookite",
+      "name_en": "Ferropseudobrookite"
+    },
+    {
+      "id": "ima-ferroqingheiite",
+      "name_en": "Ferroqingheiite"
+    },
+    {
+      "id": "ima-ferro-richterite",
+      "name_en": "Ferro-richterite"
+    },
+    {
+      "id": "ima-ferrorockbridgeite",
+      "name_en": "Ferrorockbridgeite"
+    },
+    {
+      "id": "ima-ferrotaaffeite-2n-2s",
+      "name_en": "Ferrotaaffeite-2N'2S"
+    },
+    {
+      "id": "ima-ferrotaaffeite-6n-3s",
+      "name_en": "Ferrotaaffeite-6N'3S"
+    },
+    {
+      "id": "ima-ferro-taramite",
+      "name_en": "Ferro-taramite"
+    },
+    {
+      "id": "ima-feynmanite",
+      "name_en": "Feynmanite"
+    },
+    {
+      "id": "ima-finescreekite",
+      "name_en": "Finescreekite"
+    },
+    {
+      "id": "ima-flatimerite",
+      "name_en": "Flatimerite"
+    },
+    {
+      "id": "ima-fluocerite-ce",
+      "name_en": "Fluocerite-(Ce)"
+    },
+    {
+      "id": "ima-fluoralforsite",
+      "name_en": "Fluoralforsite"
+    },
+    {
+      "id": "ima-fluorapophyllite-k",
+      "name_en": "Fluorapophyllite-(K)"
+    },
+    {
+      "id": "ima-fluorapophyllite-na",
+      "name_en": "Fluorapophyllite-(Na)"
+    },
+    {
+      "id": "ima-fluorapophyllite-nh-4",
+      "name_en": "Fluorapophyllite-(NH ) 4"
+    },
+    {
+      "id": "ima-fluorbritholite-la",
+      "name_en": "Fluorbritholite-(La)"
+    },
+    {
+      "id": "ima-fluorbritholite-nd",
+      "name_en": "Fluorbritholite-(Nd)"
+    },
+    {
+      "id": "ima-fluor-buergerite",
+      "name_en": "Fluor-buergerite"
+    },
+    {
+      "id": "ima-fluor-liddicoatite",
+      "name_en": "Fluor-liddicoatite"
+    },
+    {
+      "id": "ima-fluormacraeite",
+      "name_en": "Fluormacraeite"
+    },
+    {
+      "id": "ima-fluoro-cannilloite",
+      "name_en": "Fluoro-cannilloite"
+    },
+    {
+      "id": "ima-fluoro-edenite",
+      "name_en": "Fluoro-edenite"
+    },
+    {
+      "id": "ima-fluoro-leakeite",
+      "name_en": "Fluoro-leakeite"
+    },
+    {
+      "id": "ima-fluoro-nyb-ite",
+      "name_en": "Fluoro-nybøite"
+    },
+    {
+      "id": "ima-fluoro-pargasite",
+      "name_en": "Fluoro-pargasite"
+    },
+    {
+      "id": "ima-fluoro-pedrizite",
+      "name_en": "Fluoro-pedrizite"
+    },
+    {
+      "id": "ima-fluorophlogopite",
+      "name_en": "Fluorophlogopite"
+    },
+    {
+      "id": "ima-fluoro-richterite",
+      "name_en": "Fluoro-richterite"
+    },
+    {
+      "id": "ima-fluoro-riebeckite",
+      "name_en": "Fluoro-riebeckite"
+    },
+    {
+      "id": "ima-fluoro-taramite",
+      "name_en": "Fluoro-taramite"
+    },
+    {
+      "id": "ima-fluor-rewitzerite",
+      "name_en": "Fluor-rewitzerite"
+    },
+    {
+      "id": "ima-fluor-rossmanite",
+      "name_en": "Fluor-rossmanite"
+    },
+    {
+      "id": "ima-fluorstrophite",
+      "name_en": "Fluorstrophite"
+    },
+    {
+      "id": "ima-fluor-uvite",
+      "name_en": "Fluor-uvite"
+    },
+    {
+      "id": "ima-fowlerite",
+      "name_en": "Fowlerite"
+    },
+    {
+      "id": "ima-frankamenite",
+      "name_en": "Frankamenite"
+    },
+    {
+      "id": "ima-friisite",
+      "name_en": "Friisite"
+    },
+    {
+      "id": "ima-fuchunite",
+      "name_en": "Fuchunite"
+    },
+    {
+      "id": "ima-fuyuanite",
+      "name_en": "Fuyuanite"
+    },
+    {
+      "id": "ima-gajardoite-nh-4",
+      "name_en": "Gajardoite-(NH ) 4"
+    },
+    {
+      "id": "ima-garronite-ca",
+      "name_en": "Garronite-Ca"
+    },
+    {
+      "id": "ima-garronite-na",
+      "name_en": "Garronite-Na"
+    },
+    {
+      "id": "ima-gasparite-la",
+      "name_en": "Gasparite-(La)"
+    },
+    {
+      "id": "ima-gaultite",
+      "name_en": "Gaultite"
+    },
+    {
+      "id": "ima-gengenbachite",
+      "name_en": "Gengenbachite"
+    },
+    {
+      "id": "ima-george-ericksenite",
+      "name_en": "George-ericksenite"
+    },
+    {
+      "id": "ima-georgeliuite",
+      "name_en": "Georgeliuite"
+    },
+    {
+      "id": "ima-gerenite-y",
+      "name_en": "Gerenite-(Y)"
+    },
+    {
+      "id": "ima-geuerite",
+      "name_en": "Geuerite"
+    },
+    {
+      "id": "ima-ginelfite",
+      "name_en": "Ginelfite"
+    },
+    {
+      "id": "ima-giraudite-zn",
+      "name_en": "Giraudite-(Zn)"
+    },
+    {
+      "id": "ima-gismondine-ca",
+      "name_en": "Gismondine-Ca"
+    },
+    {
+      "id": "ima-giuscaite",
+      "name_en": "Giuşcăite"
+    },
+    {
+      "id": "ima-glecklerite",
+      "name_en": "Glecklerite"
+    },
+    {
+      "id": "ima-gottardiite",
+      "name_en": "Gottardiite"
+    },
+    {
+      "id": "ima-grahampearsonite",
+      "name_en": "Grahampearsonite"
+    },
+    {
+      "id": "ima-grimmite",
+      "name_en": "Grimmite"
+    },
+    {
+      "id": "ima-gritsenkoite",
+      "name_en": "Gritsenkoite"
+    },
+    {
+      "id": "ima-guangyuanite",
+      "name_en": "Guangyuanite"
+    },
+    {
+      "id": "ima-guastoniite-y",
+      "name_en": "Guastoniite-(Y)"
+    },
+    {
+      "id": "ima-guixiangite",
+      "name_en": "Guixiangite"
+    },
+    {
+      "id": "ima-gunmaite",
+      "name_en": "Gunmaite"
+    },
+    {
+      "id": "ima-gutkovaite-mn",
+      "name_en": "Gutkovaite-Mn"
+    },
+    {
+      "id": "ima-gysinite-ce",
+      "name_en": "Gysinite-(Ce)"
+    },
+    {
+      "id": "ima-gysinite-la",
+      "name_en": "Gysinite-(La)"
+    },
+    {
+      "id": "ima-hainite-y",
+      "name_en": "Hainite-(Y)"
+    },
+    {
+      "id": "ima-hakite-cd",
+      "name_en": "Hakite-(Cd)"
+    },
+    {
+      "id": "ima-hakite-fe",
+      "name_en": "Hakite-(Fe)"
+    },
+    {
+      "id": "ima-hakite-hg",
+      "name_en": "Hakite-(Hg)"
+    },
+    {
+      "id": "ima-hakite-zn",
+      "name_en": "Hakite-(Zn)"
+    },
+    {
+      "id": "ima-halilsarpite",
+      "name_en": "Halilsarpite"
+    },
+    {
+      "id": "ima-hanahanite",
+      "name_en": "Hanahanite"
+    },
+    {
+      "id": "ima-hanswilkeite",
+      "name_en": "Hanswilkeite"
+    },
+    {
+      "id": "ima-hartkoppeite",
+      "name_en": "Hartkoppeite"
+    },
+    {
+      "id": "ima-hayelasdiite",
+      "name_en": "Hayelasdiite"
+    },
+    {
+      "id": "ima-hayyanite",
+      "name_en": "Hayyanite"
+    },
+    {
+      "id": "ima-heflikite",
+      "name_en": "Heflikite"
+    },
+    {
+      "id": "ima-heimaeyite",
+      "name_en": "Heimaeyite"
+    },
+    {
+      "id": "ima-heimite",
+      "name_en": "Heimite"
+    },
+    {
+      "id": "ima-henrysunite",
+      "name_en": "Henrysunite"
+    },
+    {
+      "id": "ima-heulandite-ca",
+      "name_en": "Heulandite-Ca"
+    },
+    {
+      "id": "ima-heulandite-k",
+      "name_en": "Heulandite-K"
+    },
+    {
+      "id": "ima-heulandite-na",
+      "name_en": "Heulandite-Na"
+    },
+    {
+      "id": "ima-heulandite-sr",
+      "name_en": "Heulandite-Sr"
+    },
+    {
+      "id": "ima-hexaferrum",
+      "name_en": "Hexaferrum"
+    },
+    {
+      "id": "ima-hinokageite",
+      "name_en": "Hinokageite"
+    },
+    {
+      "id": "ima-hjalmarite",
+      "name_en": "Hjalmarite"
+    },
+    {
+      "id": "ima-hochleitnerite",
+      "name_en": "Hochleitnerite"
+    },
+    {
+      "id": "ima-hodrusite",
+      "name_en": "Hodrušite"
+    },
+    {
+      "id": "ima-h-gtuvaite",
+      "name_en": "Høgtuvaite"
+    },
+    {
+      "id": "ima-hokkaidoite",
+      "name_en": "Hokkaidoite"
+    },
+    {
+      "id": "ima-holubite",
+      "name_en": "Holubite"
+    },
+    {
+      "id": "ima-hoperanchite",
+      "name_en": "Hoperanchite"
+    },
+    {
+      "id": "ima-hopmannite",
+      "name_en": "Hopmannite"
+    },
+    {
+      "id": "ima-horiite",
+      "name_en": "Horiite"
+    },
+    {
+      "id": "ima-hrabakite",
+      "name_en": "Hrabákite"
+    },
+    {
+      "id": "ima-huanghoite-nd",
+      "name_en": "Huanghoite-(Nd)"
+    },
+    {
+      "id": "ima-huangshanite",
+      "name_en": "Huangshanite"
+    },
+    {
+      "id": "ima-hubbardite",
+      "name_en": "Hubbardite"
+    },
+    {
+      "id": "ima-hugotibergite",
+      "name_en": "Hugotibergite"
+    },
+    {
+      "id": "ima-huntingdonite",
+      "name_en": "Huntingdonite"
+    },
+    {
+      "id": "ima-hyblerite",
+      "name_en": "Hyblerite"
+    },
+    {
+      "id": "ima-hydrokenoralstonite",
+      "name_en": "Hydrokenoralstonite"
+    },
+    {
+      "id": "ima-hydronovacekite",
+      "name_en": "Hydronováčekite"
+    },
+    {
+      "id": "ima-hydroplumboelsmoreite",
+      "name_en": "Hydroplumboelsmoreite"
+    },
+    {
+      "id": "ima-hydroxyapophyllite-k",
+      "name_en": "Hydroxyapophyllite-(K)"
+    },
+    {
+      "id": "ima-hydroxyapophyllite-nh-4",
+      "name_en": "Hydroxyapophyllite-(NH ) 4"
+    },
+    {
+      "id": "ima-hydroxykenoelsmoreite",
+      "name_en": "Hydroxykenoelsmoreite"
+    },
+    {
+      "id": "ima-hydroxylbenyacarite",
+      "name_en": "Hydroxylbenyacarite"
+    },
+    {
+      "id": "ima-hyttsjoite",
+      "name_en": "Hyttsjöite"
+    },
+    {
+      "id": "ima-ikorskyite",
+      "name_en": "Ikorskyite"
+    },
+    {
+      "id": "ima-ilmajokite-ce",
+      "name_en": "Ilmajokite-(Ce)"
+    },
+    {
+      "id": "ima-iltisite",
+      "name_en": "Iltisite"
+    },
+    {
+      "id": "ima-interliveingite",
+      "name_en": "Interliveingite"
+    },
+    {
+      "id": "ima-intersilite",
+      "name_en": "Intersilite"
+    },
+    {
+      "id": "ima-iskandarovite",
+      "name_en": "Iskandarovite"
+    },
+    {
+      "id": "ima-isoclasite",
+      "name_en": "Isoclasite"
+    },
+    {
+      "id": "ima-ixiolite-fe2",
+      "name_en": "Ixiolite-(Fe2+)"
+    },
+    {
+      "id": "ima-ixiolite-mn2",
+      "name_en": "Ixiolite-(Mn2+)"
+    },
+    {
+      "id": "ima-ixiolite-sc",
+      "name_en": "Ixiolite-(Sc)"
+    },
+    {
+      "id": "ima-jahnsite-mnmnmn",
+      "name_en": "Jahnsite-(MnMnMn)"
+    },
+    {
+      "id": "ima-jaipurite",
+      "name_en": "Jaipurite"
+    },
+    {
+      "id": "ima-jianmuite",
+      "name_en": "Jianmuite"
+    },
+    {
+      "id": "ima-jimkrieghite",
+      "name_en": "Jimkrieghite"
+    },
+    {
+      "id": "ima-jinxiuite",
+      "name_en": "Jinxiuite"
+    },
+    {
+      "id": "ima-johnjamborite",
+      "name_en": "Johnjamborite"
+    },
+    {
+      "id": "ima-johnkoivulaite-cs",
+      "name_en": "Johnkoivulaite-(Cs)"
+    },
+    {
+      "id": "ima-jonassonite",
+      "name_en": "Jonassonite"
+    },
+    {
+      "id": "ima-jonlarsenite",
+      "name_en": "Jonlarsenite"
+    },
+    {
+      "id": "ima-jordanowite",
+      "name_en": "Jordanówite"
+    },
+    {
+      "id": "ima-j-rgensenite",
+      "name_en": "Jørgensenite"
+    },
+    {
+      "id": "ima-joseite-a",
+      "name_en": "Joséite-A"
+    },
+    {
+      "id": "ima-joseite-b",
+      "name_en": "Joséite-B"
+    },
+    {
+      "id": "ima-julgoldite-fe3",
+      "name_en": "Julgoldite-(Fe3+)"
+    },
+    {
+      "id": "ima-julgoldite-mg",
+      "name_en": "Julgoldite-(Mg)"
+    },
+    {
+      "id": "ima-jusite",
+      "name_en": "Jusite"
+    },
+    {
+      "id": "ima-juxingite",
+      "name_en": "Juxingite"
+    },
+    {
+      "id": "ima-kainosite-y",
+      "name_en": "Kainosite-(Y)"
+    },
+    {
+      "id": "ima-kalyuzhnyite-ce",
+      "name_en": "Kalyuzhnyite-(Ce)"
+    },
+    {
+      "id": "ima-kanatzidisite",
+      "name_en": "Kanatzidisite"
+    },
+    {
+      "id": "ima-kantorite",
+      "name_en": "Kantorite"
+    },
+    {
+      "id": "ima-karlleuite",
+      "name_en": "Karlleuite"
+    },
+    {
+      "id": "ima-karlseifertite",
+      "name_en": "Karlseifertite"
+    },
+    {
+      "id": "ima-karnasurtite-ce",
+      "name_en": "Karnasurtite-(Ce)"
+    },
+    {
+      "id": "ima-karupm-llerite-ca",
+      "name_en": "Karupmøllerite-Ca"
+    },
+    {
+      "id": "ima-karwowskiite",
+      "name_en": "Karwowskiite"
+    },
+    {
+      "id": "ima-katanite",
+      "name_en": "Katanite"
+    },
+    {
+      "id": "ima-katayamalite",
+      "name_en": "Katayamalite"
+    },
+    {
+      "id": "ima-kayupovaite",
+      "name_en": "Kayupovaite"
+    },
+    {
+      "id": "ima-kenngottite",
+      "name_en": "Kenngottite"
+    },
+    {
+      "id": "ima-kennygayite",
+      "name_en": "Kennygayite"
+    },
+    {
+      "id": "ima-kenoargentotetrahedrite-fe",
+      "name_en": "Kenoargentotetrahedrite-(Fe)"
+    },
+    {
+      "id": "ima-kenomicrolite",
+      "name_en": "Kenomicrolite"
+    },
+    {
+      "id": "ima-kenorozhdestvenskayaite-fe",
+      "name_en": "Kenorozhdestvenskayaite-(Fe)"
+    },
+    {
+      "id": "ima-kenotobermorite",
+      "name_en": "Kenotobermorite"
+    },
+    {
+      "id": "ima-khristovite-ce",
+      "name_en": "Khristovite-(Ce)"
+    },
+    {
+      "id": "ima-kidodite",
+      "name_en": "Kidodite"
+    },
+    {
+      "id": "ima-kimuraite-y",
+      "name_en": "Kimuraite-(Y)"
+    },
+    {
+      "id": "ima-konzettite",
+      "name_en": "Konzettite"
+    },
+    {
+      "id": "ima-kopernikite",
+      "name_en": "Kopernikite"
+    },
+    {
+      "id": "ima-kopylovite",
+      "name_en": "Kopylovite"
+    },
+    {
+      "id": "ima-koragoite",
+      "name_en": "Koragoite"
+    },
+    {
+      "id": "ima-kralikite",
+      "name_en": "Králíkite"
+    },
+    {
+      "id": "ima-krasnoite",
+      "name_en": "Krásnoite"
+    },
+    {
+      "id": "ima-kristekite",
+      "name_en": "Kristekite"
+    },
+    {
+      "id": "ima-kristiansenite",
+      "name_en": "Kristiansenite"
+    },
+    {
+      "id": "ima-kristjanite",
+      "name_en": "Kristjánite"
+    },
+    {
+      "id": "ima-krugerite",
+      "name_en": "Krügerite"
+    },
+    {
+      "id": "ima-krut-aite",
+      "name_en": "Krut'aite"
+    },
+    {
+      "id": "ima-kryzaite",
+      "name_en": "Kryzaite"
+    },
+    {
+      "id": "ima-kuzmenkoite-zn",
+      "name_en": "Kuzmenkoite-Zn"
+    },
+    {
+      "id": "ima-kvacekite",
+      "name_en": "Kvačekite"
+    },
+    {
+      "id": "ima-kyrgyzstanite",
+      "name_en": "Kyrgyzstanite"
+    },
+    {
+      "id": "ima-labuntsovite-mn",
+      "name_en": "Labuntsovite-Mn"
+    },
+    {
+      "id": "ima-lasmanisite",
+      "name_en": "Lasmanisite"
+    },
+    {
+      "id": "ima-lavinskyite",
+      "name_en": "Lavinskyite"
+    },
+    {
+      "id": "ima-lazerckerite",
+      "name_en": "Lazerckerite"
+    },
+    {
+      "id": "ima-lebedevite",
+      "name_en": "Lebedevite"
+    },
+    {
+      "id": "ima-lechatelierite",
+      "name_en": "Lechatelierite"
+    },
+    {
+      "id": "ima-lechnerite",
+      "name_en": "Lechnerite"
+    },
+    {
+      "id": "ima-lednevite",
+      "name_en": "Lednevite"
+    },
+    {
+      "id": "ima-leishmanite",
+      "name_en": "Leishmanite"
+    },
+    {
+      "id": "ima-letnikovite-ce",
+      "name_en": "Letnikovite-(Ce)"
+    },
+    {
+      "id": "ima-levyne-ca",
+      "name_en": "Lévyne-Ca"
+    },
+    {
+      "id": "ima-levyne-na",
+      "name_en": "Lévyne-Na"
+    },
+    {
+      "id": "ima-leybovite-k",
+      "name_en": "Leybovite-K"
+    },
+    {
+      "id": "ima-lianbinite",
+      "name_en": "Lianbinite"
+    },
+    {
+      "id": "ima-liangjunite",
+      "name_en": "Liangjunite"
+    },
+    {
+      "id": "ima-libbyite",
+      "name_en": "Libbyite"
+    },
+    {
+      "id": "ima-lingunite",
+      "name_en": "Lingunite"
+    },
+    {
+      "id": "ima-lishiite",
+      "name_en": "Lishiite"
+    },
+    {
+      "id": "ima-litidionite",
+      "name_en": "Litidionite"
+    },
+    {
+      "id": "ima-longshoushanite-ce",
+      "name_en": "Longshoushanite-(Ce)"
+    },
+    {
+      "id": "ima-loomisite",
+      "name_en": "Loomisite"
+    },
+    {
+      "id": "ima-loparite",
+      "name_en": "Loparite"
+    },
+    {
+      "id": "ima-louisfuchsite",
+      "name_en": "Louisfuchsite"
+    },
+    {
+      "id": "ima-lucasite-la",
+      "name_en": "Lucasite-(La)"
+    },
+    {
+      "id": "ima-lun-okite",
+      "name_en": "Lun'okite"
+    },
+    {
+      "id": "ima-luoxianchangite",
+      "name_en": "Luoxianchangite"
+    },
+    {
+      "id": "ima-macivorite",
+      "name_en": "Macivorite"
+    },
+    {
+      "id": "ima-macraeite",
+      "name_en": "Macraeite"
+    },
+    {
+      "id": "ima-magnesio-arfvedsonite",
+      "name_en": "Magnesio-arfvedsonite"
+    },
+    {
+      "id": "ima-magnesiobeltrandoite-2n3s",
+      "name_en": "Magnesiobeltrandoite-2N3S"
+    },
+    {
+      "id": "ima-magnesiochangesite-ce",
+      "name_en": "Magnesiochangesite-(Ce)"
+    },
+    {
+      "id": "ima-magnesiochangesite-y",
+      "name_en": "Magnesiochangesite-(Y)"
+    },
+    {
+      "id": "ima-magnesiochlorophoenicite",
+      "name_en": "Magnesiochlorophoenicite"
+    },
+    {
+      "id": "ima-magnesiodumortierite",
+      "name_en": "Magnesiodumortierite"
+    },
+    {
+      "id": "ima-magnesio-dutrowite",
+      "name_en": "Magnesio-dutrowite"
+    },
+    {
+      "id": "ima-magnesio-fluoro-arfvedsonite",
+      "name_en": "Magnesio-fluoro-arfvedsonite"
+    },
+    {
+      "id": "ima-magnesio-fluoro-hastingsite",
+      "name_en": "Magnesio-fluoro-hastingsite"
+    },
+    {
+      "id": "ima-magnesio-fluoro-riebeckite",
+      "name_en": "Magnesio-fluoro-riebeckite"
+    },
+    {
+      "id": "ima-magnesio-hastingsite",
+      "name_en": "Magnesio-hastingsite"
+    },
+    {
+      "id": "ima-magnesiohogbomite-2n3s",
+      "name_en": "Magnesiohögbomite-2N3S"
+    },
+    {
+      "id": "ima-magnesiohogbomite-6n6s",
+      "name_en": "Magnesiohögbomite-6N6S"
+    },
+    {
+      "id": "ima-magnesiohongruiite-fe3",
+      "name_en": "Magnesiohongruiite-(Fe3+)"
+    },
+    {
+      "id": "ima-magnesionigerite-6n6s",
+      "name_en": "Magnesionigerite-6N6S"
+    },
+    {
+      "id": "ima-magnesioqingheiite",
+      "name_en": "Magnesioqingheiite"
+    },
+    {
+      "id": "ima-magnesio-riebeckite",
+      "name_en": "Magnesio-riebeckite"
+    },
+    {
+      "id": "ima-magnesiotaaffeite-2n-2s",
+      "name_en": "Magnesiotaaffeite-2N'2S"
+    },
+    {
+      "id": "ima-magnesiotaaffeite-6n-3s",
+      "name_en": "Magnesiotaaffeite-6N'3S"
+    },
+    {
+      "id": "ima-magnesiozippeite",
+      "name_en": "Magnesiozippeite"
+    },
+    {
+      "id": "ima-magnioursilite",
+      "name_en": "Magnioursilite"
+    },
+    {
+      "id": "ima-magselite",
+      "name_en": "Magselite"
+    },
+    {
+      "id": "ima-makarochkinite",
+      "name_en": "Makarochkinite"
+    },
+    {
+      "id": "ima-malhmoodite",
+      "name_en": "Malhmoodite"
+    },
+    {
+      "id": "ima-mampsisite",
+      "name_en": "Mampsisite"
+    },
+    {
+      "id": "ima-manganiandrosite-la",
+      "name_en": "Manganiandrosite-(La)"
+    },
+    {
+      "id": "ima-mangani-dellaventuraite",
+      "name_en": "Mangani-dellaventuraite"
+    },
+    {
+      "id": "ima-mangani-eckermannite",
+      "name_en": "Mangani-eckermannite"
+    },
+    {
+      "id": "ima-mangani-obertiite",
+      "name_en": "Mangani-obertiite"
+    },
+    {
+      "id": "ima-manganobadalovite",
+      "name_en": "Manganobadalovite"
+    },
+    {
+      "id": "ima-mangano-ferri-eckermannite",
+      "name_en": "Mangano-ferri-eckermannite"
+    },
+    {
+      "id": "ima-manganohatertite",
+      "name_en": "Manganohatertite"
+    },
+    {
+      "id": "ima-manganohornesite",
+      "name_en": "Manganohörnesite"
+    },
+    {
+      "id": "ima-mangano-mangani-ungarettiite",
+      "name_en": "Mangano-mangani-ungarettiite"
+    },
+    {
+      "id": "ima-manganoneptunite",
+      "name_en": "Manganoneptunite"
+    },
+    {
+      "id": "ima-manganonewberyite",
+      "name_en": "Manganonewberyite"
+    },
+    {
+      "id": "ima-manganoschafarzikite",
+      "name_en": "Manganoschafarzikite"
+    },
+    {
+      "id": "ima-manganrockbridgeite",
+      "name_en": "Manganrockbridgeite"
+    },
+    {
+      "id": "ima-manuelarossiite",
+      "name_en": "Manuelarossiite"
+    },
+    {
+      "id": "ima-marioantofilliite",
+      "name_en": "Marioantofilliite"
+    },
+    {
+      "id": "ima-markwelchite",
+      "name_en": "Markwelchite"
+    },
+    {
+      "id": "ima-marsaalamite-y",
+      "name_en": "Marsaalamite-(Y)"
+    },
+    {
+      "id": "ima-martinite",
+      "name_en": "Martinite"
+    },
+    {
+      "id": "ima-masaitisite",
+      "name_en": "Masaitisite"
+    },
+    {
+      "id": "ima-maurogemmiite",
+      "name_en": "Maurogemmiite"
+    },
+    {
+      "id": "ima-mazorite",
+      "name_en": "Mazorite"
+    },
+    {
+      "id": "ima-mckelveyite-nd",
+      "name_en": "Mckelveyite-(Nd)"
+    },
+    {
+      "id": "ima-megakalsilite",
+      "name_en": "Megakalsilite"
+    },
+    {
+      "id": "ima-meifuite",
+      "name_en": "Meifuite"
+    },
+    {
+      "id": "ima-meizhouite",
+      "name_en": "Meizhouite"
+    },
+    {
+      "id": "ima-mellizinkalite",
+      "name_en": "Mellizinkalite"
+    },
+    {
+      "id": "ima-merrillite",
+      "name_en": "Merrillite"
+    },
+    {
+      "id": "ima-mertieite",
+      "name_en": "Mertieite"
+    },
+    {
+      "id": "ima-meta-aluminite",
+      "name_en": "Meta-aluminite"
+    },
+    {
+      "id": "ima-meta-ankoleite",
+      "name_en": "Meta-ankoleite"
+    },
+    {
+      "id": "ima-meta-autunite",
+      "name_en": "Meta-autunite"
+    },
+    {
+      "id": "ima-metahaiweeite",
+      "name_en": "Metahaiweeite"
+    },
+    {
+      "id": "ima-metaheimite",
+      "name_en": "Metaheimite"
+    },
+    {
+      "id": "ima-metasaleeite",
+      "name_en": "Metasaléeite"
+    },
+    {
+      "id": "ima-metauramphite",
+      "name_en": "Metauramphite"
+    },
+    {
+      "id": "ima-metauranocircite",
+      "name_en": "Metauranocircite"
+    },
+    {
+      "id": "ima-meurigite-k",
+      "name_en": "Meurigite-K"
+    },
+    {
+      "id": "ima-midbarite",
+      "name_en": "Midbarite"
+    },
+    {
+      "id": "ima-mikenewite",
+      "name_en": "Mikenewite"
+    },
+    {
+      "id": "ima-mirnyite",
+      "name_en": "Mirnyite"
+    },
+    {
+      "id": "ima-miyawakiite-y",
+      "name_en": "Miyawakiite-(Y)"
+    },
+    {
+      "id": "ima-mizraite-ce",
+      "name_en": "Mizraite-(Ce)"
+    },
+    {
+      "id": "ima-modraite",
+      "name_en": "Modraite"
+    },
+    {
+      "id": "ima-moiraite",
+      "name_en": "Moiraite"
+    },
+    {
+      "id": "ima-monazite-gd",
+      "name_en": "Monazite-(Gd)"
+    },
+    {
+      "id": "ima-montdorite",
+      "name_en": "Montdorite"
+    },
+    {
+      "id": "ima-montpelvouxite",
+      "name_en": "Montpelvouxite"
+    },
+    {
+      "id": "ima-moragite",
+      "name_en": "Moragite"
+    },
+    {
+      "id": "ima-morimotoite",
+      "name_en": "Morimotoite"
+    },
+    {
+      "id": "ima-morleyite",
+      "name_en": "Morleyite"
+    },
+    {
+      "id": "ima-morningstarite",
+      "name_en": "Morningstarite"
+    },
+    {
+      "id": "ima-mosandrite-ce",
+      "name_en": "Mosandrite-(Ce)"
+    },
+    {
+      "id": "ima-muonionalustaite",
+      "name_en": "Muonionalustaite"
+    },
+    {
+      "id": "ima-murphyite",
+      "name_en": "Murphyite"
+    },
+    {
+      "id": "ima-mutnovskite",
+      "name_en": "Mutnovskite"
+    },
+    {
+      "id": "ima-naalasite",
+      "name_en": "Naalasite"
+    },
+    {
+      "id": "ima-nabalamprophyllite",
+      "name_en": "Nabalamprophyllite"
+    },
+    {
+      "id": "ima-nacareniobsite-nd",
+      "name_en": "Nacareniobsite-(Nd)"
+    },
+    {
+      "id": "ima-nacareniobsite-y",
+      "name_en": "Nacareniobsite-(Y)"
+    },
+    {
+      "id": "ima-nafertisite",
+      "name_en": "Nafertisite"
+    },
+    {
+      "id": "ima-nancyrossite",
+      "name_en": "Nancyrossite"
+    },
+    {
+      "id": "ima-nannoniite",
+      "name_en": "Nannoniite"
+    },
+    {
+      "id": "ima-napoliite",
+      "name_en": "Napoliite"
+    },
+    {
+      "id": "ima-natroboltwoodite",
+      "name_en": "Natroboltwoodite"
+    },
+    {
+      "id": "ima-natroglaucocerinite",
+      "name_en": "Natroglaucocerinite"
+    },
+    {
+      "id": "ima-natromelansonite",
+      "name_en": "Natromelansonite"
+    },
+    {
+      "id": "ima-natromolybdite",
+      "name_en": "Natromolybdite"
+    },
+    {
+      "id": "ima-natropharmacosiderite",
+      "name_en": "Natropharmacosiderite"
+    },
+    {
+      "id": "ima-natrouranospinite",
+      "name_en": "Natrouranospinite"
+    },
+    {
+      "id": "ima-natrozippeite",
+      "name_en": "Natrozippeite"
+    },
+    {
+      "id": "ima-nazarchukite",
+      "name_en": "Nazarchukite"
+    },
+    {
+      "id": "ima-nchwaningite",
+      "name_en": "Nchwaningite"
+    },
+    {
+      "id": "ima-nealite",
+      "name_en": "Nealite"
+    },
+    {
+      "id": "ima-nezilovite",
+      "name_en": "Nežilovite"
+    },
+    {
+      "id": "ima-nickelalumite",
+      "name_en": "Nickelalumite"
+    },
+    {
+      "id": "ima-nigelcookite",
+      "name_en": "Nigelcookite"
+    },
+    {
+      "id": "ima-niigataite",
+      "name_en": "Niigataite"
+    },
+    {
+      "id": "ima-nikmelnikovite",
+      "name_en": "Nikmelnikovite"
+    },
+    {
+      "id": "ima-niksergievite",
+      "name_en": "Niksergievite"
+    },
+    {
+      "id": "ima-niobobaotite",
+      "name_en": "Niobobaotite"
+    },
+    {
+      "id": "ima-nioboixiolite",
+      "name_en": "Nioboixiolite-(☐)"
+    },
+    {
+      "id": "ima-nioboixiolite-fe2",
+      "name_en": "Nioboixiolite-(Fe2+)"
+    },
+    {
+      "id": "ima-nioboixiolite-fe3",
+      "name_en": "Nioboixiolite-(Fe3+)"
+    },
+    {
+      "id": "ima-nioboixiolite-mn2",
+      "name_en": "Nioboixiolite-(Mn2+)"
+    },
+    {
+      "id": "ima-nipeiite-ce",
+      "name_en": "Nipeiite-(Ce)"
+    },
+    {
+      "id": "ima-noelbensonite",
+      "name_en": "Noelbensonite"
+    },
+    {
+      "id": "ima-normandite",
+      "name_en": "Normandite"
+    },
+    {
+      "id": "ima-novikovite",
+      "name_en": "Novikovite"
+    },
+    {
+      "id": "ima-novodneprite",
+      "name_en": "Novodneprite"
+    },
+    {
+      "id": "ima-nybergite",
+      "name_en": "Nybergite"
+    },
+    {
+      "id": "ima-nyb-ite",
+      "name_en": "Nybøite"
+    },
+    {
+      "id": "ima-oboniobite",
+      "name_en": "Oboniobite"
+    },
+    {
+      "id": "ima-o-danielite",
+      "name_en": "O'danielite"
+    },
+    {
+      "id": "ima-odintsovite",
+      "name_en": "Odintsovite"
+    },
+    {
+      "id": "ima-ohtaniite",
+      "name_en": "Ohtaniite"
+    },
+    {
+      "id": "ima-okruginite",
+      "name_en": "Okruginite"
+    },
+    {
+      "id": "ima-oldsite-k",
+      "name_en": "Oldsite-(K)"
+    },
+    {
+      "id": "ima-olgafrankite",
+      "name_en": "Olgafrankite"
+    },
+    {
+      "id": "ima-olsenite",
+      "name_en": "Olsenite"
+    },
+    {
+      "id": "ima-ondrusite",
+      "name_en": "Ondrušite"
+    },
+    {
+      "id": "ima-ootannite",
+      "name_en": "Ootannite"
+    },
+    {
+      "id": "ima-opal",
+      "name_en": "Opal"
+    },
+    {
+      "id": "ima-organovaite-zn",
+      "name_en": "Organovaite-Zn"
+    },
+    {
+      "id": "ima-orthogersdorffite",
+      "name_en": "Orthogersdorffite"
+    },
+    {
+      "id": "ima-oxyplumbopyrochlore",
+      "name_en": "Oxyplumbopyrochlore"
+    },
+    {
+      "id": "ima-oxyyttrobetafite-y",
+      "name_en": "Oxyyttrobetafite-(Y)"
+    },
+    {
+      "id": "ima-pabellondepicaite",
+      "name_en": "Pabellóndepicaite"
+    },
+    {
+      "id": "ima-palladinite",
+      "name_en": "Palladinite"
+    },
+    {
+      "id": "ima-papikeite",
+      "name_en": "Papikeite"
+    },
+    {
+      "id": "ima-para-alumohydrocalcite",
+      "name_en": "Para-alumohydrocalcite"
+    },
+    {
+      "id": "ima-parageorgbokiite",
+      "name_en": "Parageorgbokiite"
+    },
+    {
+      "id": "ima-paragersdorffite",
+      "name_en": "Paragersdorffite"
+    },
+    {
+      "id": "ima-parakuzmenkoite-fe",
+      "name_en": "Parakuzmenkoite-Fe"
+    },
+    {
+      "id": "ima-paralabuntsovite-mg",
+      "name_en": "Paralabuntsovite-Mg"
+    },
+    {
+      "id": "ima-paralammerite",
+      "name_en": "Paralammerite"
+    },
+    {
+      "id": "ima-paralomonosovite",
+      "name_en": "Paralomonosovite"
+    },
+    {
+      "id": "ima-paramolybdomenite",
+      "name_en": "Paramolybdomenite"
+    },
+    {
+      "id": "ima-parauranophane",
+      "name_en": "Parauranophane"
+    },
+    {
+      "id": "ima-parwanite",
+      "name_en": "Parwanite"
+    },
+    {
+      "id": "ima-paulhlavaite",
+      "name_en": "Paulhlavaite"
+    },
+    {
+      "id": "ima-paulingite-ca",
+      "name_en": "Paulingite-Ca"
+    },
+    {
+      "id": "ima-paulingite-k",
+      "name_en": "Paulingite-K"
+    },
+    {
+      "id": "ima-paulisite",
+      "name_en": "Paulišite"
+    },
+    {
+      "id": "ima-paulrobinsonite",
+      "name_en": "Paulrobinsonite"
+    },
+    {
+      "id": "ima-pendevilleite-y",
+      "name_en": "Pendevilleite-(Y)"
+    },
+    {
+      "id": "ima-pengite",
+      "name_en": "Pengite"
+    },
+    {
+      "id": "ima-peprossiite-y",
+      "name_en": "Peprossiite-(Y)"
+    },
+    {
+      "id": "ima-perchiazziite",
+      "name_en": "Perchiazziite"
+    },
+    {
+      "id": "ima-perchukite-y",
+      "name_en": "Perchukite-(Y)"
+    },
+    {
+      "id": "ima-percleveite-ce",
+      "name_en": "Percleveite-(Ce)"
+    },
+    {
+      "id": "ima-peterchinite",
+      "name_en": "Peterchinite"
+    },
+    {
+      "id": "ima-petfordite",
+      "name_en": "Petfordite"
+    },
+    {
+      "id": "ima-pezzottaite-cs",
+      "name_en": "Pezzottaite-(Cs)"
+    },
+    {
+      "id": "ima-pfaffenbergite",
+      "name_en": "Pfaffenbergite"
+    },
+    {
+      "id": "ima-phillipsite-ca",
+      "name_en": "Phillipsite-Ca"
+    },
+    {
+      "id": "ima-phillipsite-k",
+      "name_en": "Phillipsite-K"
+    },
+    {
+      "id": "ima-phillipsite-na",
+      "name_en": "Phillipsite-Na"
+    },
+    {
+      "id": "ima-phylloretine",
+      "name_en": "Phylloretine"
+    },
+    {
+      "id": "ima-picaite",
+      "name_en": "Picaite"
+    },
+    {
+      "id": "ima-piemontite-sr",
+      "name_en": "Piemontite-(Sr)"
+    },
+    {
+      "id": "ima-pigotite",
+      "name_en": "Pigotite"
+    },
+    {
+      "id": "ima-piilonenite-nd",
+      "name_en": "Piilonenite-(Nd)"
+    },
+    {
+      "id": "ima-pilanesbergite",
+      "name_en": "Pilanesbergite"
+    },
+    {
+      "id": "ima-pilipenkoite",
+      "name_en": "Pilipenkoite"
+    },
+    {
+      "id": "ima-pisekite-y",
+      "name_en": "Písekite-(Y)"
+    },
+    {
+      "id": "ima-pizgrischite",
+      "name_en": "Pizgrischite"
+    },
+    {
+      "id": "ima-plechovite",
+      "name_en": "Plechovite"
+    },
+    {
+      "id": "ima-pleysteinite",
+      "name_en": "Pleysteinite"
+    },
+    {
+      "id": "ima-plumbogaidonnayite",
+      "name_en": "Plumbogaidonnayite"
+    },
+    {
+      "id": "ima-plumbogottlobite",
+      "name_en": "Plumbogottlobite"
+    },
+    {
+      "id": "ima-plumbojohntomaite",
+      "name_en": "Plumbojohntomaite"
+    },
+    {
+      "id": "ima-plumosite",
+      "name_en": "Plumosite"
+    },
+    {
+      "id": "ima-pohlite",
+      "name_en": "Pohlite"
+    },
+    {
+      "id": "ima-potassic-arfvedsonite",
+      "name_en": "Potassic-arfvedsonite"
+    },
+    {
+      "id": "ima-potassiccarpholite",
+      "name_en": "Potassiccarpholite"
+    },
+    {
+      "id": "ima-potassic-chloro-hastingsite",
+      "name_en": "Potassic-chloro-hastingsite"
+    },
+    {
+      "id": "ima-potassic-chloro-pargasite",
+      "name_en": "Potassic-chloro-pargasite"
+    },
+    {
+      "id": "ima-potassic-ferri-leakeite",
+      "name_en": "Potassic-ferri-leakeite"
+    },
+    {
+      "id": "ima-potassic-ferro-ferri-sadanagaite",
+      "name_en": "Potassic-ferro-ferri-sadanagaite"
+    },
+    {
+      "id": "ima-potassic-ferro-ferri-taramite",
+      "name_en": "Potassic-ferro-ferri-taramite"
+    },
+    {
+      "id": "ima-potassic-ferro-pargasite",
+      "name_en": "Potassic-ferro-pargasite"
+    },
+    {
+      "id": "ima-potassic-ferro-sadanagaite",
+      "name_en": "Potassic-ferro-sadanagaite"
+    },
+    {
+      "id": "ima-potassic-ferro-taramite",
+      "name_en": "Potassic-ferro-taramite"
+    },
+    {
+      "id": "ima-potassic-fluoro-hastingsite",
+      "name_en": "Potassic-fluoro-hastingsite"
+    },
+    {
+      "id": "ima-potassic-fluoro-pargasite",
+      "name_en": "Potassic-fluoro-pargasite"
+    },
+    {
+      "id": "ima-potassic-fluoro-richterite",
+      "name_en": "Potassic-fluoro-richterite"
+    },
+    {
+      "id": "ima-potassic-magnesio-fluoro-arfvedsonite",
+      "name_en": "Potassic-magnesio-fluoro-arfvedsonite"
+    },
+    {
+      "id": "ima-potassic-magnesio-hastingsite",
+      "name_en": "Potassic-magnesio-hastingsite"
+    },
+    {
+      "id": "ima-potassic-mangani-leakeite",
+      "name_en": "Potassic-mangani-leakeite"
+    },
+    {
+      "id": "ima-potassic-pargasite",
+      "name_en": "Potassic-pargasite"
+    },
+    {
+      "id": "ima-potassic-richterite",
+      "name_en": "Potassic-richterite"
+    },
+    {
+      "id": "ima-potassic-sadanagaite",
+      "name_en": "Potassic-sadanagaite"
+    },
+    {
+      "id": "ima-pradetite",
+      "name_en": "Pradetite"
+    },
+    {
+      "id": "ima-pratesiite",
+      "name_en": "Pratesiite"
+    },
+    {
+      "id": "ima-prismatine",
+      "name_en": "Prismatine"
+    },
+    {
+      "id": "ima-proto-anthophyllite",
+      "name_en": "Proto-anthophyllite"
+    },
+    {
+      "id": "ima-proto-ferro-anthophyllite",
+      "name_en": "Proto-ferro-anthophyllite"
+    },
+    {
+      "id": "ima-proto-ferro-suenoite",
+      "name_en": "Proto-ferro-suenoite"
+    },
+    {
+      "id": "ima-proto-owyheeite",
+      "name_en": "Proto-owyheeite"
+    },
+    {
+      "id": "ima-proxitwelvefoldite",
+      "name_en": "Proxitwelvefoldite"
+    },
+    {
+      "id": "ima-pseudomeisserite-nh-4",
+      "name_en": "Pseudomeisserite-(NH ) 4"
+    },
+    {
+      "id": "ima-pseudomertieite",
+      "name_en": "Pseudomertieite"
+    },
+    {
+      "id": "ima-pseudowollastonite",
+      "name_en": "Pseudowollastonite"
+    },
+    {
+      "id": "ima-puschridgeite",
+      "name_en": "Puschridgeite"
+    },
+    {
+      "id": "ima-pyatenkoite-y",
+      "name_en": "Pyatenkoite-(Y)"
+    },
+    {
+      "id": "ima-qaqarssukite-ce",
+      "name_en": "Qaqarssukite-(Ce)"
+    },
+    {
+      "id": "ima-qeltite",
+      "name_en": "Qeltite"
+    },
+    {
+      "id": "ima-qingsongite",
+      "name_en": "Qingsongite"
+    },
+    {
+      "id": "ima-qiumingite",
+      "name_en": "Qiumingite"
+    },
+    {
+      "id": "ima-quatrandorite",
+      "name_en": "Quatrandorite"
+    },
+    {
+      "id": "ima-quintinite",
+      "name_en": "Quintinite"
+    },
+    {
+      "id": "ima-ranunculite",
+      "name_en": "Ranunculite"
+    },
+    {
+      "id": "ima-rasmussenite",
+      "name_en": "Rasmussenite"
+    },
+    {
+      "id": "ima-rathite-iv",
+      "name_en": "Rathite-IV"
+    },
+    {
+      "id": "ima-raudseppite",
+      "name_en": "Raudseppite"
+    },
+    {
+      "id": "ima-raydemarkite",
+      "name_en": "Raydemarkite"
+    },
+    {
+      "id": "ima-reckibachite",
+      "name_en": "Reckibachite"
+    },
+    {
+      "id": "ima-redondite",
+      "name_en": "Redondite"
+    },
+    {
+      "id": "ima-regerite",
+      "name_en": "Regerite"
+    },
+    {
+      "id": "ima-renardite",
+      "name_en": "Renardite"
+    },
+    {
+      "id": "ima-rewitzerite",
+      "name_en": "Rewitzerite"
+    },
+    {
+      "id": "ima-rigrahamite",
+      "name_en": "Rigrahamite"
+    },
+    {
+      "id": "ima-ronpetersonite",
+      "name_en": "Ronpetersonite"
+    },
+    {
+      "id": "ima-rotemite",
+      "name_en": "Rotemite"
+    },
+    {
+      "id": "ima-rotherkopfite",
+      "name_en": "Rotherkopfite"
+    },
+    {
+      "id": "ima-ruizhongite",
+      "name_en": "Ruizhongite"
+    },
+    {
+      "id": "ima-rundqvistite-ce",
+      "name_en": "Rundqvistite-(Ce)"
+    },
+    {
+      "id": "ima-sachanbinskiite",
+      "name_en": "Sachanbińskiite"
+    },
+    {
+      "id": "ima-sakhanaiskite",
+      "name_en": "Sakhanaiskite"
+    },
+    {
+      "id": "ima-saliotite",
+      "name_en": "Saliotite"
+    },
+    {
+      "id": "ima-samarskite-yb",
+      "name_en": "Samarskite-(Yb)"
+    },
+    {
+      "id": "ima-sanderite",
+      "name_en": "Sanderite"
+    },
+    {
+      "id": "ima-sanromanite",
+      "name_en": "Sanrománite"
+    },
+    {
+      "id": "ima-sardashtite",
+      "name_en": "Sardashtite"
+    },
+    {
+      "id": "ima-sarvodaite",
+      "name_en": "Sarvodaite"
+    },
+    {
+      "id": "ima-sassite",
+      "name_en": "Sassite"
+    },
+    {
+      "id": "ima-sazhinite-la",
+      "name_en": "Sazhinite-(La)"
+    },
+    {
+      "id": "ima-sazykinaite-y",
+      "name_en": "Sazykinaite-(Y)"
+    },
+    {
+      "id": "ima-scandiobabingtonite",
+      "name_en": "Scandiobabingtonite"
+    },
+    {
+      "id": "ima-scandio-fluoro-eckermannite",
+      "name_en": "Scandio-fluoro-eckermannite"
+    },
+    {
+      "id": "ima-scandio-winchite",
+      "name_en": "Scandio-winchite"
+    },
+    {
+      "id": "ima-schapbachite",
+      "name_en": "Schapbachite"
+    },
+    {
+      "id": "ima-selenodantopaite",
+      "name_en": "Selenodantopaite"
+    },
+    {
+      "id": "ima-selenojunoite",
+      "name_en": "Selenojunoite"
+    },
+    {
+      "id": "ima-selsurtite",
+      "name_en": "Selsurtite"
+    },
+    {
+      "id": "ima-senandorite",
+      "name_en": "Senandorite"
+    },
+    {
+      "id": "ima-sergeysmirnovite",
+      "name_en": "Sergeysmirnovite"
+    },
+    {
+      "id": "ima-sewardite",
+      "name_en": "Sewardite"
+    },
+    {
+      "id": "ima-shenganfuite",
+      "name_en": "Shenganfuite"
+    },
+    {
+      "id": "ima-shijiangshanite",
+      "name_en": "Shijiangshanite"
+    },
+    {
+      "id": "ima-shinichengite",
+      "name_en": "Shinichengite"
+    },
+    {
+      "id": "ima-shiranuiite",
+      "name_en": "Shiranuiite"
+    },
+    {
+      "id": "ima-shkatulkalite",
+      "name_en": "Shkatulkalite"
+    },
+    {
+      "id": "ima-shojiite",
+      "name_en": "Shojiite"
+    },
+    {
+      "id": "ima-shuiskite-mg",
+      "name_en": "Shuiskite-(Mg)"
+    },
+    {
+      "id": "ima-sidorovite",
+      "name_en": "Sidorovite"
+    },
+    {
+      "id": "ima-sigismundite",
+      "name_en": "Sigismundite"
+    },
+    {
+      "id": "ima-sigogglinite",
+      "name_en": "Sigogglinite"
+    },
+    {
+      "id": "ima-silicon",
+      "name_en": "Silicon"
+    },
+    {
+      "id": "ima-siligiite",
+      "name_en": "Siligiite"
+    },
+    {
+      "id": "ima-skachaite",
+      "name_en": "Škáchaite"
+    },
+    {
+      "id": "ima-skogbyite",
+      "name_en": "Skogbyite"
+    },
+    {
+      "id": "ima-slottaite",
+      "name_en": "Slottaite"
+    },
+    {
+      "id": "ima-smirnovskite",
+      "name_en": "Smirnovskite"
+    },
+    {
+      "id": "ima-sofiite",
+      "name_en": "Sofiite"
+    },
+    {
+      "id": "ima-sokolovaite",
+      "name_en": "Sokolovaite"
+    },
+    {
+      "id": "ima-sombrereteite",
+      "name_en": "Sombrereteite"
+    },
+    {
+      "id": "ima-s-rensenite",
+      "name_en": "Sørensenite"
+    },
+    {
+      "id": "ima-spanoite",
+      "name_en": "Spanoite"
+    },
+    {
+      "id": "ima-sperlingite",
+      "name_en": "Sperlingite"
+    },
+    {
+      "id": "ima-stanevansite",
+      "name_en": "Stanevansite"
+    },
+    {
+      "id": "ima-stankeithite",
+      "name_en": "Stankeithite"
+    },
+    {
+      "id": "ima-steiningerite",
+      "name_en": "Steiningerite"
+    },
+    {
+      "id": "ima-steudelite",
+      "name_en": "Steudelite"
+    },
+    {
+      "id": "ima-stibiosegnitite",
+      "name_en": "Stibiosegnitite"
+    },
+    {
+      "id": "ima-stilbite-ca",
+      "name_en": "Stilbite-Ca"
+    },
+    {
+      "id": "ima-stilbite-na",
+      "name_en": "Stilbite-Na"
+    },
+    {
+      "id": "ima-stillwellite-la",
+      "name_en": "Stillwellite-(La)"
+    },
+    {
+      "id": "ima-strakhovite",
+      "name_en": "Strakhovite"
+    },
+    {
+      "id": "ima-strandite",
+      "name_en": "Strandite"
+    },
+    {
+      "id": "ima-strassmannite",
+      "name_en": "Strassmannite"
+    },
+    {
+      "id": "ima-stunorthropite",
+      "name_en": "Stunorthropite"
+    },
+    {
+      "id": "ima-sudovikovite",
+      "name_en": "Sudovikovite"
+    },
+    {
+      "id": "ima-sugarwhiteite",
+      "name_en": "Sugarwhiteite"
+    },
+    {
+      "id": "ima-suhailite",
+      "name_en": "Suhailite"
+    },
+    {
+      "id": "ima-sulfopadmaite",
+      "name_en": "Sulfopadmaite"
+    },
+    {
+      "id": "ima-sunshuite",
+      "name_en": "Sunshuite"
+    },
+    {
+      "id": "ima-svornostite-k",
+      "name_en": "Svornostite-(K)"
+    },
+    {
+      "id": "ima-svornostite-nh-4",
+      "name_en": "Svornostite-(NH ) 4"
+    },
+    {
+      "id": "ima-swamboite-nd",
+      "name_en": "Swamboite-(Nd)"
+    },
+    {
+      "id": "ima-szilagyiite",
+      "name_en": "Szilagyiite"
+    },
+    {
+      "id": "ima-tadzhikite-ce",
+      "name_en": "Tadzhikite-(Ce)"
+    },
+    {
+      "id": "ima-taimyrite",
+      "name_en": "Taimyrite"
+    },
+    {
+      "id": "ima-taipingite-ceca",
+      "name_en": "Taipingite-(CeCa)"
+    },
+    {
+      "id": "ima-tantalaeschynite-ce",
+      "name_en": "Tantalaeschynite-(Ce)"
+    },
+    {
+      "id": "ima-tapiolite-fe",
+      "name_en": "Tapiolite-(Fe)"
+    },
+    {
+      "id": "ima-tapiolite-mn",
+      "name_en": "Tapiolite-(Mn)"
+    },
+    {
+      "id": "ima-tartarosite",
+      "name_en": "Tartarosite"
+    },
+    {
+      "id": "ima-tarutinoite",
+      "name_en": "Tarutinoite"
+    },
+    {
+      "id": "ima-tennantite-fe",
+      "name_en": "Tennantite-(Fe)"
+    },
+    {
+      "id": "ima-tennantite-in",
+      "name_en": "Tennantite-(In)"
+    },
+    {
+      "id": "ima-tennantite-mn",
+      "name_en": "Tennantite-(Mn)"
+    },
+    {
+      "id": "ima-tennantite-zn",
+      "name_en": "Tennantite-(Zn)"
+    },
+    {
+      "id": "ima-ternesite",
+      "name_en": "Ternesite"
+    },
+    {
+      "id": "ima-terranovaite",
+      "name_en": "Terranovaite"
+    },
+    {
+      "id": "ima-tetra-auricupride",
+      "name_en": "Tetra-auricupride"
+    },
+    {
+      "id": "ima-tetraferriphlogopite",
+      "name_en": "Tetraferriphlogopite"
+    },
+    {
+      "id": "ima-tetrahedrite-cd",
+      "name_en": "Tetrahedrite-(Cd)"
+    },
+    {
+      "id": "ima-tetrahedrite-cu",
+      "name_en": "Tetrahedrite-(Cu)"
+    },
+    {
+      "id": "ima-tetrahedrite-fe",
+      "name_en": "Tetrahedrite-(Fe)"
+    },
+    {
+      "id": "ima-tetrahedrite-zn",
+      "name_en": "Tetrahedrite-(Zn)"
+    },
+    {
+      "id": "ima-thebaite-nh-4",
+      "name_en": "Thebaite-(NH ) 4"
+    },
+    {
+      "id": "ima-thermessaite-nh-4",
+      "name_en": "Thermessaite-(NH ) 4"
+    },
+    {
+      "id": "ima-theuerdankite",
+      "name_en": "Theuerdankite"
+    },
+    {
+      "id": "ima-thionasilite",
+      "name_en": "Thionasilite"
+    },
+    {
+      "id": "ima-tianhongqiite",
+      "name_en": "Tianhongqiite"
+    },
+    {
+      "id": "ima-tianhuixinite",
+      "name_en": "Tianhuixinite"
+    },
+    {
+      "id": "ima-titanium",
+      "name_en": "Titanium"
+    },
+    {
+      "id": "ima-titanomaghemite",
+      "name_en": "Titanomaghemite"
+    },
+    {
+      "id": "ima-toledoite",
+      "name_en": "Toledoite"
+    },
+    {
+      "id": "ima-tolstykhite",
+      "name_en": "Tolstykhite"
+    },
+    {
+      "id": "ima-tomcampbellite",
+      "name_en": "Tomcampbellite"
+    },
+    {
+      "id": "ima-tomsquarryite",
+      "name_en": "Tomsquarryite"
+    },
+    {
+      "id": "ima-touretite",
+      "name_en": "Touretite"
+    },
+    {
+      "id": "ima-trebeurdenite",
+      "name_en": "Trébeurdenite"
+    },
+    {
+      "id": "ima-trigodomeykite",
+      "name_en": "Trigodomeykite"
+    },
+    {
+      "id": "ima-trilithionite",
+      "name_en": "Trilithionite"
+    },
+    {
+      "id": "ima-tschortnerite",
+      "name_en": "Tschörtnerite"
+    },
+    {
+      "id": "ima-tsugaruite",
+      "name_en": "Tsugaruite"
+    },
+    {
+      "id": "ima-tweddillite",
+      "name_en": "Tweddillite"
+    },
+    {
+      "id": "ima-tyretskite",
+      "name_en": "Tyretskite"
+    },
+    {
+      "id": "ima-tzeferisite",
+      "name_en": "Tzeferisite"
+    },
+    {
+      "id": "ima-uduminelite",
+      "name_en": "Uduminelite"
+    },
+    {
+      "id": "ima-uranocircite",
+      "name_en": "Uranocircite"
+    },
+    {
+      "id": "ima-uranophane",
+      "name_en": "Uranophane"
+    },
+    {
+      "id": "ima-vadlazarenkovite",
+      "name_en": "Vadlazarenkovite"
+    },
+    {
+      "id": "ima-vakhrushevaite",
+      "name_en": "Vakhrushevaite"
+    },
+    {
+      "id": "ima-vallouiseite",
+      "name_en": "Vallouiseite"
+    },
+    {
+      "id": "ima-vanadoakasakaite-ce",
+      "name_en": "Vanadoakasakaite-(Ce)"
+    },
+    {
+      "id": "ima-vanadoakasakaite-la",
+      "name_en": "Vanadoakasakaite-(La)"
+    },
+    {
+      "id": "ima-vanadoandrosite-la",
+      "name_en": "Vanadoandrosite-(La)"
+    },
+    {
+      "id": "ima-vanadomalayaite",
+      "name_en": "Vanadomalayaite"
+    },
+    {
+      "id": "ima-vandermeerscheite",
+      "name_en": "Vandermeerscheite"
+    },
+    {
+      "id": "ima-vanpeltite",
+      "name_en": "Vanpeltite"
+    },
+    {
+      "id": "ima-varennesite",
+      "name_en": "Varennesite"
+    },
+    {
+      "id": "ima-varlamoffite",
+      "name_en": "Varlamoffite"
+    },
+    {
+      "id": "ima-vegrandisite",
+      "name_en": "Vegrandisite"
+    },
+    {
+      "id": "ima-vielleaureite-ce",
+      "name_en": "Vielleaureite-(Ce)"
+    },
+    {
+      "id": "ima-vihorlatite",
+      "name_en": "Vihorlatite"
+    },
+    {
+      "id": "ima-virgilluethite",
+      "name_en": "Virgilluethite"
+    },
+    {
+      "id": "ima-viskontite",
+      "name_en": "Viskontite"
+    },
+    {
+      "id": "ima-vladkuzminite",
+      "name_en": "Vladkuzminite"
+    },
+    {
+      "id": "ima-vranciceite",
+      "name_en": "Vrančiceite"
+    },
+    {
+      "id": "ima-vuoriyarvite-k",
+      "name_en": "Vuoriyarvite-K"
+    },
+    {
+      "id": "ima-wadalite",
+      "name_en": "Wadalite"
+    },
+    {
+      "id": "ima-wangkuirenite",
+      "name_en": "Wangkuirenite"
+    },
+    {
+      "id": "ima-wangpuite",
+      "name_en": "Wangpuite"
+    },
+    {
+      "id": "ima-wangxibinite",
+      "name_en": "Wangxibinite"
+    },
+    {
+      "id": "ima-wangyanite",
+      "name_en": "Wangyanite"
+    },
+    {
+      "id": "ima-weilerite",
+      "name_en": "Weilerite"
+    },
+    {
+      "id": "ima-wenlanzhangite-y",
+      "name_en": "Wenlanzhangite-(Y)"
+    },
+    {
+      "id": "ima-wenqingite",
+      "name_en": "Wenqingite"
+    },
+    {
+      "id": "ima-wherryite",
+      "name_en": "Wherryite"
+    },
+    {
+      "id": "ima-whiteite-camnfe",
+      "name_en": "Whiteite-(CaMnFe)"
+    },
+    {
+      "id": "ima-wiperamingaite",
+      "name_en": "Wiperamingaite"
+    },
+    {
+      "id": "ima-wolfsriedite",
+      "name_en": "Wolfsriedite"
+    },
+    {
+      "id": "ima-wortupaite",
+      "name_en": "Wortupaite"
+    },
+    {
+      "id": "ima-xenotime-gd",
+      "name_en": "Xenotime-(Gd)"
+    },
+    {
+      "id": "ima-xianhuaite-ce",
+      "name_en": "Xianhuaite-(Ce)"
+    },
+    {
+      "id": "ima-xianhuaite-la",
+      "name_en": "Xianhuaite-(La)"
+    },
+    {
+      "id": "ima-xiexiandeite",
+      "name_en": "Xiexiandeite"
+    },
+    {
+      "id": "ima-yamhamelachite",
+      "name_en": "Yamhamelachite"
+    },
+    {
+      "id": "ima-ye-elimite",
+      "name_en": "Ye'elimite"
+    },
+    {
+      "id": "ima-yeite",
+      "name_en": "Yeite"
+    },
+    {
+      "id": "ima-yellowcatite",
+      "name_en": "Yellowcatite"
+    },
+    {
+      "id": "ima-yttrialite-y",
+      "name_en": "Yttrialite-(Y)"
+    },
+    {
+      "id": "ima-yttrotungstite-ce",
+      "name_en": "Yttrotungstite-(Ce)"
+    },
+    {
+      "id": "ima-yttrotungstite-nd",
+      "name_en": "Yttrotungstite-(Nd)"
+    },
+    {
+      "id": "ima-yuchuanite-y",
+      "name_en": "Yuchuanite-(Y)"
+    },
+    {
+      "id": "ima-yulinite",
+      "name_en": "Yulinite"
+    },
+    {
+      "id": "ima-yunhaoite",
+      "name_en": "Yunhaoite"
+    },
+    {
+      "id": "ima-zanelliite",
+      "name_en": "Zanelliite"
+    },
+    {
+      "id": "ima-zavyalovite",
+      "name_en": "Zavyalovite"
+    },
+    {
+      "id": "ima-zhaoyuanite",
+      "name_en": "Zhaoyuanite"
+    },
+    {
+      "id": "ima-zhengminghuaite",
+      "name_en": "Zhengminghuaite"
+    },
+    {
+      "id": "ima-zhenruite",
+      "name_en": "Zhenruite"
+    },
+    {
+      "id": "ima-zheshengite",
+      "name_en": "Zheshengite"
+    },
+    {
+      "id": "ima-zhonghongite",
+      "name_en": "Zhonghongite"
+    },
+    {
+      "id": "ima-zilbermintsite-la",
+      "name_en": "Zilbermintsite-(La)"
+    },
+    {
+      "id": "ima-zincocabrerite",
+      "name_en": "Zincocabrerite"
+    },
+    {
+      "id": "ima-zincochenite",
+      "name_en": "Zincochenite"
+    },
+    {
+      "id": "ima-zincohogbomite-2n2s",
+      "name_en": "Zincohögbomite-2N2S"
+    },
+    {
+      "id": "ima-zincohogbomite-2n6s",
+      "name_en": "Zincohögbomite-2N6S"
+    },
+    {
+      "id": "ima-zinconigerite-2n1s",
+      "name_en": "Zinconigerite-2N1S"
+    },
+    {
+      "id": "ima-zinconigerite-6n6s",
+      "name_en": "Zinconigerite-6N6S"
+    },
+    {
+      "id": "ima-zincorietveldite",
+      "name_en": "Zincorietveldite"
+    },
+    {
+      "id": "ima-zincorinmanite-zn",
+      "name_en": "Zincorinmanite-(Zn)"
+    },
+    {
+      "id": "ima-zincostottite",
+      "name_en": "Zincostottite"
+    },
+    {
+      "id": "ima-zincovelesite-6n6s",
+      "name_en": "Zincovelesite-6N6S"
+    },
+    {
+      "id": "ima-zinkosite",
+      "name_en": "Zinkosite"
+    },
+    {
+      "id": "ima-zipserite",
+      "name_en": "Zipserite"
+    },
+    {
+      "id": "ima-zircarsite",
+      "name_en": "Zircarsite"
+    },
+    {
+      "id": "ima-ziroite",
+      "name_en": "Ziroite"
+    },
+    {
+      "id": "ima-zoisite-pb",
+      "name_en": "Zoisite-(Pb)"
+    },
+    {
+      "id": "ima-zoyashlyukovaite",
+      "name_en": "Zoyashlyukovaite"
+    },
+    {
+      "id": "ima-zuolinite",
+      "name_en": "Zuolinite"
+    },
+    {
+      "id": "ima-zvestovite-fe",
+      "name_en": "Zvěstovite-(Fe)"
+    },
+    {
+      "id": "ima-zvestovite-zn",
+      "name_en": "Zvěstovite-(Zn)"
+    }
+  ]
+}

@@ -11,13 +11,15 @@ import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
 import android.os.Build;
 import android.os.SystemClock;
+import android.system.Os;
+import android.system.OsConstants;
 import android.util.Base64;
 import android.util.Log;
+import android.webkit.WebView;
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
-import java.io.File;
-import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CountDownLatch;
@@ -68,6 +70,9 @@ public class MineralEngineInstrumentedTest {
     }
 
     private JSONObject nativeNetworkState() throws Exception {
+        final long pageSize = Os.sysconf(OsConstants._SC_PAGESIZE);
+        Context target=InstrumentationRegistry.getInstrumentation().getTargetContext();
+        final android.content.pm.PackageInfo installed=target.getPackageManager().getPackageInfo(target.getPackageName(),0);
         AtomicReference<JSONObject> value = new AtomicReference<>();
         scenario.onActivity(activity -> {
             ConnectivityManager manager = (ConnectivityManager) activity.getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -77,6 +82,12 @@ public class MineralEngineInstrumentedTest {
             try {
                 value.set(new JSONObject()
                     .put("sdk", Build.VERSION.SDK_INT)
+                    .put("pageSize", pageSize)
+                    .put("deviceAbi", Build.SUPPORTED_ABIS[0])
+                    .put("packageName", activity.getPackageName())
+                    .put("versionName", installed.versionName)
+                    .put("versionCode", installed.versionCode)
+                    .put("supportedAbis", new JSONArray(java.util.Arrays.asList(Build.SUPPORTED_ABIS)))
                     .put("activeNetwork", active == null ? JSONObject.NULL : active.toString())
                     .put("connected", info != null && info.isConnected())
                     .put("internetCapability", capabilities != null && capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET))
@@ -110,6 +121,34 @@ public class MineralEngineInstrumentedTest {
         fail("Packaged main page did not initialize");
     }
 
+    private boolean supportedWebView() throws Exception {
+        long end = SystemClock.elapsedRealtime() + 30000;
+        do {
+            String capability = evaluate("window.__shikuangBootCapabilities ? String(window.__shikuangBootCapabilities.supported) : 'pending'");
+            if ("true".equals(capability)) return true;
+            if ("false".equals(capability)) return false;
+            SystemClock.sleep(100);
+        } while (SystemClock.elapsedRealtime() < end);
+        fail("Trusted boot capability gate did not initialize");
+        return false;
+    }
+
+    private void verifyUnsupportedWebViewRecovery() throws Exception {
+        assertEquals("Only the Android 7 factory WebView compatibility case may use the recovery branch",24,Build.VERSION.SDK_INT);
+        assertEquals("true",evaluate("!!document.getElementById('native-boot-recovery')"));
+        assertEquals("true",evaluate("document.getElementById('native-boot-recovery').textContent.indexOf('本机标本和历史记录会保留') >= 0"));
+        JSONObject nativeNetwork = nativeNetworkState();
+        assertTrue(nativeNetwork.isNull("activeNetwork"));assertFalse(nativeNetwork.getBoolean("connected"));
+        String routes4=shellOutput("ip route show"),routes6=shellOutput("ip -6 route show");
+        assertFalse(routes4.contains("default "));assertFalse(routes6.contains("default "));
+        assertEquals("false",evaluate("navigator.onLine"));
+        String expectedPageSize=InstrumentationRegistry.getArguments().getString("expectedPageSize");
+        if(expectedPageSize!=null)assertEquals(Long.parseLong(expectedPageSize),nativeNetwork.getLong("pageSize"));
+        evaluate("window.__shikuangRuntimeSmoke={phase:'unsupported-webview-recovery-passed',photoRecognitionVerified:false,reason:'Factory WebView lacks required modern syntax/APIs; actual Java ONNX runtime checked separately',userAgent:navigator.userAgent,boot:window.__shikuangBootCapabilities,recovery:document.getElementById('native-boot-recovery').textContent,network:{native:"+nativeNetwork+",ipv4Routes:"+JSONObject.quote(routes4)+",ipv6Routes:"+JSONObject.quote(routes6)+"}};");
+        Bitmap bitmap=InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();assertNotNull(bitmap);
+        try(OutputStream stream=RuntimeTestOutput.open("legacy-webview-recovery.png")){assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG,100,stream));}finally{bitmap.recycle();}
+    }
+
     private String fixture(String name) throws Exception {
         Context testContext = InstrumentationRegistry.getInstrumentation().getContext();
         Bitmap source;
@@ -128,18 +167,74 @@ public class MineralEngineInstrumentedTest {
         return data;
     }
 
-    private File outputDirectory() {
-        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        File directory = new File(context.getExternalFilesDir(null), "runtime-smoke");
-        assertTrue(directory.isDirectory() || directory.mkdirs());
-        return directory;
+    private String encodedAsset(String name, String mime) throws Exception {
+        try (InputStream stream = InstrumentationRegistry.getInstrumentation().getContext().getAssets().open(name)) {
+            java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream();byte[] buffer = new byte[4096];int count;
+            while ((count=stream.read(buffer)) != -1) bytes.write(buffer,0,count);
+            return "data:"+mime+";base64,"+Base64.encodeToString(bytes.toByteArray(),Base64.NO_WRAP);
+        }
     }
 
-    private void screenshot(String filename) throws Exception {
-        SystemClock.sleep(350);
+    private void checkPhotoGeometry() throws Exception {
+        String exif=encodedAsset("quartz-exif6.jpg","image/jpeg"),upright=encodedAsset("quartz-exif6-upright.png","image/png");
+        evaluate(script(
+            "(async()=>{const s=window.__shikuangRuntimeSmoke;s.phase='geometry-running';try{",
+            " const jpeg=await MineralEngine.image("+JSONObject.quote(exif)+"),png=await MineralEngine.image("+JSONObject.quote(upright)+");",
+            " if(jpeg.naturalWidth!==320||jpeg.naturalHeight!==512||png.naturalWidth!==320||png.naturalHeight!==512)throw new Error('EXIF 6 photo was not rotated upright');",
+            " const draw=image=>{const c=document.createElement('canvas');c.width=image.naturalWidth;c.height=image.naturalHeight;const x=c.getContext('2d');x.drawImage(image,0,0);return x.getImageData(0,0,c.width,c.height).data;};",
+            " const difference=(a,b)=>{let maximum=0;for(let i=0;i<a.length;i++)if(i%4!==3)maximum=Math.max(maximum,Math.abs(a[i]-b[i]));return maximum;};",
+            " const decoderRgbAbsMax=difference(draw(jpeg),draw(png));if(decoderRgbAbsMax>4)throw new Error('EXIF decoder differs from upright reference');",
+            " const crops=[];for(const crop of [1,.75,.5]){let geometry;const original=CanvasRenderingContext2D.prototype.drawImage;CanvasRenderingContext2D.prototype.drawImage=function(...args){geometry=args.slice(1);return original.apply(this,args);};let canvas;try{canvas=MineralEngine.cropCanvas(jpeg,224,crop);}finally{CanvasRenderingContext2D.prototype.drawImage=original;}",
+            " const side=320*crop,expected=[(320-side)/2,(512-side)/2,side,side,0,0,224,224];if(JSON.stringify(geometry)!==JSON.stringify(expected))throw new Error('Center-square ROI geometry changed');",
+            " const uprightCrop=MineralEngine.cropCanvas(png,224,crop),actual=canvas.getContext('2d').getImageData(0,0,224,224).data,reference=uprightCrop.getContext('2d').getImageData(0,0,224,224).data;let sum=0;for(let i=0;i<actual.length;i++)if(i%4!==3)sum+=Math.abs(actual[i]-reference[i]);crops.push({crop,geometry,resizedSourceFormatRgbAbsMax:difference(actual,reference),resizedSourceFormatRgbAbsMean:sum/(224*224*3)});}",
+            " const pattern=document.createElement('canvas');pattern.width=512;pattern.height=320;const pc=pattern.getContext('2d'),pd=pc.createImageData(512,320);for(let y=0;y<320;y++)for(let x=0;x<512;x++){const i=(y*512+x)*4;pd.data[i]=Math.floor(x/2);pd.data[i+1]=Math.round(y*255/319);pd.data[i+2]=91;pd.data[i+3]=255;}pc.putImageData(pd,0,0);const coordinateImage=await MineralEngine.image(pattern.toDataURL('image/png')),coordinateCrops=[];",
+            " for(const crop of [1,.75,.5]){const side=320*crop,left=(512-side)/2,top=(320-side)/2,c=MineralEngine.cropCanvas(coordinateImage,224,crop),p=c.getContext('2d').getImageData(0,0,224,224).data;let max=0;for(let y=0;y<224;y++)for(let x=0;x<224;x++){const i=(y*224+x)*4,sx=left+(x+.5)*side/224-.5,sy=top+(y+.5)*side/224-.5;max=Math.max(max,Math.abs(p[i]-sx/2),Math.abs(p[i+1]-sy*255/319),Math.abs(p[i+2]-91));}if(max>2)throw new Error('Coordinate-pattern center-square bilinear boundary differs: '+max);coordinateCrops.push({crop,rgbBoundaryAbsMax:max});}",
+            " s.photoGeometry={source:'Derived from existing quartz smoke photo; algorithm regression only, no accuracy claim',exifOrientation:6,width:jpeg.naturalWidth,height:jpeg.naturalHeight,decoderRgbAbsMax,crops,coordinateCrops,sourceFormatResizePixelParityClaim:false,pilCanvasResizePixelParityClaim:false};s.phase='geometry-passed';",
+            " }catch(e){s.phase='failed';s.failure=String(e);}})();"
+        ));
+        awaitPhase("geometry-passed",30000);
+    }
+
+    private JSONObject bundledJson(String path) throws Exception {
+        try (InputStream stream = InstrumentationRegistry.getInstrumentation().getTargetContext().getAssets().open("public/" + path)) {
+            java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream(); byte[] buffer = new byte[4096]; int count;
+            while ((count = stream.read(buffer)) != -1) { bytes.write(buffer,0,count); assertTrue("Oversized test metadata", bytes.size() <= 10_000_000); }
+            return new JSONObject(new String(bytes.toByteArray(), StandardCharsets.UTF_8));
+        }
+    }
+
+    private void screenshot(String filename, String selector) throws Exception {
+        awaitUi("(() => {const e=document.querySelector(" + JSONObject.quote(selector) + ");if(!e)return false;const r=e.getBoundingClientRect();return r.width>0&&r.height>0&&r.bottom>0&&r.top<innerHeight&&r.right>0&&r.left<innerWidth;})()",
+            "visible screenshot target " + selector,10000);
+        awaitUi("!document.getElementById('toast') || document.getElementById('toast').hidden", "toast to finish naturally",10000);
+        CountDownLatch drawn = new CountDownLatch(1);
+        scenario.onActivity(activity -> {
+            WebView view = activity.getBridge().getWebView();
+            Runnable nextFrames = () -> { view.invalidate(); view.postOnAnimation(() -> view.postOnAnimation(drawn::countDown)); };
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) view.postVisualStateCallback(SystemClock.elapsedRealtime(),new WebView.VisualStateCallback() {
+                @Override public void onComplete(long id) { nextFrames.run(); }
+            });
+            else nextFrames.run();
+        });
+        assertTrue("WebView visual state did not become drawable",drawn.await(10,TimeUnit.SECONDS));
+        // Chromium's visual callback precedes the display compositor on some
+        // emulator images. Await stable genuine display pixels as well.
+        SystemClock.sleep(750);
+        evaluate("(() => {const e=document.querySelector(" + JSONObject.quote(selector) + "),r=e.getBoundingClientRect(),s=window.__shikuangRuntimeSmoke;s.screenshots=s.screenshots||[];s.screenshots.push({filename:" + JSONObject.quote(filename) + ",selector:" + JSONObject.quote(selector) + ",text:e.textContent.slice(0,600),rect:{top:r.top,bottom:r.bottom,left:r.left,right:r.right},viewport:{width:innerWidth,height:innerHeight},visualStateSynchronized:true});})()");
         Bitmap bitmap = InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
         assertNotNull("Screenshot unavailable", bitmap);
-        try (FileOutputStream stream = new FileOutputStream(new File(outputDirectory(), filename))) {
+        boolean stable = false;
+        for (int attempt = 0; attempt < 8; attempt++) {
+            SystemClock.sleep(200);
+            Bitmap next = InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
+            assertNotNull("Screenshot unavailable while waiting for display composition", next);
+            stable = bitmap.sameAs(next);
+            bitmap.recycle();
+            bitmap = next;
+            if (stable) break;
+        }
+        if (!stable) { bitmap.recycle(); fail("Display pixels did not stabilize for " + filename); }
+        try (OutputStream stream = RuntimeTestOutput.open(filename)) {
             assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream));
         } finally {
             bitmap.recycle();
@@ -150,7 +245,7 @@ public class MineralEngineInstrumentedTest {
         try {
             JSONObject report = state();
             Log.i(TAG, report.toString());
-            try (FileOutputStream stream = new FileOutputStream(new File(outputDirectory(), "runtime-report.json"))) {
+            try (OutputStream stream = RuntimeTestOutput.open("runtime-report.json")) {
                 stream.write(report.toString(2).getBytes(StandardCharsets.UTF_8));
             }
         } catch (Exception error) {
@@ -186,39 +281,64 @@ public class MineralEngineInstrumentedTest {
         fail("Timed out waiting for " + description + ": " + evaluate("document.getElementById('catalogLoadState')?.textContent || 'No catalog UI'"));
     }
 
+    private JSONArray checkDecodedGalleryPhotos(int expected, String field) throws Exception {
+        awaitUi("document.querySelectorAll('#imageRecords img').length==="+expected+" && [...document.querySelectorAll('#imageRecords img')].every(i=>!i.hidden && i.complete && i.naturalWidth>0 && i.naturalWidth===Number(i.getAttribute('width')) && i.naturalHeight===Number(i.getAttribute('height')))",
+            "genuine offline gallery JPEGs to decode", 30000);
+        evaluate(script(
+            "(async()=>{const s=window.__shikuangRuntimeSmoke;try{const photos=[];",
+            " for(const image of document.querySelectorAll('#imageRecords img')){const record=MINERAL_IMAGE_SOURCES.records.find(row=>'gallery-image-'+row.id===image.id),blob=image.currentSrc||image.src;if(!record||!blob.startsWith('blob:'))throw Error('Gallery does not display the source-bound blob');",
+            " const asset=MineralGallery.asset(record),response=await fetch(blob),bytes=await MineralCore.readResource(response,1048576,asset.bytes,undefined,{timeout:15000}),sha256=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),b=>b.toString(16).padStart(2,'0')).join('');",
+            " if(sha256!==asset.sha256||image.naturalWidth!==record.width||image.naturalHeight!==record.height)throw Error('Displayed photo SHA or decoded dimensions differ from source');",
+            " photos.push({id:record.id,path:asset.path,url:MineralGallery.url(asset,location.href),blobUrl:blob,sha256,bytes:bytes.length,width:image.naturalWidth,height:image.naturalHeight,complete:image.complete,decoded:true,sourceUrl:record.image_page_url,licenseUrl:record.license_url});}",
+            " s["+JSONObject.quote(field)+"]=photos;s.phase="+JSONObject.quote(field+"-passed")+";",
+            " }catch(e){s.phase='failed';s.failure=String(e);}})();"
+        ));
+        JSONArray photos = awaitPhase(field+"-passed",30000).getJSONArray(field);
+        assertEquals(expected,photos.length());
+        for(int i=0;i<photos.length();i++)assertTrue(photos.getJSONObject(i).getBoolean("decoded"));
+        return photos;
+    }
+
     /** Exercise the real lazy loader, SHA-256 checks, searches and detail dialogs while disconnected. */
     private void checkOfflineReferenceCatalog() throws Exception {
+        JSONObject reference = bundledJson("data/reference-manifest.json"),counts=reference.getJSONObject("counts");
+        int species = counts.getInt("ima_species"),crystals=counts.getInt("species_with_records");
+        int images = bundledJson("data/image-sources.json").getJSONArray("records").length();
+        JSONArray photoAssets = bundledJson("data/reviewed-photo-assets.json").getJSONArray("assets");
+        assertEquals(counts.getInt("source_image_records"),images);
+        assertEquals(counts.getInt("local_reviewed_photos"),photoAssets.length());
         assertEquals("Reference collection should not delay mineral inference", "idle",
             evaluate("window.MineralReference?.status"));
         evaluate(script(
-            "(() => {const s=window.__shikuangRuntimeSmoke;s.phase='library-loading';s.catalogFetches=[];",
+            "(() => {const s=window.__shikuangRuntimeSmoke;s.phase='library-loading';s.catalogFetches=[];s.catalogPhotoFetches=[];",
             " const realFetch=window.fetch.bind(window);",
-            " window.fetch=async(...args)=>{const response=await realFetch(...args);const url=new URL(args[0] instanceof Request?args[0].url:String(args[0]),location.href);if(/\\/data\\/(reference-manifest|catalog|crystals|image-sources)\\.json$/.test(url.pathname))s.catalogFetches.push({path:url.pathname,url:url.href,status:response.status,type:response.headers.get('content-type'),local:url.origin===location.origin});return response;};",
+            " window.fetch=async(...args)=>{const response=await realFetch(...args);const url=new URL(args[0] instanceof Request?args[0].url:String(args[0]),location.href);if(/\\/data\\/(reference-manifest|catalog|crystals|image-sources)\\.json$/.test(url.pathname))s.catalogFetches.push({path:url.pathname,url:url.href,status:response.status,type:response.headers.get('content-type'),local:url.origin===location.origin});if(/\\/images\\/reviewed-v25\\/commons-\\d+\\.jpg$/.test(url.pathname))s.catalogPhotoFetches.push({path:url.pathname,url:url.href,status:response.status,local:url.origin===location.origin});return response;};",
             " document.querySelector('[data-view=library]').click();})()"
         ));
-        awaitUi("window.MineralReference?.status==='ready' && document.getElementById('catalogLoadState').textContent.includes('6239')",
-            "6,239-species packaged reference collection", 60000);
+        awaitUi("window.MineralReference?.status==='ready' && document.getElementById('catalogLoadState').textContent.includes('" + species + "')",
+            species + "-species packaged reference collection", 60000);
         JSONObject catalog = new JSONObject(evaluate(script(
             "JSON.stringify({imaSpecies:MINERAL_CATALOG.minerals.length,crystalSpecies:Object.keys(MINERAL_CRYSTAL_RECORDS.by_species).length,imageReferences:MINERAL_IMAGE_SOURCES.records.length,completed:MineralReference.completed,online:navigator.onLine,cardsShown:document.querySelectorAll('#libraryList [data-detail]').length,intro:document.getElementById('catalogIntro').textContent,localFetches:window.__shikuangRuntimeSmoke.catalogFetches.length})"
         )));
-        assertEquals(6239, catalog.getInt("imaSpecies"));
-        assertEquals(3430, catalog.getInt("crystalSpecies"));
-        assertEquals(780, catalog.getInt("imageReferences"));
-        assertEquals(3, catalog.getInt("completed"));
+        assertEquals(species, catalog.getInt("imaSpecies"));
+        assertEquals(crystals, catalog.getInt("crystalSpecies"));
+        assertEquals(images, catalog.getInt("imageReferences"));
+        assertEquals(reference.getJSONArray("files").length(), catalog.getInt("completed"));
         assertEquals(80, catalog.getInt("cardsShown"));
         assertFalse("Catalog must load while WebView detects unavailable networking", catalog.getBoolean("online"));
-        assertTrue(catalog.getString("intro").contains("780"));
-        assertTrue(catalog.getString("intro").contains("3430"));
+        assertEquals("Opening the catalogue must not eagerly fetch specimen photos",0,state().getJSONArray("catalogPhotoFetches").length());
+        assertTrue(catalog.getString("intro").contains(String.valueOf(images)));
+        assertTrue(catalog.getString("intro").contains(String.valueOf(crystals)));
         JSONArray fetches = state().getJSONArray("catalogFetches");
-        assertEquals("Manifest and three reference files must be read locally", 4, fetches.length());
+        assertEquals("Manifest and all reference files must be read locally", 1+reference.getJSONArray("files").length(), fetches.length());
         for (int index = 0; index < fetches.length(); index++) {
             JSONObject request = fetches.getJSONObject(index);
             assertTrue("Reference request left packaged app origin: " + request, request.getBoolean("local"));
             assertEquals(200, request.getInt("status"));
         }
-        assertEquals("98", evaluate("Object.keys(MINERAL_CLASSES).length"));
+        assertEquals(state().getJSONObject("modelContract").getInt("labels"),Integer.parseInt(evaluate("Object.keys(MINERAL_CLASSES).length")));
         evaluate("window.__shikuangRuntimeSmoke.catalog=" + catalog + ";window.scrollTo({top:0,behavior:'instant'});");
-        screenshot("library-offline-overview.png");
+        screenshot("library-offline-overview.png", "#catalogIntro");
 
         evaluate("const quartzSearch=document.getElementById('librarySearch');quartzSearch.value='Quartz';quartzSearch.dispatchEvent(new Event('input',{bubbles:true}));");
         awaitUi("document.querySelector('#libraryList [data-detail=quartz]')", "Quartz search card", 10000);
@@ -229,7 +349,8 @@ public class MineralEngineInstrumentedTest {
         assertTrue(evaluate("document.getElementById('crystalRecords').textContent").contains("空间群"));
         assertEquals("5", evaluate("document.querySelectorAll('#crystalRecords .crystal-record').length"));
         evaluate("document.getElementById('detailDialog').scrollTop=0;");
-        screenshot("quartz-reference-details.png");
+        assertEquals("Opening mineral facts must not fetch the closed photo section",0,state().getJSONArray("catalogPhotoFetches").length());
+        screenshot("quartz-reference-details.png", "#detailTitle");
         evaluate(script(
             "document.querySelector('#detailBody .image-section').open=true;",
             "document.querySelector('#detailBody .image-section').scrollIntoView({block:'start',behavior:'instant'});",
@@ -238,21 +359,43 @@ public class MineralEngineInstrumentedTest {
         JSONObject quartzReference = state().getJSONObject("quartzReference");
         assertTrue("Packaged Quartz image-source metadata must be present", quartzReference.getInt("imageRecordsTotal") > 0);
         assertEquals(Math.min(5, quartzReference.getInt("imageRecordsTotal")), quartzReference.getInt("imageRecordsShown"));
-        assertTrue(evaluate("document.getElementById('imageRecords').textContent").contains("尚未通过训练审核"));
-        assertEquals("0", evaluate("document.querySelectorAll('#imageRecords img').length"));
-        screenshot("quartz-image-references.png");
+        assertTrue(evaluate("document.getElementById('imageRecords').textContent").contains("不代表随包模型已训练本照片"));
+        int quartzPhotoCount=Integer.parseInt(evaluate("Math.min(5,MINERAL_IMAGE_SOURCES.records.filter(row=>row.mineral_name==='Quartz'&&row.local_image_url).length)"));
+        assertTrue("Reviewed Quartz reference photos must be included",quartzPhotoCount>0);
+        JSONArray gallery = checkDecodedGalleryPhotos(quartzPhotoCount,"galleryPhotos");
+        evaluate("document.querySelector('#imageRecords .reference-photo').scrollIntoView({block:'start',behavior:'instant'});");
+        screenshot("quartz-image-references.png", "#imageRecords .reference-photo img");
+        evaluate("document.getElementById('closeDetail').click();");
+        evaluate(script(
+            "(async()=>{const s=window.__shikuangRuntimeSmoke;try{await new Promise(resolve=>setTimeout(resolve,250));let revoked=0;",
+            " for(const photo of s.galleryPhotos){let stillReadable=false;try{await fetch(photo.blobUrl);stillReadable=true;}catch(_){revoked++;}if(stillReadable)throw Error('Gallery blob survived dialog close');}",
+            " s.galleryRevokedCount=revoked;s.phase='gallery-released';}catch(e){s.phase='failed';s.failure=String(e);}})();"
+        ));
+        assertEquals(gallery.length(),awaitPhase("gallery-released",10000).getInt("galleryRevokedCount"));
+        evaluate("document.querySelector('#libraryList [data-detail=quartz]').click();");
+        awaitUi("document.getElementById('detailDialog').open && document.getElementById('detailTitle').textContent==='石英'", "Quartz gallery reopen", 10000);
+        evaluate("document.querySelector('#detailBody .image-section').open=true;");
+        JSONArray reopened = checkDecodedGalleryPhotos(quartzPhotoCount,"galleryReopened");
+        for(int i=0;i<reopened.length();i++)assertNotEquals(gallery.getJSONObject(i).getString("blobUrl"),reopened.getJSONObject(i).getString("blobUrl"));
+        JSONArray photoFetches=state().getJSONArray("catalogPhotoFetches");
+        for(int i=0;i<photoFetches.length();i++){
+            JSONObject request=photoFetches.getJSONObject(i);
+            assertTrue("Photo request left packaged origin",request.getBoolean("local"));assertEquals(200,request.getInt("status"));
+            assertTrue("Photo request is missing SHA identity",request.getString("url").matches(".*[?&]image=[a-f0-9]{64}.*"));
+        }
         evaluate("document.getElementById('closeDetail').click();const rareSearch=document.getElementById('librarySearch');rareSearch.value='Abellaite';rareSearch.dispatchEvent(new Event('input',{bubbles:true}));");
         awaitUi("document.querySelector('#libraryList [data-detail=\"catalog:ima-abellaite\"]')", "Abellaite search card", 10000);
         evaluate("document.querySelector('#libraryList [data-detail=\"catalog:ima-abellaite\"]').click();");
         awaitUi("document.getElementById('detailDialog').open && document.getElementById('detailTitle').textContent==='Abellaite'", "Abellaite reference detail", 10000);
         String rareDetails = evaluate("document.getElementById('detailBody').textContent");
-        assertTrue(rareDetails.contains("NaPb₂(CO₃)₂(OH)"));
+        assertEquals("NaPb₂(CO₃)₂(OH)",evaluate("document.querySelector('#detailBody .formula').getAttribute('aria-label')"));
+        assertEquals("true",evaluate("document.querySelectorAll('#detailBody .formula sub').length>0"));
         assertTrue(rareDetails.contains("2014-111"));
         assertTrue(rareDetails.contains("Spain"));
         assertTrue(rareDetails.contains("空间群"));
         assertFalse("Directory-only mineral must not claim model recognition", evaluate("document.getElementById('detailType').textContent").contains("图像模型支持"));
         evaluate("window.__shikuangRuntimeSmoke.abellaiteReference={title:document.getElementById('detailTitle').textContent,type:document.getElementById('detailType').textContent,details:document.getElementById('detailBody').textContent};document.getElementById('detailDialog').scrollTop=0;");
-        screenshot("abellaite-reference-details.png");
+        screenshot("abellaite-reference-details.png", "#detailTitle");
         String finalRoutes4 = shellOutput("ip route show");
         String finalRoutes6 = shellOutput("ip -6 route show");
         assertFalse("IPv4 default route returned during catalog load", finalRoutes4.contains("default "));
@@ -266,13 +409,86 @@ public class MineralEngineInstrumentedTest {
     }
 
     @Test
+    public void legacyNativeAssetMigrationPreservesSpecimens() throws Exception {
+        scenario = ActivityScenario.launch(MainActivity.class);
+        JSONObject seed = null;
+        boolean pageReady = false;
+        try {
+            org.junit.Assume.assumeTrue("Factory WebView recovery is tested separately; no modern-page recognition claim",supportedWebView());
+            awaitPage();
+            pageReady = true;
+            evaluate(script(
+                "window.__shikuangRuntimeSmoke={phase:'migration-start'};",
+                "(async()=>{try{await MineralNativeAssets.prepare();await SpecimenStore.put({id:'runtime-migration-proof',key:'quartz',name:'迁移保留记录',rankings:[{key:'quartz',score:.5}]});",
+                " let registrationSupported=false,registrationError=null;try{await Promise.race([navigator.serviceWorker.register('./sw.js').then(()=>navigator.serviceWorker.ready),new Promise((_,reject)=>setTimeout(()=>reject(Error('Native Worker registration exceeded 15 seconds')),15000))]);registrationSupported=true;}catch(e){registrationError=String(e);}",
+                " const name=(await caches.keys()).find(n=>n.startsWith('shikuang-static-'))||'shikuang-static-runtime-migration-fixture';",
+                " const cache=await caches.open(name),html='<!doctype html><html><head><title>旧缓存</title></head><body><p id=legacy-poison>cached legacy HTML without migration scripts</p></body></html>';",
+                " await cache.put(new URL('./',location.href),new Response(html,{headers:{'content-type':'text/html'}}));await cache.put(new URL('index.html',location.href),new Response(html,{headers:{'content-type':'text/html'}}));",
+                " await (await caches.open('runtime-unrelated-cache')).put(new URL('unrelated',location.href),new Response('keep'));",
+                " window.__shikuangRuntimeSmoke={phase:'migration-seeded',registration_supported:registrationSupported,registration_error:registrationError,cacheSeeded:true};",
+                " }catch(e){window.__shikuangRuntimeSmoke={phase:'failed',failure:String(e)};}})();"
+            ));
+            seed = awaitPhase("migration-seeded",60000);
+            if (seed.getBoolean("registration_supported")) {
+                long deadline = SystemClock.elapsedRealtime() + 15000;
+                while (!"true".equals(evaluate("!!navigator.serviceWorker.controller")) && SystemClock.elapsedRealtime() < deadline) SystemClock.sleep(100);
+                assertEquals("When registration is supported, a genuine legacy Worker must control the page before recreation", "true",evaluate("!!navigator.serviceWorker.controller"));
+            }
+            seed.put("controllerSeeded", "true".equals(evaluate("!!navigator.serviceWorker.controller")));
+            evaluate("(async()=>{window.__shikuangRuntimeSmoke.fixtureStored=(await SpecimenStore.list()).some(r=>r.id==='runtime-migration-proof');window.__shikuangRuntimeSmoke.phase='migration-fixture-checked';})();");
+            assertTrue(awaitPhase("migration-fixture-checked",10000).getBoolean("fixtureStored"));
+            evaluate("(async()=>{window.__shikuangRuntimeSmoke.fixtureSnapshot=JSON.stringify((await SpecimenStore.list()).find(r=>r.id==='runtime-migration-proof'));window.__shikuangRuntimeSmoke.phase='migration-snapshot';})();");
+            String fixtureSnapshot = awaitPhase("migration-snapshot",10000).getString("fixtureSnapshot");
+            scenario.recreate();
+            awaitPage();
+            evaluate(script(
+                "window.__shikuangRuntimeSmoke={phase:'migration-check'};",
+                "(async()=>{try{await MineralNativeAssets.prepare();const records=await SpecimenStore.list(),names=await caches.keys(),registrations=await navigator.serviceWorker.getRegistrations();",
+                " window.__shikuangRuntimeSmoke={phase:'migration-verified',historyPreserved:JSON.stringify(records.find(r=>r.id==='runtime-migration-proof'))==="+JSONObject.quote(fixtureSnapshot)+",controller:!!navigator.serviceWorker.controller,registrationCount:registrations.length,cacheNames:names,poisonedPage:!!document.getElementById('legacy-poison'),trustedMigration:window.__shikuangNativeAssetMigration};",
+                " await SpecimenStore.remove('runtime-migration-proof');await caches.delete('runtime-unrelated-cache');window.__shikuangRuntimeSmoke.phase='migration-passed';",
+                " }catch(e){window.__shikuangRuntimeSmoke={phase:'failed',failure:String(e)};}})();"
+            ));
+            JSONObject proof = awaitPhase("migration-passed",30000);
+            proof.put("registration_supported", seed.getBoolean("registration_supported"));
+            proof.put("registration_error", seed.opt("registration_error"));
+            proof.put("controllerSeeded", seed.getBoolean("controllerSeeded"));
+            proof.put("cacheSeeded", true);
+            assertTrue(proof.toString(),proof.getBoolean("historyPreserved"));
+            assertFalse(proof.getBoolean("poisonedPage"));
+            assertFalse(proof.getBoolean("controller"));
+            assertEquals(0,proof.getInt("registrationCount"));
+            assertTrue(proof.getJSONArray("cacheNames").toString().contains("runtime-unrelated-cache"));
+            assertFalse(proof.getJSONArray("cacheNames").toString().contains("shikuang-"));
+            try (OutputStream stream = RuntimeTestOutput.open("asset-migration-report.json")) {
+                stream.write(proof.toString(2).getBytes(StandardCharsets.UTF_8));
+            }
+        } finally {
+            if (scenario != null) {
+                // A failed probe must not leak its record into another test.
+                // Delete only this test's explicit ID and its unrelated cache.
+                try {
+                    if (pageReady) {
+                        evaluate("window.__migrationFixtureCleanup=false;window.__migrationFixtureCleanupError=null;(async()=>{try{if(window.SpecimenStore){await SpecimenStore.remove('runtime-migration-proof');if((await SpecimenStore.list()).some(r=>r.id==='runtime-migration-proof'))throw Error('Test fixture record survived cleanup');}if(window.caches)await caches.delete('runtime-unrelated-cache');}catch(e){window.__migrationFixtureCleanupError=String(e);}finally{window.__migrationFixtureCleanup=true;}})();");
+                        long deadline=SystemClock.elapsedRealtime()+10000;
+                        while(!"true".equals(evaluate("window.__migrationFixtureCleanup")) && SystemClock.elapsedRealtime()<deadline)SystemClock.sleep(100);
+                        assertEquals("Migration fixture cleanup timed out", "true", evaluate("window.__migrationFixtureCleanup"));
+                        assertEquals("Migration fixture cleanup failed", "null", evaluate("window.__migrationFixtureCleanupError"));
+                    }
+                } finally { scenario.close(); }
+            }
+        }
+    }
+
+    @Test
     public void offlinePackagedNativeRecognitionAndRecovery() throws Exception {
         scenario = ActivityScenario.launch(MainActivity.class);
         try {
+            if(!supportedWebView()){verifyUnsupportedWebViewRecovery();return;}
             awaitPage();
             evaluate(script(
                 "window.__shikuangRuntimeSmoke={phase:'started',logs:[],errors:[],origin:location.origin,online:navigator.onLine,userAgent:navigator.userAgent,secureContext:isSecureContext,wasm:typeof WebAssembly,labels:Object.keys(MINERAL_CLASSES).length};",
-                "const smoke=window.__shikuangRuntimeSmoke;",
+                "const smoke=window.__shikuangRuntimeSmoke;smoke.visibleVersion=document.querySelector('.brand .version').textContent;",
+                "smoke.initialReferenceRequests=performance.getEntriesByType('resource').filter(row=>/\\/data\\/(catalog|crystals|image-sources)\\.json(?:[?#]|$)|\\/images\\/reviewed-v25\\//.test(row.name)).map(row=>row.name);",
                 "const log=(kind,value)=>{smoke.logs.push({kind,value:String(value)});if(smoke.logs.length>60)smoke.logs.shift();};",
                 "addEventListener('error',e=>smoke.errors.push({message:e.message,file:e.filename,line:e.lineno,column:e.colno}));",
                 "addEventListener('unhandledrejection',e=>smoke.errors.push({rejection:String(e.reason)}));",
@@ -280,17 +496,25 @@ public class MineralEngineInstrumentedTest {
                 "const NativeWorker=window.Worker;",
                 "if(NativeWorker){window.Worker=function(...args){try{const worker=new NativeWorker(...args);worker.addEventListener('error',e=>smoke.errors.push({worker:args[0].toString(),message:e.message,file:e.filename,line:e.lineno,column:e.colno}));return worker;}catch(e){smoke.errors.push({workerConstructor:String(e)});throw e;}};window.Worker.prototype=NativeWorker.prototype;Object.setPrototypeOf(window.Worker,NativeWorker);}",
                 "window.__smokeRealAnalyze=MineralEngine.analyze.bind(MineralEngine);",
-                "MineralEngine.analyze=async(...args)=>{try{const r=await window.__smokeRealAnalyze(...args);smoke.lastResult={key:r.key,modelCount:r.modelCount,engine:r.engine,score:r.score,status:r.status};return r;}catch(e){smoke.lastError={name:e.name,message:e.message};throw e;}};",
+                "MineralEngine.analyze=async(...args)=>{try{const r=await window.__smokeRealAnalyze(...args);smoke.lastResult={key:r.key,modelCount:r.modelCount,engine:r.engine,score:r.score,status:r.status,modelVersion:r.modelVersion,manifestSha256:r.manifestSha256,diagnostics:r.diagnostics};return r;}catch(e){smoke.lastError={name:e.name,message:e.message};throw e;}};",
                 "(async()=>{try{",
                 " smoke.resources=[];",
                 " for(const path of ['engine-worker.js','core.js','vendor/ort.min.js','vendor/ort-wasm-simd-threaded.mjs','vendor/ort-wasm-simd-threaded.wasm','model-manifest.json']){const r=await fetch(new URL(path,location.href));smoke.resources.push({path,status:r.status,type:r.headers.get('content-type')});if(!r.ok)throw new Error(path+' status '+r.status);if(/\\.(?:m?js)$/.test(path)&&!/(?:javascript|ecmascript)/.test(r.headers.get('content-type')||''))throw new Error(path+' wrong script MIME');await r.arrayBuffer();}",
                 " smoke.workerProbe={status:'not-attempted'};",
                 " if(NativeWorker){await new Promise(resolve=>{let worker;const timer=setTimeout(()=>{smoke.workerProbe.status='no-error-within-3000ms';worker?.terminate();resolve();},3000);try{worker=new Worker(new URL('engine-worker.js',location.href));worker.onerror=e=>{smoke.workerProbe={status:'error',message:e.message,file:e.filename,line:e.lineno,column:e.colno};clearTimeout(timer);worker.terminate();resolve();};worker.onmessage=e=>{smoke.workerProbe={status:'message',message:e.data};clearTimeout(timer);worker.terminate();resolve();};}catch(e){smoke.workerProbe={status:'constructor-error',message:String(e)};clearTimeout(timer);resolve();}});}",
+                " const config=await MineralEngine.prepare();smoke.modelContract={modelVersion:config.version,labels:config.labels.length,ensembleIds:config.modes.ensemble,fastIds:config.modes.fast,input:config.input};",
                 " smoke.phase='resources';",
                 " }catch(e){smoke.phase='failed';smoke.failure=String(e);}})();"
             ));
             JSONObject resources = awaitPhase("resources", 60000);
-            assertEquals(98, resources.getInt("labels"));
+            assertEquals("Startup must not fetch the large reference JSON or specimen photos",0,resources.getJSONArray("initialReferenceRequests").length());
+            assertEquals("2.5",resources.getString("visibleVersion"));
+            JSONObject contract = resources.getJSONObject("modelContract");
+            assertEquals(bundledJson("model-manifest.json").getJSONArray("labels").length(),resources.getInt("labels"));
+            assertEquals(contract.getInt("labels"),resources.getInt("labels"));
+            int expectedModels = contract.getJSONArray("ensembleIds").length();
+            assertTrue(expectedModels >= 2 && expectedModels <= 3);
+            assertEquals(1,contract.getJSONArray("fastIds").length());
             assertTrue("Packaged app origin must be secure", resources.getBoolean("secureContext"));
             String routes4 = shellOutput("ip route show");
             String routes6 = shellOutput("ip -6 route show");
@@ -301,8 +525,13 @@ public class MineralEngineInstrumentedTest {
             assertFalse("External IPv6 default route remains active: " + routes6, routes6.contains("default "));
             assertTrue("Android must report no active network: " + nativeNetwork, nativeNetwork.isNull("activeNetwork"));
             assertFalse(nativeNetwork.getBoolean("connected"));
+            String expectedPageSize = InstrumentationRegistry.getArguments().getString("expectedPageSize");
+            if (expectedPageSize != null) assertEquals("Native libc page size must match the selected official system image",
+                Long.parseLong(expectedPageSize), nativeNetwork.getLong("pageSize"));
             assertFalse("WebView should detect unavailable networking", resources.getBoolean("online"));
             Log.i(TAG, "Worker probe is diagnostic only; native inference is required: " + resources);
+
+            checkPhotoGeometry();
 
             String quartz = fixture("quartz.jpg");
             evaluate(script(
@@ -330,11 +559,25 @@ public class MineralEngineInstrumentedTest {
             assertTrue("Quartz result timed out: " + quartzState, quartzState.has("lastResult"));
             JSONObject result = quartzState.getJSONObject("lastResult");
             assertEquals("quartz", result.getString("key"));
-            assertEquals(3, result.getInt("modelCount"));
+            assertEquals(expectedModels, result.getInt("modelCount"));
             assertEquals("onnx-native-android", result.getString("engine"));
+            assertEquals(contract.getString("modelVersion"),result.getString("modelVersion"));
+            assertTrue(result.getString("manifestSha256").matches("[a-f0-9]{64}"));
+            assertTrue(result.getJSONObject("diagnostics").getLong("elapsedMs") > 0);
+            assertTrue(result.getJSONObject("diagnostics").getInt("residentSessionCount") <= expectedModels+1);
             assertEquals("石英", evaluate("document.getElementById('resultHeading').textContent"));
             evaluate("document.getElementById('result').scrollIntoView({block:'start',behavior:'instant'});");
-            screenshot("quartz-result.png");
+            screenshot("quartz-result.png", "#resultHeading");
+
+            evaluate(script(
+                "(async()=>{const s=window.__shikuangRuntimeSmoke;s.phase='fast-running';try{const r=await window.__smokeRealAnalyze([{src:"+JSONObject.quote(quartz)+",crop:1}],{precision:false});s.fast={key:r.key,modelCount:r.modelCount,modelVersion:r.modelVersion,manifestSha256:r.manifestSha256,engine:r.engine,diagnostics:r.diagnostics};s.phase='fast-passed';}catch(e){s.phase='failed';s.failure=String(e);}})();"
+            ));
+            JSONObject fast = awaitPhase("fast-passed",180000).getJSONObject("fast");
+            assertEquals(1,fast.getInt("modelCount"));
+            assertEquals("onnx-native-android",fast.getString("engine"));
+            assertEquals(result.getString("modelVersion"),fast.getString("modelVersion"));
+            assertEquals(result.getString("manifestSha256"),fast.getString("manifestSha256"));
+            assertTrue("Fast mode must release unselected resident classifiers",fast.getJSONObject("diagnostics").getInt("residentSessionCount") <= 2);
 
             evaluate("document.getElementById('saveBtn').click();");
             deadline = SystemClock.elapsedRealtime() + 30000;
@@ -345,11 +588,13 @@ public class MineralEngineInstrumentedTest {
                 SystemClock.sleep(100);
             } while (SystemClock.elapsedRealtime() < deadline);
             assertTrue("Quartz record was not saved; preserve the draft instead of starting a new sample", saved);
-            evaluate("(async()=>{const s=window.__shikuangRuntimeSmoke;s.savedRecords=(await SpecimenStore.list()).map(r=>({id:r.id,key:r.key,modelCount:r.modelCount,photoCount:r.photoCount}));s.phase='quartz-saved';})();");
+            evaluate("(async()=>{const s=window.__shikuangRuntimeSmoke;s.savedRecords=(await SpecimenStore.list()).map(r=>({id:r.id,key:r.key,modelCount:r.modelCount,photoCount:r.photoCount,modelVersion:r.modelVersion,manifestSha256:r.manifestSha256}));s.phase='quartz-saved';})();");
             JSONArray savedRecords = awaitPhase("quartz-saved", 30000).getJSONArray("savedRecords");
             assertEquals(1, savedRecords.length());
             assertEquals("quartz", savedRecords.getJSONObject(0).getString("key"));
-            assertEquals(3, savedRecords.getJSONObject(0).getInt("modelCount"));
+            assertEquals(expectedModels, savedRecords.getJSONObject(0).getInt("modelCount"));
+            assertEquals(result.getString("modelVersion"),savedRecords.getJSONObject(0).getString("modelVersion"));
+            assertEquals(result.getString("manifestSha256"),savedRecords.getJSONObject(0).getString("manifestSha256"));
             assertEquals(1, savedRecords.getJSONObject(0).getInt("photoCount"));
 
             evaluate("window.__shikuangRuntimeSmoke.quartz=window.__shikuangRuntimeSmoke.lastResult;delete window.__shikuangRuntimeSmoke.lastResult;delete window.__shikuangRuntimeSmoke.lastError;document.getElementById('newSample').click();");
@@ -367,13 +612,13 @@ public class MineralEngineInstrumentedTest {
             assertEquals(NON_MINERAL, evaluate("document.getElementById('progress').textContent"));
             assertEquals("true", evaluate("document.getElementById('result').hidden"));
             evaluate("document.getElementById('progress').scrollIntoView({block:'center',behavior:'instant'});");
-            screenshot("dog-rejection.png");
+            screenshot("dog-rejection.png", "#progress");
             evaluate("(async()=>{const s=window.__shikuangRuntimeSmoke;s.recordsAfterRejection=(await SpecimenStore.list()).map(r=>({id:r.id,key:r.key,modelCount:r.modelCount}));s.phase='passed';})();");
             JSONArray preserved = awaitPhase("passed", 30000).getJSONArray("recordsAfterRejection");
             assertEquals("Non-mineral rejection must not add or delete a specimen record", 1, preserved.length());
             assertEquals(savedRecords.getJSONObject(0).getString("id"), preserved.getJSONObject(0).getString("id"));
             assertEquals("quartz", preserved.getJSONObject(0).getString("key"));
-            assertEquals(3, preserved.getJSONObject(0).getInt("modelCount"));
+            assertEquals(expectedModels, preserved.getJSONObject(0).getInt("modelCount"));
             checkOfflineReferenceCatalog();
         } finally {
             writeDiagnostics();

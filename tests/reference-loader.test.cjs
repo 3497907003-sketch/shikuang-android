@@ -16,7 +16,7 @@ function fixture() {
   });
   data.set('data/reference-manifest.json',{schema_version:1,files});
   const calls=[];
-  const context={window:{},crypto:webcrypto,TextDecoder,AbortController,setTimeout,clearTimeout,Uint8Array,fetch:async(url,options)=>{
+  const context={window:{MineralCore:require('../web/core.js')},crypto:webcrypto,TextDecoder,AbortController,DOMException,setTimeout,clearTimeout,Uint8Array,fetch:async(url,options)=>{
     calls.push({url,cache:options.cache});
     const value=data.get(url.replace('./',''));
     const bytes=Buffer.from(JSON.stringify(value));
