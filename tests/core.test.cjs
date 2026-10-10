@@ -39,7 +39,7 @@ test('backup import validates schema, strips executable media and preserves conf
   assert.throws(()=>C.parseImport('{"records":[]}'));assert.throws(()=>C.parseImport(JSON.stringify({schema:'shikuang-records',version:2,records:[raw,raw]})));
 });
 test('a valid 100-record image backup larger than 10 MB imports and exports without losing photos',()=>{
-  const photo='data:image/png;base64,'+require('node:fs').readFileSync(require.resolve('../icon-512.png')).toString('base64');
+  const photo='data:image/png;base64,'+require('node:fs').readFileSync(require.resolve('../web/icon-512.png')).toString('base64');
   const records=Array.from({length:100},(_,i)=>({id:`backup-${i}`,time:1,name:'照片备份测试',rankings:[{key:'quartz',score:.8}],score:.8,photos:[photo,photo,photo],notes:'保留完整记录',confirmedKey:'calcite',confirmationMethod:'备份往返测试'}));
   const text=JSON.stringify({schema:'shikuang-records',version:2,records});
   assert.ok(C.checkBackupSize(text)>10*1024*1024);
