@@ -7,11 +7,13 @@
   ];
   let worker, workerReady=false, nativeEngine;
   const abort=signal=>{if(signal?.aborted)throw new DOMException('分析已停止','AbortError');};
-  async function image(src) {
+  async function image(src,signal) {
+    abort(signal);
     const img=new Image();img.src=src;
-    let timer;
-    try{await Promise.race([img.decode(),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('图片读取超时，请换用 JPEG 或 PNG')),15000);})]);}
-    finally{clearTimeout(timer);}
+    let timer,cancel;
+    try{await Promise.race([img.decode(),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('图片读取超时，请换用 JPEG 或 PNG')),15000);cancel=()=>reject(new DOMException('分析已停止','AbortError'));signal?.addEventListener('abort',cancel,{once:true});if(signal?.aborted)cancel();})]);}
+    finally{clearTimeout(timer);signal?.removeEventListener('abort',cancel);if(signal?.aborted)img.src='';}
+    abort(signal);
     if(!img.naturalWidth||!img.naturalHeight)throw new Error('无法读取图片，请重新拍摄');return img;
   }
   function cropCanvas(img,size=224,crop=1) {
@@ -63,7 +65,8 @@
     abort(signal);
     const cap=window.Capacitor;
     if(!cap?.isPluginAvailable?.('MineralInference'))throw new Error('安装包缺少原生识别组件，请安装识矿 2.0.1 或更新版本');
-    nativeEngine = nativeEngine || cap.registerPlugin('MineralInference');
+    nativeEngine = nativeEngine || cap.registerPlugin?.('MineralInference') || cap.Plugins?.MineralInference;
+    if(!nativeEngine)throw new Error('原生识别桥接未就绪，请重新打开或更新 App');
     const current=nativeEngine,jobId=crypto.randomUUID?.()||`mineral-${Date.now()}-${Math.random().toString(16).slice(2)}`;
     return new Promise((resolve,reject)=>{
       let settled=false,listener;
@@ -89,7 +92,7 @@
     const inputs=[],qualityReports=[],warnings=[];
     for(let i=0;i<photos.length;i++){
       abort(signal);report(`检查图像质量 ${i+1}/${photos.length}…`);
-      const img=await image(photos[i].src);abort(signal);
+      const img=await image(photos[i].src,signal);abort(signal);
       if(Math.min(img.naturalWidth,img.naturalHeight)<64)throw new Error(`图像 ${i+1} 分辨率过低，请重新拍摄`);
       const pixels=cropCanvas(img,224,photos[i].crop||1).getContext('2d').getImageData(0,0,224,224);
       const q=MineralCore.quality(pixels.data,224,224);qualityReports.push(q);
