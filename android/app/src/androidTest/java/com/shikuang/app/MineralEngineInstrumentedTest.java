@@ -72,6 +72,8 @@ public class MineralEngineInstrumentedTest {
 
     private JSONObject nativeNetworkState() throws Exception {
         final long pageSize = Os.sysconf(OsConstants._SC_PAGESIZE);
+        Context target=InstrumentationRegistry.getInstrumentation().getTargetContext();
+        final android.content.pm.PackageInfo installed=target.getPackageManager().getPackageInfo(target.getPackageName(),0);
         AtomicReference<JSONObject> value = new AtomicReference<>();
         scenario.onActivity(activity -> {
             ConnectivityManager manager = (ConnectivityManager) activity.getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -84,8 +86,8 @@ public class MineralEngineInstrumentedTest {
                     .put("pageSize", pageSize)
                     .put("deviceAbi", Build.SUPPORTED_ABIS[0])
                     .put("packageName", activity.getPackageName())
-                    .put("versionName", BuildConfig.VERSION_NAME)
-                    .put("versionCode", BuildConfig.VERSION_CODE)
+                    .put("versionName", installed.versionName)
+                    .put("versionCode", installed.versionCode)
                     .put("supportedAbis", new JSONArray(java.util.Arrays.asList(Build.SUPPORTED_ABIS)))
                     .put("activeNetwork", active == null ? JSONObject.NULL : active.toString())
                     .put("connected", info != null && info.isConnected())

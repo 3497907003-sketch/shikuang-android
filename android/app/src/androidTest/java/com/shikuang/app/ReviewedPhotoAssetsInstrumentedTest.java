@@ -105,12 +105,13 @@ public final class ReviewedPhotoAssetsInstrumentedTest {
             } finally { photo.recycle(); }
         }
         assertNull("Network returned during offline image decoding", network.getActiveNetwork());
+        android.content.pm.PackageInfo installed=context.getPackageManager().getPackageInfo(context.getPackageName(),0);
         long pageSize = Os.sysconf(OsConstants._SC_PAGESIZE);
         String expectedPageSize = InstrumentationRegistry.getArguments().getString("expectedPageSize");
         if (expectedPageSize != null) assertEquals(Long.parseLong(expectedPageSize), pageSize);
         JSONObject report = new JSONObject().put("phase", "passed").put("sdk", Build.VERSION.SDK_INT)
             .put("pageSize", pageSize).put("deviceAbi", Build.SUPPORTED_ABIS[0])
-            .put("packageName", context.getPackageName()).put("versionName", BuildConfig.VERSION_NAME).put("versionCode", BuildConfig.VERSION_CODE)
+            .put("packageName", context.getPackageName()).put("versionName", installed.versionName).put("versionCode", installed.versionCode)
             .put("photoManifestSha256", sha256(manifestBytes)).put("sourceRecords", records.length())
             .put("photosDecoded", decoded.length()).put("photos", decoded)
             .put("activeNetworkBefore", JSONObject.NULL).put("activeNetworkAfter", JSONObject.NULL)
