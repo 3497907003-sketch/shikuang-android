@@ -44,10 +44,18 @@ jobs:
         env:
           SHIKUANG_SIGNING_PASSWORD: ${{ secrets.SHIKUANG_SIGNING_PASSWORD }}
         run: ./gradlew assembleDebug lintDebug
+      - name: Verify APK signature with the official Android SDK
+        shell: bash
+        run: |
+          SHIKUANG_ANDROID_SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          "$SHIKUANG_ANDROID_SDK/build-tools/34.0.0/apksigner" verify --verbose --print-certs \
+            android/app/build/outputs/apk/debug/app-debug.apk \
+            | tee android/app/build/outputs/apk/debug/apk-signature-verification.txt
       - uses: actions/upload-artifact@v4
         with:
           name: shikuang-2.0-preview-apk
           path: |
             android/app/build/outputs/apk/debug/app-debug.apk
+            android/app/build/outputs/apk/debug/apk-signature-verification.txt
             android/app/build/reports/lint-results-debug.html
           if-no-files-found: error

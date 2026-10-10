@@ -10,6 +10,12 @@ on:
       - 'capacitor.config.json'
       - '.github/workflows/android-runtime.yml'
   workflow_dispatch:
+    inputs:
+      network_probe:
+        description: 'Probe API 35 networking for 180 seconds without building or inference'
+        required: false
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -24,10 +30,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        api: [30, 35]
+        api: ${{ fromJSON(inputs.network_probe && '[35]' || '[30,35]') }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
+        if: ${{ !inputs.network_probe }}
         with:
           node-version: 22
           cache: npm
@@ -37,7 +44,9 @@ jobs:
           java-version: 17
           cache: gradle
       - run: npm ci
+        if: ${{ !inputs.network_probe }}
       - run: npm run sync
+        if: ${{ !inputs.network_probe }}
       - name: Install official Android emulator image
         shell: bash
         run: |
@@ -70,19 +79,20 @@ jobs:
           adb shell settings put global window_animation_scale 0
           adb shell settings put global transition_animation_scale 0
           adb shell settings put global animator_duration_scale 0
-          adb shell svc wifi disable
-          adb shell svc data disable
           adb root
           timeout 60 adb wait-for-device
           test "$(adb shell id -u | tr -d '\r')" = 0
-          if [[ "${{ matrix.api }}" == "35" ]]; then
-            adb shell cmd ethernet help > runtime-artifacts/ethernet-shell-help.txt 2>&1 || true
-            # Android 15 has no Ethernet shell handler. Its pinned AIDL transaction 13
-            # is setEthernetEnabled(boolean); disable service tracking before links.
-            # https://android.googlesource.com/platform/packages/modules/Connectivity/+/refs/heads/android15-release/framework-t/src/android/net/IEthernetManager.aidl
-            adb shell service call ethernet 13 i32 0 > runtime-artifacts/ethernet-disable-parcel.txt
-            timeout 45 bash -c 'until [[ "$(adb shell dumpsys ethernet)" == *"Ethernet State: disabled"* ]]; do sleep 2; done'
-          fi
+          # The Google API image carries MOBILE[LTE] on eth0. Wait for SIM setup
+          # before disabling its radio, so first-boot telephony cannot restore it.
+          timeout 90 bash -c 'until [[ "$(adb shell getprop gsm.sim.state)" == *LOADED* ]]; do sleep 2; done'
+          adb shell getprop gsm.sim.state > runtime-artifacts/sim-state.txt
+          adb shell cmd connectivity help > runtime-artifacts/connectivity-shell-help.txt
+          # Official ConnectivityService shell API writes the persistent mode and broadcasts it.
+          # https://android.googlesource.com/platform/packages/modules/Connectivity/+/refs/heads/android15-release/service/src/com/android/server/ConnectivityService.java
+          adb shell cmd connectivity airplane-mode enable
+          test "$(adb shell cmd connectivity airplane-mode | tr -d '\r')" = enabled
+          adb shell svc wifi disable
+          adb shell svc data disable
           adb shell 'for device in eth0 eth1 wlan0; do if ip link show "$device" >/dev/null 2>&1; then ip link set "$device" down; fi; done'
           test "$(timeout 20 adb get-state | tr -d '\r')" = device
           timeout 60 bash -c 'until [[ "$(adb shell dumpsys connectivity)" == *"Active default network: none"* ]]; do sleep 2; done'
@@ -90,8 +100,11 @@ jobs:
           adb shell ip -6 route show > runtime-artifacts/ipv6-routes.txt
           adb shell ip route show table all > runtime-artifacts/ipv4-all-route-tables.txt
           adb shell ip -6 route show table all > runtime-artifacts/ipv6-all-route-tables.txt
-          adb shell dumpsys ethernet > runtime-artifacts/ethernet.txt
+          adb shell dumpsys ethernet > runtime-artifacts/ethernet.txt 2>&1 || true
           adb shell dumpsys connectivity > runtime-artifacts/connectivity.txt
+          adb shell service check ethernet > runtime-artifacts/ethernet-service-availability.txt 2>&1 || true
+          adb shell cmd connectivity airplane-mode > runtime-artifacts/airplane-mode.txt
+          adb shell dumpsys telephony.registry > runtime-artifacts/telephony.txt
           adb shell getprop ro.product.cpu.abi > runtime-artifacts/device-abi.txt
           adb shell getprop ro.product.cpu.abilist > runtime-artifacts/device-supported-abis.txt
           adb shell dumpsys webviewupdate > runtime-artifacts/webview-provider.txt
@@ -99,7 +112,35 @@ jobs:
           adb shell settings get global mobile_data > runtime-artifacts/mobile-data-state.txt
           adb logcat -c
           nohup adb logcat -v threadtime > runtime-artifacts/logcat.txt 2>&1 &
+      - name: Probe disconnected networking throughout the original build interval
+        if: ${{ inputs.network_probe }}
+        shell: bash
+        run: |
+          mkdir -p runtime-artifacts/network-probe
+          timeout 210 bash <<'SHIKUANG_PROBE'
+          set -euo pipefail
+          SHIKUANG_PROBE_START=$(date +%s)
+          SHIKUANG_PROBE_SAMPLE=0
+          while true; do
+            SHIKUANG_PROBE_ELAPSED=$(( $(date +%s) - SHIKUANG_PROBE_START ))
+            timeout 15 adb shell dumpsys connectivity > "runtime-artifacts/network-probe/connectivity-$SHIKUANG_PROBE_SAMPLE.txt"
+            rg -q 'Active default network: none' "runtime-artifacts/network-probe/connectivity-$SHIKUANG_PROBE_SAMPLE.txt"
+            timeout 15 adb shell ip route show table all > "runtime-artifacts/network-probe/ipv4-$SHIKUANG_PROBE_SAMPLE.txt"
+            timeout 15 adb shell ip -6 route show table all > "runtime-artifacts/network-probe/ipv6-$SHIKUANG_PROBE_SAMPLE.txt"
+            if rg -q '^default .*dev (eth[0-9]|wlan[0-9]|rmnet[^ ]*)' "runtime-artifacts/network-probe/ipv4-$SHIKUANG_PROBE_SAMPLE.txt" "runtime-artifacts/network-probe/ipv6-$SHIKUANG_PROBE_SAMPLE.txt"; then
+              echo 'An external default route returned during the network probe.'
+              exit 1
+            fi
+            test "$(timeout 15 adb shell cmd connectivity airplane-mode | tr -d '\r')" = enabled
+            printf 'elapsed=%s seconds; active default network=none; external route=none; airplane mode=enabled\n' "$SHIKUANG_PROBE_ELAPSED" >> runtime-artifacts/network-probe-summary.txt
+            if (( SHIKUANG_PROBE_ELAPSED >= 180 )); then break; fi
+            SHIKUANG_PROBE_SAMPLE=$(( SHIKUANG_PROBE_SAMPLE + 1 ))
+            sleep 5
+          done
+          test "$(timeout 15 adb get-state | tr -d '\r')" = device
+          SHIKUANG_PROBE
       - name: Run packaged WebView with actual native ONNX inference
+        if: ${{ !inputs.network_probe }}
         working-directory: android
         run: ./gradlew --no-daemon --max-workers=2 -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true connectedDebugAndroidTest
       - name: Capture runtime diagnostics
@@ -115,7 +156,7 @@ jobs:
           timeout 20 adb shell ip -6 route show table all > runtime-artifacts/ipv6-all-route-tables-final.txt || true
           timeout 60 adb pull /sdcard/Android/data/com.shikuang.app.preview/files/runtime-smoke runtime-artifacts/ || true
       - name: Require screenshots and JSON from successful runtime tests
-        if: success()
+        if: ${{ success() && !inputs.network_probe }}
         shell: bash
         run: |
           python3 - <<'PY'
@@ -138,7 +179,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: shikuang-runtime-api-${{ matrix.api }}
+          name: ${{ inputs.network_probe && 'shikuang-network-probe-api35' || format('shikuang-runtime-api-{0}', matrix.api) }}
           path: |
             runtime-artifacts/
             android/app/build/reports/androidTests/
