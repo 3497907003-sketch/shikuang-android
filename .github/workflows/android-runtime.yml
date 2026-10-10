@@ -124,10 +124,10 @@ jobs:
           while true; do
             SHIKUANG_PROBE_ELAPSED=$(( $(date +%s) - SHIKUANG_PROBE_START ))
             timeout 15 adb shell dumpsys connectivity > "runtime-artifacts/network-probe/connectivity-$SHIKUANG_PROBE_SAMPLE.txt"
-            rg -q 'Active default network: none' "runtime-artifacts/network-probe/connectivity-$SHIKUANG_PROBE_SAMPLE.txt"
+            grep -q 'Active default network: none' "runtime-artifacts/network-probe/connectivity-$SHIKUANG_PROBE_SAMPLE.txt"
             timeout 15 adb shell ip route show table all > "runtime-artifacts/network-probe/ipv4-$SHIKUANG_PROBE_SAMPLE.txt"
             timeout 15 adb shell ip -6 route show table all > "runtime-artifacts/network-probe/ipv6-$SHIKUANG_PROBE_SAMPLE.txt"
-            if rg -q '^default .*dev (eth[0-9]|wlan[0-9]|rmnet[^ ]*)' "runtime-artifacts/network-probe/ipv4-$SHIKUANG_PROBE_SAMPLE.txt" "runtime-artifacts/network-probe/ipv6-$SHIKUANG_PROBE_SAMPLE.txt"; then
+            if grep -Eq '^default .*dev (eth[0-9]|wlan[0-9]|rmnet[^ ]*)' "runtime-artifacts/network-probe/ipv4-$SHIKUANG_PROBE_SAMPLE.txt" "runtime-artifacts/network-probe/ipv6-$SHIKUANG_PROBE_SAMPLE.txt"; then
               echo 'An external default route returned during the network probe.'
               exit 1
             fi
