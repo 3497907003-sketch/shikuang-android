@@ -40,6 +40,18 @@ def jobs_fixture():
     return build, runtime
 
 
+def artifact_job_fixture():
+    return {'id': 9, 'run_id': 123, 'head_sha': COMMIT, 'run_attempt': 2, 'status': 'completed', 'conclusion': 'success',
+            'started_at': '2026-10-10T00:00:00Z', 'completed_at': '2026-10-10T00:10:00Z',
+            'steps': [{'name': 'Run actions/upload-artifact@v4', 'status': 'completed', 'conclusion': 'success',
+                       'started_at': '2026-10-10T00:05:00Z', 'completed_at': '2026-10-10T00:06:00Z'}]}
+
+
+def artifact_fixture():
+    return {'id': 7, 'name': 'apk', 'expired': False, 'size_in_bytes': 100, 'workflow_run': {'id': 123, 'head_sha': COMMIT},
+            'digest': 'sha256:' + 'a' * 64, 'created_at': '2026-10-10T00:05:30Z', 'updated_at': '2026-10-10T00:05:30Z'}
+
+
 def runtime_fixture(root, key):
     """Minimal controlled schema, visibly unrelated to any real run/artifact."""
     sdk, page, tag = g.MATRICES[key]
@@ -220,16 +232,55 @@ for case in ['public', 'not_prerelease', 'wrong_head']:
 
 for case in ['expired', 'empty', 'wrong_head', 'wrong_run', 'no_digest', 'ambiguous']:
     def check(self, case=case):
-        row = {'id': 7, 'name': 'apk', 'expired': False, 'size_in_bytes': 100,
-               'workflow_run': {'id': 123, 'head_sha': COMMIT}, 'digest': 'sha256:' + 'a' * 64}
+        row = artifact_fixture()
         if case == 'expired': row['expired'] = True
         if case == 'empty': row['size_in_bytes'] = 0
         if case == 'wrong_head': row['workflow_run']['head_sha'] = 'b' * 40
         if case == 'wrong_run': row['workflow_run']['id'] = 124
         if case == 'no_digest': row.pop('digest')
         with patch.object(g, 'api_pages', return_value=[row, row] if case == 'ambiguous' else [row]):
-            with self.assertRaises(ValueError): g.artifact_rows({'id': 123, 'head_sha': COMMIT}, ['apk'])
+            with self.assertRaises(ValueError): g.artifact_rows({'id': 123, 'head_sha': COMMIT}, {'apk': artifact_job_fixture()})
     add_case('artifact_reject_' + case, check)
+
+for case in ['same_window_ambiguous', 'missing_job_time', 'missing_upload_time', 'duplicate_upload_step', 'upload_failed',
+             'upload_outside_job', 'reversed_upload_window', 'missing_artifact_time', 'artifact_outside_step', 'bad_utc_time']:
+    def check(self, case=case):
+        job, row = artifact_job_fixture(), artifact_fixture()
+        rows = [row]
+        if case == 'same_window_ambiguous': rows.append({**row, 'id': 8})
+        if case == 'missing_job_time': job.pop('started_at')
+        if case == 'missing_upload_time': job['steps'][0].pop('completed_at')
+        if case == 'duplicate_upload_step': job['steps'].append(copy.deepcopy(job['steps'][0]))
+        if case == 'upload_failed': job['steps'][0]['conclusion'] = 'failure'
+        if case == 'upload_outside_job': job['completed_at'] = '2026-10-10T00:05:15Z'
+        if case == 'reversed_upload_window': job['steps'][0]['completed_at'] = '2026-10-10T00:04:59Z'
+        if case == 'missing_artifact_time': row.pop('created_at')
+        if case == 'artifact_outside_step': row['created_at'] = '2026-10-10T00:09:00Z'
+        if case == 'bad_utc_time': job['started_at'] = '2026-10-10T00:00:00'
+        with patch.object(g, 'api_pages', return_value=rows):
+            with self.assertRaises(ValueError): g.artifact_rows({'id': 123, 'head_sha': COMMIT}, {'apk': job})
+    add_case('artifact_window_reject_' + case, check)
+
+for created in ['2026-10-10T00:05:00Z', '2026-10-10T00:06:00Z']:
+    def check(self, created=created):
+        row = artifact_fixture(); row['created_at'] = created
+        with patch.object(g, 'api_pages', return_value=[row]):
+            selected = g.artifact_rows({'id': 123, 'head_sha': COMMIT}, {'apk': artifact_job_fixture()})
+        self.assertEqual(selected[0]['id'], 7)
+    add_case('artifact_closed_window_' + created[11:19].replace(':', '_'), check)
+
+
+def check_retained_previous_failure(self):
+    current = artifact_fixture()
+    old = {**current, 'id': 6, 'created_at': '2026-10-09T23:00:00Z', 'digest': 'sha256:' + 'f' * 64}
+    with patch.object(g, 'api_pages', return_value=[old, current]):
+        selected = g.artifact_rows({'id': 123, 'head_sha': COMMIT}, {'apk': artifact_job_fixture()})
+    self.assertEqual(selected[0]['id'], current['id'])
+    previous = selected[0]['selection_evidence']['excluded_same_name_artifacts'][0]
+    for field in ['id', 'digest', 'created_at']:
+        self.assertEqual(previous[field], old[field])
+    self.assertIn('outside-successful-upload-window', previous['exclusion_reasons'])
+add_case('retained_previous_failure_artifact', check_retained_previous_failure)
 
 for key in g.MATRICES:
     def check(self, key=key):

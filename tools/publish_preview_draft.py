@@ -7,6 +7,7 @@ the common Android Actions head; ANDROID_SOURCE_SYNC binds the web revision.
 """
 import argparse
 from collections import Counter
+from datetime import datetime
 import hashlib
 import json
 from pathlib import Path, PurePosixPath
@@ -101,16 +102,59 @@ def validate_jobs(build_jobs, runtime_jobs):
         require(len(probe) == 1 and probe[0]['conclusion'] == 'skipped', 'Probe run is not a packaged runtime acceptance')
 
 
+def github_time(value):
+    require(isinstance(value, str) and re.fullmatch(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z', value),
+            'Missing or invalid GitHub UTC execution timestamp')
+    return datetime.fromisoformat(value.replace('Z', '+00:00'))
+
+
 def artifact_rows(run, required):
+    # required maps each exact artifact name to its effective successful job.
+    # A failed-only rerun can retain old same-name artifacts and clone other
+    # successful jobs with their ORIGINAL execution timestamps. Do not choose
+    # by newest ID/time, and do not erase the excluded failed artifact evidence.
+    require(isinstance(required, dict) and required, 'Artifact selection requires exact successful job bindings')
     rows = api_pages(f'repos/{REPO}/actions/runs/{run["id"]}/artifacts?per_page=100', 'artifacts')
     chosen = []
-    for name in required:
+    for name, job in required.items():
+        require(job['run_id'] == run['id'] and job['head_sha'] == run['head_sha'] and
+                job['status'] == 'completed' and job['conclusion'] == 'success', 'Artifact job source/success mismatch')
+        job_start, job_end = github_time(job.get('started_at')), github_time(job.get('completed_at'))
+        uploads = [step for step in job['steps'] if step['name'] == 'Run actions/upload-artifact@v4']
+        require(len(uploads) == 1 and uploads[0]['status'] == 'completed' and uploads[0]['conclusion'] == 'success',
+                'Exactly one successful artifact upload step is required')
+        upload = uploads[0]
+        start, end = github_time(upload.get('started_at')), github_time(upload.get('completed_at'))
+        require(job_start <= start <= end <= job_end, 'Artifact upload execution window lies outside its successful job')
         matches = [row for row in rows if row['name'] == name]
-        require(len(matches) == 1, 'Missing or ambiguous required artifact: ' + name)
-        row = matches[0]
-        require(row['expired'] is False and row['size_in_bytes'] > 0, 'Expired/empty artifact')
-        require(row['workflow_run']['id'] == run['id'] and row['workflow_run']['head_sha'] == run['head_sha'], 'Artifact source/run mismatch')
-        require(re.fullmatch(r'sha256:[0-9a-f]{64}', row.get('digest', '')), 'Official artifact digest is required')
+        eligible, excluded = [], []
+        for row in matches:
+            reasons = []
+            source = row.get('workflow_run', {})
+            if source.get('id') != run['id'] or source.get('head_sha') != run['head_sha']:
+                reasons.append('different-source-or-run')
+            if row.get('expired') is not False or not isinstance(row.get('size_in_bytes'), int) or row['size_in_bytes'] <= 0:
+                reasons.append('expired-or-empty')
+            if not re.fullmatch(r'sha256:[0-9a-f]{64}', row.get('digest') or ''):
+                reasons.append('missing-official-digest')
+            try:
+                created = github_time(row.get('created_at'))
+                if not start <= created <= end:
+                    reasons.append('outside-successful-upload-window')
+            except ValueError:
+                reasons.append('missing-or-invalid-created-at')
+            if reasons:
+                excluded.append({**{key: row.get(key) for key in ['id', 'name', 'digest', 'created_at', 'updated_at', 'expired', 'size_in_bytes']},
+                                 'workflow_run': source, 'exclusion_reasons': reasons})
+            else:
+                eligible.append(row)
+        require(len(eligible) == 1, 'Missing or ambiguous required artifact inside successful upload window: ' + name)
+        row = dict(eligible[0])
+        row['selection_evidence'] = {'job_id': job['id'], 'effective_run_attempt': job['run_attempt'],
+                                     'job_started_at': job['started_at'], 'job_completed_at': job['completed_at'],
+                                     'upload_step_name': upload['name'], 'upload_started_at': upload['started_at'],
+                                     'upload_completed_at': upload['completed_at'], 'artifact_created_at': row['created_at'],
+                                     'excluded_same_name_artifacts': excluded}
         chosen.append(row)
     return chosen
 
@@ -182,8 +226,10 @@ def preflight(args):
         require(previous['id'] == runtime['id'] and previous['head_sha'] == args.source_commit,
                 'Prior runtime attempt source identity mismatch')
         prior_attempts.append({key: previous[key] for key in ['run_attempt', 'status', 'conclusion', 'html_url']})
-    artifacts = artifact_rows(build, ['shikuang-2.5-preview-apk']) + artifact_rows(runtime,
-        ['shikuang-runtime-api-' + key for key in MATRICES])
+    artifact_jobs = {'shikuang-runtime-api-' + key:
+                     next(job for job in runtime_jobs if job['name'] == f'runtime ({sdk}, {key}, {tag}, {page})')
+                     for key, (sdk, page, tag) in MATRICES.items()}
+    artifacts = artifact_rows(build, {'shikuang-2.5-preview-apk': build_jobs[0]}) + artifact_rows(runtime, artifact_jobs)
     release_state(args.tag, args.source_commit)
     command(['git', 'fetch', '--no-tags', 'origin', args.source_commit], capture_output=True)
     sync = source_json(args.source_commit, 'docs/ANDROID_SOURCE_SYNC.json')
@@ -195,7 +241,7 @@ def preflight(args):
               'build_run_id': build['id'], 'runtime_run_id': runtime['id'],
               'build_run_attempt': build['run_attempt'], 'runtime_run_attempt': runtime['run_attempt'],
               'build_url': build['html_url'], 'runtime_url': runtime['html_url'],
-              'artifact_identity': [{key: row[key] for key in ('id', 'name', 'digest', 'size_in_bytes')} for row in artifacts],
+              'artifact_identity': [{key: row[key] for key in ('id', 'name', 'digest', 'size_in_bytes', 'selection_evidence')} for row in artifacts],
               'build_steps_verified': BUILD_STEPS, 'runtime_steps_verified': RUNTIME_STEPS,
               'runtime_jobs': [{key: row[key] for key in ['id', 'name', 'run_attempt', 'head_sha', 'conclusion']} for row in runtime_jobs],
               'prior_runtime_attempts': prior_attempts, 'source_sync_sha256': hashlib.sha256(source_bytes(args.source_commit, 'docs/ANDROID_SOURCE_SYNC.json')).hexdigest(),
