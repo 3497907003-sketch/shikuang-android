@@ -219,10 +219,23 @@ public class MineralEngineInstrumentedTest {
             else nextFrames.run();
         });
         assertTrue("WebView visual state did not become drawable",drawn.await(10,TimeUnit.SECONDS));
-        SystemClock.sleep(150);
+        // Chromium's visual callback precedes the display compositor on some
+        // emulator images. Await stable genuine display pixels as well.
+        SystemClock.sleep(750);
         evaluate("(() => {const e=document.querySelector(" + JSONObject.quote(selector) + "),r=e.getBoundingClientRect(),s=window.__shikuangRuntimeSmoke;s.screenshots=s.screenshots||[];s.screenshots.push({filename:" + JSONObject.quote(filename) + ",selector:" + JSONObject.quote(selector) + ",text:e.textContent.slice(0,600),rect:{top:r.top,bottom:r.bottom,left:r.left,right:r.right},viewport:{width:innerWidth,height:innerHeight},visualStateSynchronized:true});})()");
         Bitmap bitmap = InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
         assertNotNull("Screenshot unavailable", bitmap);
+        boolean stable = false;
+        for (int attempt = 0; attempt < 8; attempt++) {
+            SystemClock.sleep(200);
+            Bitmap next = InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
+            assertNotNull("Screenshot unavailable while waiting for display composition", next);
+            stable = bitmap.sameAs(next);
+            bitmap.recycle();
+            bitmap = next;
+            if (stable) break;
+        }
+        if (!stable) { bitmap.recycle(); fail("Display pixels did not stabilize for " + filename); }
         try (FileOutputStream stream = new FileOutputStream(new File(outputDirectory(), filename))) {
             assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream));
         } finally {
