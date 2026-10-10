@@ -46,10 +46,20 @@ test('prepared reference metadata and attribution remain available after the cur
   f.context.fetch=async request=>typeof request==='string'?{ok:true,json:async()=>({models:[]})}:new Response('prepared '+new URL(request.url).pathname);
   await f.click('offlineBtn');assert.match(f.node('offlineProgress').textContent,/离线资源已准备/);
   const events={},scope=f.context.location.href,worker={addEventListener:(type,fn)=>{events[type]=fn;},registration:{scope},clients:{claim(){}}};
-  vm.runInNewContext(fs.readFileSync(require.resolve('../web/sw.js'),'utf8'),{self:worker,caches,URL,Response,fetch:async()=>{throw new Error('offline');}});
+  const WEB=fs.existsSync(require('node:path').join(__dirname,'../web/sw.js'))?'../web/':'../';
+  vm.runInNewContext(fs.readFileSync(require.resolve(WEB+'sw.js'),'utf8'),{self:worker,caches,URL,Request,Response,Headers,TextDecoder,AbortController,setTimeout,clearTimeout,importScripts(){},fetch:async()=>{throw new Error('offline');}});
   let activation;events.activate({waitUntil:promise=>{activation=promise;}});await activation;
   for(const asset of ['data/catalog.json','data/crystals.json','data/image-sources.json','data/reference-manifest.json','data/licenses/ima-cnmnc-2026-09.txt']){
     let response;events.fetch({request:new Request(new URL(asset,scope)),respondWith:promise=>{response=promise;},waitUntil(){}});
     const cached=await response;assert.equal(cached.status,200,asset);assert.match(await cached.text(),/^prepared /,asset);
   }
+});
+test('offline models use their complete identity URL and a corrupt exact cache entry is bounded, removed and re-fetched',async()=>{
+  const crypto=require('node:crypto'),bytes=Buffer.from([1,2,3,4]),sha256=crypto.createHash('sha256').update(bytes).digest('hex'),model={id:'classifier',path:'models/specimen.onnx',bytes:4,sha256};
+  const manifest={models:[model]},identityURL='http://127.0.0.1/test/models/specimen.onnx?manifest='+('a'.repeat(64))+'&sha256='+sha256;
+  const entries=new Map([[identityURL,new Response(Buffer.from([9]))]]),matches=[],deleted=[],downloads=[];
+  const cache={match:async request=>{matches.push(request.url);return entries.get(request.url)?.clone();},delete:async request=>{deleted.push(request.url);return entries.delete(request.url);},put:async(request,response)=>entries.set(request.url,response.clone())};
+  const f=fixture({register:async()=>({}),engine:{prepare:async()=>manifest,modelResources:()=>[{...model,url:identityURL}]}});f.context.caches={open:async()=>cache};f.context.URL=URL;f.context.Request=Request;f.context.crypto=crypto.webcrypto;
+  f.context.fetch=async request=>{downloads.push(request.url);return new Response(request.url===identityURL?bytes:'static');};
+  await f.click('offlineBtn');assert.match(f.node('offlineProgress').textContent,/离线资源已准备/);assert.deepEqual(matches,[identityURL]);assert.deepEqual(deleted,[identityURL]);assert.equal(downloads.filter(url=>url===identityURL).length,1);assert.deepEqual(Buffer.from(await entries.get(identityURL).arrayBuffer()),bytes);
 });

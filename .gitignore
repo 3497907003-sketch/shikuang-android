@@ -2,3 +2,6 @@ node_modules/
 dist/
 *.log
 work/
+
+**/__pycache__/
+*.py[cod]

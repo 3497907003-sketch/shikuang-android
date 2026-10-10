@@ -11,6 +11,8 @@ import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
 import android.os.Build;
 import android.os.SystemClock;
+import android.system.Os;
+import android.system.OsConstants;
 import android.util.Base64;
 import android.util.Log;
 import android.webkit.WebView;
@@ -69,6 +71,7 @@ public class MineralEngineInstrumentedTest {
     }
 
     private JSONObject nativeNetworkState() throws Exception {
+        final long pageSize = Os.sysconf(OsConstants._SC_PAGESIZE);
         AtomicReference<JSONObject> value = new AtomicReference<>();
         scenario.onActivity(activity -> {
             ConnectivityManager manager = (ConnectivityManager) activity.getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -78,6 +81,8 @@ public class MineralEngineInstrumentedTest {
             try {
                 value.set(new JSONObject()
                     .put("sdk", Build.VERSION.SDK_INT)
+                    .put("pageSize", pageSize)
+                    .put("supportedAbis", new JSONArray(java.util.Arrays.asList(Build.SUPPORTED_ABIS)))
                     .put("activeNetwork", active == null ? JSONObject.NULL : active.toString())
                     .put("connected", info != null && info.isConnected())
                     .put("internetCapability", capabilities != null && capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET))
@@ -109,6 +114,34 @@ public class MineralEngineInstrumentedTest {
             SystemClock.sleep(150);
         } while (SystemClock.elapsedRealtime() < end);
         fail("Packaged main page did not initialize");
+    }
+
+    private boolean supportedWebView() throws Exception {
+        long end = SystemClock.elapsedRealtime() + 30000;
+        do {
+            String capability = evaluate("window.__shikuangBootCapabilities ? String(window.__shikuangBootCapabilities.supported) : 'pending'");
+            if ("true".equals(capability)) return true;
+            if ("false".equals(capability)) return false;
+            SystemClock.sleep(100);
+        } while (SystemClock.elapsedRealtime() < end);
+        fail("Trusted boot capability gate did not initialize");
+        return false;
+    }
+
+    private void verifyUnsupportedWebViewRecovery() throws Exception {
+        assertEquals("Only the Android 7 factory WebView compatibility case may use the recovery branch",24,Build.VERSION.SDK_INT);
+        assertEquals("true",evaluate("!!document.getElementById('native-boot-recovery')"));
+        assertEquals("true",evaluate("document.getElementById('native-boot-recovery').textContent.indexOf('本机标本和历史记录会保留') >= 0"));
+        JSONObject nativeNetwork = nativeNetworkState();
+        assertTrue(nativeNetwork.isNull("activeNetwork"));assertFalse(nativeNetwork.getBoolean("connected"));
+        String routes4=shellOutput("ip route show"),routes6=shellOutput("ip -6 route show");
+        assertFalse(routes4.contains("default "));assertFalse(routes6.contains("default "));
+        assertEquals("false",evaluate("navigator.onLine"));
+        String expectedPageSize=InstrumentationRegistry.getArguments().getString("expectedPageSize");
+        if(expectedPageSize!=null)assertEquals(Long.parseLong(expectedPageSize),nativeNetwork.getLong("pageSize"));
+        evaluate("window.__shikuangRuntimeSmoke={phase:'unsupported-webview-recovery-passed',photoRecognitionVerified:false,reason:'Factory WebView lacks required modern syntax/APIs; actual Java ONNX runtime checked separately',userAgent:navigator.userAgent,boot:window.__shikuangBootCapabilities,recovery:document.getElementById('native-boot-recovery').textContent,network:{native:"+nativeNetwork+",ipv4Routes:"+JSONObject.quote(routes4)+",ipv6Routes:"+JSONObject.quote(routes6)+"}};");
+        Bitmap bitmap=InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();assertNotNull(bitmap);
+        try(FileOutputStream stream=new FileOutputStream(new File(outputDirectory(),"legacy-webview-recovery.png"))){assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG,100,stream));}finally{bitmap.recycle();}
     }
 
     private String fixture(String name) throws Exception {
@@ -321,9 +354,55 @@ public class MineralEngineInstrumentedTest {
     }
 
     @Test
+    public void legacyNativeAssetMigrationPreservesSpecimens() throws Exception {
+        scenario = ActivityScenario.launch(MainActivity.class);
+        try {
+            org.junit.Assume.assumeTrue("Factory WebView recovery is tested separately; no modern-page recognition claim",supportedWebView());
+            awaitPage();
+            evaluate(script(
+                "window.__shikuangRuntimeSmoke={phase:'migration-start'};",
+                "(async()=>{try{await MineralNativeAssets.prepare();await SpecimenStore.put({id:'runtime-migration-proof',key:'quartz',name:'迁移保留记录',rankings:[{key:'quartz',score:.5}]});",
+                " await navigator.serviceWorker.register('./sw.js');await navigator.serviceWorker.ready;",
+                " const name=(await caches.keys()).find(n=>n.startsWith('shikuang-static-'));if(!name)throw Error('Legacy cache seed missing');",
+                " const cache=await caches.open(name),html='<!doctype html><html><head><title>旧缓存</title></head><body><p id=legacy-poison>cached legacy HTML without migration scripts</p></body></html>';",
+                " await cache.put(new URL('./',location.href),new Response(html,{headers:{'content-type':'text/html'}}));await cache.put(new URL('index.html',location.href),new Response(html,{headers:{'content-type':'text/html'}}));",
+                " await (await caches.open('runtime-unrelated-cache')).put(new URL('unrelated',location.href),new Response('keep'));",
+                " window.__shikuangRuntimeSmoke.phase='migration-seeded';",
+                " }catch(e){window.__shikuangRuntimeSmoke={phase:'failed',failure:String(e)};}})();"
+            ));
+            awaitPhase("migration-seeded",60000);
+            long deadline = SystemClock.elapsedRealtime() + 15000;
+            while (!"true".equals(evaluate("!!navigator.serviceWorker.controller")) && SystemClock.elapsedRealtime() < deadline) SystemClock.sleep(100);
+            assertEquals("A genuine installed legacy Worker must control the page before recreation", "true",evaluate("!!navigator.serviceWorker.controller"));
+            scenario.recreate();
+            awaitPage();
+            evaluate(script(
+                "window.__shikuangRuntimeSmoke={phase:'migration-check'};",
+                "(async()=>{try{await MineralNativeAssets.prepare();const records=await SpecimenStore.list(),names=await caches.keys(),registrations=await navigator.serviceWorker.getRegistrations();",
+                " window.__shikuangRuntimeSmoke={phase:'migration-verified',historyPreserved:records.some(r=>r.id==='runtime-migration-proof'),controller:!!navigator.serviceWorker.controller,registrationCount:registrations.length,cacheNames:names,poisonedPage:!!document.getElementById('legacy-poison'),trustedMigration:window.__shikuangNativeAssetMigration};",
+                " await SpecimenStore.remove('runtime-migration-proof');await caches.delete('runtime-unrelated-cache');window.__shikuangRuntimeSmoke.phase='migration-passed';",
+                " }catch(e){window.__shikuangRuntimeSmoke={phase:'failed',failure:String(e)};}})();"
+            ));
+            JSONObject proof = awaitPhase("migration-passed",30000);
+            assertTrue(proof.toString(),proof.getBoolean("historyPreserved"));
+            assertFalse(proof.getBoolean("poisonedPage"));
+            assertFalse(proof.getBoolean("controller"));
+            assertEquals(0,proof.getInt("registrationCount"));
+            assertTrue(proof.getJSONArray("cacheNames").toString().contains("runtime-unrelated-cache"));
+            assertFalse(proof.getJSONArray("cacheNames").toString().contains("shikuang-"));
+            try (FileOutputStream stream = new FileOutputStream(new File(outputDirectory(),"asset-migration-report.json"))) {
+                stream.write(proof.toString(2).getBytes(StandardCharsets.UTF_8));
+            }
+        } finally {
+            if (scenario != null) scenario.close();
+        }
+    }
+
+    @Test
     public void offlinePackagedNativeRecognitionAndRecovery() throws Exception {
         scenario = ActivityScenario.launch(MainActivity.class);
         try {
+            if(!supportedWebView()){verifyUnsupportedWebViewRecovery();return;}
             awaitPage();
             evaluate(script(
                 "window.__shikuangRuntimeSmoke={phase:'started',logs:[],errors:[],origin:location.origin,online:navigator.onLine,userAgent:navigator.userAgent,secureContext:isSecureContext,wasm:typeof WebAssembly,labels:Object.keys(MINERAL_CLASSES).length};",
@@ -362,6 +441,9 @@ public class MineralEngineInstrumentedTest {
             assertFalse("External IPv6 default route remains active: " + routes6, routes6.contains("default "));
             assertTrue("Android must report no active network: " + nativeNetwork, nativeNetwork.isNull("activeNetwork"));
             assertFalse(nativeNetwork.getBoolean("connected"));
+            String expectedPageSize = InstrumentationRegistry.getArguments().getString("expectedPageSize");
+            if (expectedPageSize != null) assertEquals("Native libc page size must match the selected official system image",
+                Long.parseLong(expectedPageSize), nativeNetwork.getLong("pageSize"));
             assertFalse("WebView should detect unavailable networking", resources.getBoolean("online"));
             Log.i(TAG, "Worker probe is diagnostic only; native inference is required: " + resources);
 

@@ -28,7 +28,7 @@
   }
   const NON_MINERAL = '这不是矿物，请您放入清晰的矿物照片。';
   const MODEL_MAX_BYTES = 80000000;
-  const MODEL_PATHS = ['models/mobilenet_int8.onnx','models/efficientnet.onnx','models/efficientnet_legacy.onnx','models/imagenet_gate.onnx'];
+  const MODEL_PATHS = ['models/mobilenet.onnx','models/mobilenet_int8.onnx','models/efficientnet.onnx','models/efficientnet_legacy.onnx','models/imagenet_gate.onnx'];
   /** The manifest selects weights and modes; this bounded contract selects supported runtime formats. */
   function validateManifest(value, expectedLabels) {
     const invalid = () => { throw new Error('模型清单或输入契约不匹配，请更新 App 或离线资源'); };
@@ -60,17 +60,30 @@
   function selectedModels(manifest, precision = true) {
     return manifest.modes[precision ? 'ensemble' : 'fast'].map(id => manifest.models.find(m => m.id === id));
   }
-  async function readResource(response, maximum, expectedBytes, progress = () => {}) {
+  function modelResourceURL(model, manifestSha256, base) {
+    if (!model || !MODEL_PATHS.includes(model.path) || !/^[a-f0-9]{64}$/.test(model.sha256) || !/^[a-f0-9]{64}$/.test(manifestSha256)) throw new Error('模型资源身份不完整，请重新读取清单');
+    const url = new URL(model.path, base);
+    if (!['http:','https:'].includes(url.protocol)) throw new Error('模型资源协议不正确');
+    url.searchParams.set('manifest',manifestSha256);url.searchParams.set('model',model.sha256);
+    return url;
+  }
+  async function readResource(response, maximum, expectedBytes, progress = () => {}, options = {}) {
     if (!response.ok) throw new Error(`识别资源读取失败 (${response.status})，请更新或准备离线资源`);
     if ((response.headers?.get('content-type') || '').includes('text/html')) throw new Error('识别资源地址返回了网页，请更新 App 资源');
-    let reader, size = 0;
+    let reader, size = 0, timer, cancel;
+    const stopped=new Promise((_,reject)=>{
+      cancel=()=>reject(new DOMException('资源读取已停止','AbortError'));
+      options.signal?.addEventListener('abort',cancel,{once:true});
+      if(options.signal?.aborted)cancel();
+      timer=setTimeout(()=>reject(new Error('识别资源读取超时，请重试或准备离线资源')),options.timeout||90000);
+    });
     try {
       if (response.body?.getReader) {
         reader = response.body.getReader();
         // ONNX size comes from the validated manifest: one allocation instead of chunks + joined bytes.
         const bytes = expectedBytes ? new Uint8Array(expectedBytes) : null, chunks = [];
         for (;;) {
-          const part = await reader.read(); if (part.done) break;
+          const part = await Promise.race([reader.read(),stopped]); if (part.done) break;
           if (size + part.value.length > maximum || (bytes && size + part.value.length > bytes.length)) throw new Error('识别资源大小不匹配，请更新 App 或离线资源');
           if (bytes) bytes.set(part.value,size); else chunks.push(part.value);
           size += part.value.length; progress(size);
@@ -81,11 +94,11 @@
         for (const part of chunks) { joined.set(part,offset); offset += part.length; }
         return joined;
       }
-      const bytes = new Uint8Array(await response.arrayBuffer());
+      const bytes = new Uint8Array(await Promise.race([response.arrayBuffer(),stopped]));
       if (bytes.length > maximum || (expectedBytes && bytes.length !== expectedBytes)) throw new Error('识别资源大小不匹配，请更新 App 或离线资源');
       return bytes;
-    } catch (error) { if (reader) await reader.cancel().catch(()=>{}); throw error; }
-    finally { reader?.releaseLock(); }
+    } catch (error) { if (reader) void reader.cancel().catch(()=>{}); throw error; }
+    finally { clearTimeout(timer);options.signal?.removeEventListener('abort',cancel);try{reader?.releaseLock();}catch(_){} }
   }
   function pixelsToInput(rgba, input) {
     if (!rgba || rgba.length !== 224 * 224 * 4) throw new Error('图像张量大小不正确');
@@ -236,5 +249,5 @@
     if (new Set(records.map(r => r.id)).size !== records.length) throw new Error('导入文件包含重复记录编号');
     return records;
   }
-  return { POLICY, NON_MINERAL, BACKUP_LIMIT_BYTES, MODEL_MAX_BYTES, validateManifest, selectedModels, readResource, pixelsToInput, validateAnalysis, checkBackupSize, screen, softmax, probabilities, average, argmax, hardnessRange, evidenceFor, summarize, quality, qualityWarnings, sanitizeRecord, parseImport };
+  return { POLICY, NON_MINERAL, BACKUP_LIMIT_BYTES, MODEL_MAX_BYTES, validateManifest, selectedModels, modelResourceURL, readResource, pixelsToInput, validateAnalysis, checkBackupSize, screen, softmax, probabilities, average, argmax, hardnessRange, evidenceFor, summarize, quality, qualityWarnings, sanitizeRecord, parseImport };
 });

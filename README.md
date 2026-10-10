@@ -2,6 +2,8 @@
 
 以手机上的矿物标本识别为核心。网页版与 Android 使用相同的识别逻辑、知识库和界面。
 
+面向实验室同事的不同手机和电脑。Android 安装版要求 Android 7.0（API 24）及以上和可用的系统 WebView，具体设备的相机、内存和识别效果仍需实测。照片文件支持 JPEG、PNG、WebP，限 20 MB、4000 万像素，先读取压缩头检查尺寸再解码；HEIC、AVIF 或无法读取尺寸的文件请先转换。相机与视频直接缩小画布，分析图最长边 1536 像素。读取可取消，离开识别页或开始新标本会拒绝旧任务的迟到结果；已提交照片与保存记录分别保留。合法高像素照片仍可能超出低内存设备的能力。
+
 ## 本次升级
 
 - 拍照、视频、照片文件独立入口，视频在本机取帧；启动封面可跳过并限时结束。
@@ -42,18 +44,19 @@ python3 -m http.server 8765
 将 `tools/samples-template.csv` 复制到数据集目录，填写真实标本：
 
 - `split` 为 `calibration` 或 `test`，同一实物标本只能属于一个分区。
-- `specimen_id` 是实物编号；每个标本 1–3 张照片，禁止重复图片。
+- `specimen_namespace` 是实验室或收藏机构命名空间，`specimen_id` 是该机构的实物编号；每个标本 1–3 张照片，禁止重复图片。已知近重复、不同角度或裁剪的同一实物应合组，程序的 SHA 检查不能代替这一审核。
 - `scene` 为 `lab` 或 `daily`；`label` 使用 `model-manifest.json` 中的模型键，未覆盖矿物、岩石、动物、日用品使用 `unknown`。
 - `image` 相对 CSV 路径；`crop` 为中心裁剪比例 0.5–1，默认 1；实测 `hardness` 和 `luster` 可留空，光泽选 `metal` 或 `nonmetal`。
-- 真值必须来自检测或可靠的人工鉴定，不能把 App 自己的候选当成真值。
+- `label_basis` 记录真值依据及报告编号或来源，例如 XRD 检测、核验过的馆藏记录，非矿物也记录观察依据。不能把 App 自己的候选当成真值；填入文字本身不构成独立鉴定证明。
 
 ```sh
 python3 -m pip install -r tools/requirements.txt
 python3 tools/predict_samples.py /path/to/samples.csv --out /path/to/raw.json
 node tools/evaluate.cjs /path/to/raw.json > /path/to/report.json
+node tools/evaluate.cjs /path/to/raw.json fast > /path/to/fast-report.json
 ```
 
-报告按分区和场景分别给出 Top-1、Top-5、宏平均 F1、Cohen Kappa、强线索覆盖率、强线索子集正确率、未知类误报率与拒判率。质量与拒判规则调用共享 JavaScript 逻辑。Python 图像重采样与 WebView 可能有细微差异，最终还需在目标手机重复验证。没有真实数据时工具明确失败，不生成空准确率。
+报告按分区和场景分别给出 Top-1、Top-5、宏平均 F1、Cohen Kappa、强线索覆盖率、强线索子集正确率、未知类误报率与拒判率。V3 原始输出绑定清单 SHA、各模型 SHA、当前温度及照片 SHA，拒绝旧版无身份结果或不完整模型输出；快速与多模型分别计算。质量与拒判规则调用共享 JavaScript 逻辑。Python 与 Canvas 重采样的真实照片差异已观察到，几何一致不等于分数一致；最终应在不同性能与 Android/WebView 版本的手机验证。没有真实数据时工具明确失败，不生成空准确率。
 
 正式验收应包括实验室干净背景、生活复杂背景、光照与反光变化、模糊、共生/多矿物、相似矿物、未覆盖类别，并按不同实物、设备划分校准与盲测集。预览包通过构建与逻辑测试不等于通过准确率验收。
 
@@ -77,6 +80,8 @@ Android 包内置模型、运行时、目录与文献元数据，开发者电脑
 
 同一标本重试、换精度或修改裁剪后再次保存会更新原记录；“开始新标本”只清空当前草稿，未保存输入会先确认，不删除已有标本。图鉴说明目录范围、来源与晶胞/图库的使用边界。
 
-## Android 构建
+## Android 构建与平台要求
 
-使用 Node.js 20+、JDK 17 与 Android SDK。运行 `npm run sync` 同步本地资源，再在 `android/` 中运行 `./gradlew assembleDebug lintDebug`。预览版本号 2.0.2-preview（versionCode 20002），包名 com.shikuang.app.preview；公开交付要求持续签名及 API 30/35 完全断网运行测试。
+使用 Node.js 20+、JDK 17 与 Android SDK。运行 `npm run sync` 同步并逐字节核验本地资源，再在 `android/` 运行 `./gradlew assembleDebug lintDebug`。当前预览版本仍为 2.0.2-preview（versionCode 20002），包名 com.shikuang.app.preview；这轮为 2.5 功能分支验证，尚未发布新训练模型。
+
+最低 Android 7（API24），系统 WebView 需具备 Chrome83及以上的现代语法与解码能力。过旧系统组件会显示可见更新提示；这类设备首次更新组件需要联网，不能宣称任意旧WebView首次离线均可识别。ORT固定1.24.3，保留arm64-v8a、armeabi-v7a、x86和x86_64，压缩原生库包装；官方 SDK35 ZIP/ELF结构门与真实16KB模拟器分别验证。API24原厂旧WebView的恢复页与Java图执行单独报告，API30/35及35-16k要求完整照片识别流程。模拟器通过不等于所有品牌、实体ARM64、摄像头或低内存机型已实测。

@@ -1,23 +1,32 @@
 (function () {
   'use strict';
-  let worker, workerReady=false, nativeEngine, configuration=null, active=false;
+  let worker, workerReady=false, nativeEngine, configuration=null, active=false, manifestCacheState='unprepared';
   const configurationHashes=new WeakMap();
   const hex = bytes => Array.from(new Uint8Array(bytes),b=>b.toString(16).padStart(2,'0')).join('');
+  function cancellable(promise,signal) {
+    abort(signal);if(!signal)return promise;
+    return new Promise((resolve,reject)=>{const cancel=()=>reject(new DOMException('分析已停止','AbortError'));signal.addEventListener('abort',cancel,{once:true});Promise.resolve(promise).then(resolve,reject).finally(()=>signal.removeEventListener('abort',cancel));});
+  }
   async function prepare(options={}) {
     const {signal} = options; abort(signal);
+    try {if(window.Capacitor?.isNativePlatform?.() || window.Capacitor?.getPlatform?.()==='android') {
+      if(!window.MineralNativeAssets)throw new Error('本机资源迁移组件缺失，请更新 App');
+      const migrated=await cancellable(window.MineralNativeAssets.prepare(),signal);abort(signal);
+      if(migrated.restartRequired)throw new Error('正在重启以更新本机资源，请稍候');
+    }}catch(error){configuration=null;manifestCacheState='failed';throw error;}
     const controller=new AbortController(),cancel=()=>controller.abort();
     signal?.addEventListener('abort',cancel,{once:true});
     let expired=false;
     const timer=setTimeout(()=>{expired=true;controller.abort();},15000);
     try {
       const response=await fetch(new URL('model-manifest.json',location.href),{cache:'no-cache',signal:controller.signal});
-      const bytes=await MineralCore.readResource(response,100000);
+      const bytes=await MineralCore.readResource(response,100000,undefined,undefined,{signal:controller.signal,timeout:15000});
       abort(signal);
       const loaded=MineralCore.validateManifest(JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes)),Object.keys(MINERAL_CLASSES));
       if(!crypto.subtle)throw new Error('当前环境无法校验模型，请使用安装版或 HTTPS 地址');
       const digest=hex(await crypto.subtle.digest('SHA-256',bytes)); abort(signal);
-      configuration=loaded;configurationHashes.set(loaded,digest);return loaded;
-    }catch(error){configuration=null;if(expired)throw new Error('模型清单读取超过 15 秒，请重试或更新离线资源');abort(signal);throw error;}
+      configuration=loaded;configurationHashes.set(loaded,digest);manifestCacheState=response.headers?.get('x-shikuang-manifest-state')||'packaged-or-network';return loaded;
+    }catch(error){configuration=null;manifestCacheState='failed';if(expired)throw new Error('模型清单读取超过 15 秒，请重试或更新离线资源');abort(signal);throw error;}
     finally{clearTimeout(timer);signal?.removeEventListener('abort',cancel);}
   }
   const abort=signal=>{if(signal?.aborted)throw new DOMException('分析已停止','AbortError');};
@@ -41,7 +50,7 @@
     if(!worker){workerReady=false;worker=new Worker(new URL('./engine-worker.js',location.href));}
     const current=worker;
     return new Promise((resolve,reject)=>{
-      let settled=false;
+      let settled=false,repairPending=Promise.resolve();
       const finish=(error,result,terminate=false)=>{
         if(settled)return;settled=true;clearTimeout(timer);clearTimeout(bootTimer);signal?.removeEventListener('abort',cancel);
         current.onmessage=null;current.onerror=null;
@@ -61,9 +70,19 @@
         if(data.type==='progress')report(data.message);
         if(data.type==='partial')report(`初步候选：${window.MINERAL_KB[data.key]?.name_zh||data.key}；正在继续复核…`);
         if(data.type==='result')finish(null,data);
-        if(data.type==='error')finish(new Error(data.message),null,true);
+        if(data.type==='resource-invalid')repairPending=repairPending.then(()=>evictResource(data.url));
+        if(data.type==='error')repairPending.then(()=>finish(new Error(data.message),null,true));
       };
       if(workerReady)start();else report('正在启动浏览器识别线程…');
+    });
+  }
+  async function evictResource(value) {
+    const resource=new URL(value,location.href),base=new URL('./',location.href);
+    if(resource.origin!==base.origin||!resource.pathname.startsWith(base.pathname+'models/')||!navigator.serviceWorker?.controller)return;
+    await new Promise(resolve=>{
+      const channel=new MessageChannel(),timer=setTimeout(()=>{channel.port1.close();resolve();},3000);
+      channel.port1.onmessage=()=>{clearTimeout(timer);channel.port1.close();resolve();};
+      try{navigator.serviceWorker.controller.postMessage({type:'INVALIDATE_MODEL',url:resource.href},[channel.port2]);}catch(_){clearTimeout(timer);channel.port1.close();resolve();}
     });
   }
   function encodedInput(input) {
@@ -129,5 +148,5 @@
     if(warnings.length){result.status='uncertain';result.reasons.push(...warnings);}
     return {...result,quality:qualityReports,observations:observation,warnings,engine:native?'onnx-native-android':'onnx-worker-wasm',modelVersion:manifest.version,manifestSha256:manifestHash,diagnostics:raw.diagnostics};
   }
-  window.MineralEngine={analyze,image,cropCanvas,prepare,getModels:(precision=true)=>configuration?MineralCore.selectedModels(configuration,precision):[],get models(){return configuration?MineralCore.selectedModels(configuration,true):[];},get configuration(){return configuration;}};
+  window.MineralEngine={analyze,image,cropCanvas,prepare,modelResources:(config=configuration)=>{const digest=configurationHashes.get(config);if(!digest)throw new Error('模型清单尚未就绪');return config.models.map(model=>({...model,url:MineralCore.modelResourceURL(model,digest,location.href).href}));},getModels:(precision=true)=>configuration?MineralCore.selectedModels(configuration,precision):[],get models(){return configuration?MineralCore.selectedModels(configuration,true):[];},get configuration(){return configuration;},get manifestCacheState(){return manifestCacheState;}};
 })();

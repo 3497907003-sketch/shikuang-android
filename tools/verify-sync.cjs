@@ -1,0 +1,10 @@
+const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
+const root=path.resolve(__dirname,'..'),dist=path.join(root,'dist'),assets=path.join(root,'android/app/src/main/assets/public');
+const walk=dir=>fs.readdirSync(dir,{withFileTypes:true}).flatMap(entry=>entry.isDirectory()?walk(path.join(dir,entry.name)):path.relative(dist,path.join(dir,entry.name)));
+const hash=bytes=>crypto.createHash('sha256').update(bytes).digest('hex');
+const files=walk(dist);
+for(const file of files)if(hash(fs.readFileSync(path.join(dist,file)))!==hash(fs.readFileSync(path.join(assets,file))))throw new Error('Android asset differs from verified dist: '+file);
+const manifest=JSON.parse(fs.readFileSync(path.join(dist,'model-manifest.json'),'utf8'));
+const expected=manifest.models.map(row=>path.basename(row.path)).sort(),actual=fs.readdirSync(path.join(assets,'models')).sort();
+if(JSON.stringify(actual)!==JSON.stringify(expected))throw new Error('Unused/stale Android models were not removed during sync');
+console.log(`Verified ${files.length} packaged source assets and exactly ${expected.length} active models; Capacitor rebuild replaces old assets without touching user data.`);

@@ -2,12 +2,29 @@
   'use strict';
   const $ = s => document.querySelector(s);
   const state = { photos: [], active: 0, scene: 'daily', result: null, busy: false, controller: null,
-    recordId: null, records: [], selectedRecord: null, pendingDelete: null, view: 'identify', mode:'offline', mediaBusy:false, mediaController:null, offlineController:null, assistController:null, saving:false, draftDirty:false, revision:0 };
-  let cameraStream,videoStream,recorder,recordTimer,discardRecording=false,mediaEpoch=0;
+    recordId: null, specimenEpoch:0, records: [], selectedRecord: null, pendingDelete: null, view: 'identify', mode:'offline', mediaBusy:false, mediaController:null, offlineController:null, assistController:null, saving:false, draftDirty:false, revision:0 };
+  let cameraStream,videoStream,recorder,recordTimer,discardRecording=false,mediaEpoch=0,inputJob=null,restoreAllowed=true;
   function stopCamera(){cameraStream?.getTracks().forEach(t=>t.stop());cameraStream=null;$('#cameraPreview').srcObject=null;}
   function stopRecording(discard=false){discardRecording=discard;if(recorder?.state==='recording')recorder.stop();clearTimeout(recordTimer);videoStream?.getTracks().forEach(t=>t.stop());videoStream=null;$('#videoPreview').srcObject=null;$('#videoPreview').hidden=true;}
-  function lockMedia(busy){state.mediaBusy=busy;for(const id of ['cameraBtn','videoBtn','galleryBtn','removePhoto','cropRange','newSample'])$('#'+id).disabled=busy||state.busy;$('#predictBtn').disabled=busy||state.busy||!state.photos.length;$('#cancelInput').hidden=!busy||!state.mediaController;document.querySelectorAll('[data-photo],[data-add-photo]').forEach(b=>{b.disabled=busy||state.busy;});}
-  function cancelInput(){mediaEpoch++;state.mediaController?.abort();}
+  function lockMedia(busy){state.mediaBusy=busy;for(const id of ['cameraBtn','videoBtn','galleryBtn','removePhoto','cropRange'])$('#'+id).disabled=busy||state.busy;$('#newSample').disabled=false;$('#predictBtn').disabled=busy||state.busy||!state.photos.length;$('#cancelInput').hidden=!busy||!state.mediaController;document.querySelectorAll('[data-photo],[data-add-photo]').forEach(b=>{b.disabled=busy||state.busy;});}
+  function inputCurrent(job){return inputJob===job&&job.epoch===mediaEpoch&&!job.controller.signal.aborted&&state.view==='identify';}
+  function checkInput(job){if(!inputCurrent(job))throw new DOMException('输入已停止','AbortError');}
+  function finishInput(job){clearTimeout(job.timer);if(inputJob===job){inputJob=null;state.mediaController=null;lockMedia(false);}}
+  function beginInput(kind,timeout=45000){
+    restoreAllowed=false;cancelAssist();
+    const job={kind,phase:'reading',epoch:++mediaEpoch,controller:new AbortController()};inputJob=job;state.mediaController=job.controller;lockMedia(true);
+    job.timer=setTimeout(()=>{if(inputJob===job){cancelInput(false);status('输入读取超时，已提交的照片保留。请重新选择或拍摄。',true);}},timeout);
+    return job;
+  }
+  function cancelInput(showStatus=true){
+    mediaEpoch++;const job=inputJob;if(job){job.controller.abort();finishInput(job);}
+    stopCamera();stopRecording(true);
+    for(const id of ['cameraDialog','videoDialog'])if($('#'+id).open)closeDialog('#'+id);
+    if(showStatus&&job)status('输入已停止，已提交的照片保留。');
+  }
+  function inputError(job,error,label){if(inputJob!==job)return;if(error.name==='AbortError')status('输入已停止，已提交的照片保留。');else{const message=`${label}：${error.message||'请重新选择或拍摄'}`;status(message,true);toast(message);}}
+  function cancelAnalysis(showStatus=true){const controller=state.controller;if(controller){controller.abort();state.controller=null;setBusy(false);if(showStatus)status('分析已停止，照片已保留。');}}
+  function cancelAssist(){const controller=state.assistController;if(controller){controller.abort();state.assistController=null;$('#assistBtn').disabled=false;}$('#assistText').textContent='';}
   function dismissCover(){$('#launchCover').hidden=true;}
   setTimeout(dismissCover,2000);$('#enterApp').addEventListener('click',dismissCover);
   const nativePlugins = new Map();
@@ -292,6 +309,9 @@
   function updateModelUi(error=false){
     const ensemble=MineralEngine.getModels?.(true)||MineralEngine.models||[],fast=MineralEngine.getModels?.(false)||ensemble.slice(0,1),count=ensemble.length;
     $('#precisionHelp').textContent=count?`综合 ${count} 个图像模型；${isNative()?'资源已随安装包内置':'网页版首次离线使用需准备资源'}`:error?'模型清单未就绪；分析时可重试读取':'正在读取本机模型清单';
+    const version=String(MineralEngine.configuration?.version||'').slice(0,120),cached=MineralEngine.manifestCacheState==='offline-cache';
+    $('#modelResourceState').textContent=cached?`网络不可达，使用已验证的缓存模型清单${version?'（'+version+'）':''}。模型仍逐个校验；资源不完整时停止分析，请重新准备离线资源。`:version?`${isNative()?'安装包模型清单':'已读取模型清单'}：${version}。` :'';
+    $('#modelResourceState').hidden=!$('#modelResourceState').textContent;
     $('#guideModelMode').textContent=count?`点击“分析矿物候选”。多模型模式综合 ${count} 个图像模型；取消勾选后使用 ${fast.length} 个模型快速分析。输入筛查独立运行，实际参与数量在结果中显示。`:'点击“分析矿物候选”。多模型与快速模式按当前模型清单运行，实际参与数量在结果中显示。';
   }
   function prepareModelUi(){
@@ -326,15 +346,16 @@
     closeDialog('#guideDialog'); $('#guideWelcome').hidden = true; location.hash = 'identify'; route();
     (state.photos.length ? $('#predictBtn') : $('#cameraBtn')).focus({ preventScroll:true });
   });
-  function draftChanged(){state.draftDirty=true;state.revision++;}
+  function draftChanged(){restoreAllowed=false;state.draftDirty=true;state.revision++;}
   function invalidate() {
     if (state.result) status('照片或物性已改变，请重新分析。');
-    state.result = null; $('#result').hidden = true; $('#analysisRecovery').hidden=true;state.assistController?.abort(); $('#assistText').textContent='';
+    state.result = null; $('#result').hidden = true; $('#analysisRecovery').hidden=true;cancelAssist();
     draftChanged();
   }
   function route() {
     const requested = location.hash.slice(1), view = ['identify','library','records','settings'].includes(requested) ? requested : 'identify';
-    if(view!==state.view && view!=='identify'){cancelInput();stopCamera();if($('#cameraDialog').open)closeDialog('#cameraDialog');}
+    if(view!==state.view)cancelAssist();
+    if(view!==state.view && view!=='identify'){restoreAllowed=false;cancelInput(false);cancelAnalysis(false);}
     state.view = view;
     document.querySelectorAll('.view').forEach(el => { el.hidden = el.id !== `view-${view}`; });
     document.querySelectorAll('[data-view]').forEach(el => { el.classList.toggle('active', el.dataset.view === view); if (el.dataset.view === view) el.setAttribute('aria-current','page'); else el.removeAttribute('aria-current'); });
@@ -365,13 +386,12 @@
   }
   async function addPhoto(src,metadata={},signal) {
     if (state.busy || state.photos.length >= 3) { toast('每个标本最多 3 个角度，开始新标本可继续拍摄'); return; }
-    const img = await MineralEngine.image(src);
+    const img = await MineralEngine.image(src,signal);
     if(signal?.aborted)throw new DOMException('输入已停止','AbortError');
     if(state.busy||state.photos.length>=3)return;
-    if (img.naturalWidth * img.naturalHeight > 40000000) throw new Error('照片分辨率过大，请选择低于 4000 万像素的图片');
-    const scale = Math.min(1, 1536 / Math.max(img.naturalWidth,img.naturalHeight));
+    const dimensions=MineralMedia.scaledDimensions(img.naturalWidth,img.naturalHeight,'照片');
     const canvas = document.createElement('canvas');
-    canvas.width = Math.round(img.naturalWidth * scale); canvas.height = Math.round(img.naturalHeight * scale);
+    canvas.width = dimensions.width; canvas.height = dimensions.height;
     canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
     const normalized = canvas.toDataURL('image/jpeg',0.9);
     if (state.photos.some(p=>p.src === normalized)) { toast('这张照片已添加，请补充同一标本的不同角度'); return; }
@@ -383,57 +403,66 @@
     if (state.busy || state.mediaBusy) return;
     if (state.photos.length >= 3) { toast('已添加 3 个角度，请先分析或移除一张照片'); return; }
     if (isNative()) {
-      lockMedia(true);
+      const job=beginInput('native-camera',120000);job.phase='external-camera';
       try {
         const photo = await plugin('Camera').getPhoto({ quality:90, width:1536, height:1536,
           resultType:'uri', source:source === 'camera' ? 'CAMERA':'PHOTOS', correctOrientation:true,
           allowEditing:false, saveToGallery:false });
-        if (photo.webPath) await addPhoto(photo.webPath);
+        checkInput(job);job.phase='decoding';
+        if (photo.webPath) await addPhoto(photo.webPath,{},job.controller.signal);
         else throw new Error('相机未返回可读取的照片，请重试');
-      } catch (e) { if (!cancelled(e)) toast(`无法读取照片：${e.message || '请检查相机权限'}`); } finally {lockMedia(false);}
+      } catch (e) { if (!cancelled(e)) inputError(job,e,'无法读取照片'); } finally {finishInput(job);}
     } else if(source==='camera'){
-      const epoch=++mediaEpoch;lockMedia(true);try{if(!navigator.mediaDevices?.getUserMedia)throw new Error('此环境无法打开相机，请使用安装版或 HTTPS');cameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});if(epoch!==mediaEpoch||state.view!=='identify'){stopCamera();return;}$('#cameraPreview').srcObject=cameraStream;openDialog('#cameraDialog');}
-      catch(e){stopCamera();toast(`无法打开相机：${e.name==='NotAllowedError'?'请允许相机访问':e.message}`);}finally{lockMedia(false);}
+      const job=beginInput('camera',120000);job.phase='permission';
+      try{
+        if(!navigator.mediaDevices?.getUserMedia)throw new Error('此环境无法打开相机，请使用安装版或 HTTPS');
+        const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
+        if(!inputCurrent(job)){stream.getTracks().forEach(t=>t.stop());return;}
+        cameraStream=stream;job.phase='preview';$('#cameraPreview').srcObject=stream;openDialog('#cameraDialog');
+      }catch(e){inputError(job,e,'无法打开相机');finishInput(job);}
     }else $('#fileInput').click();
   }
   async function readFiles(input) {
-    if(state.busy||state.mediaBusy){input.value='';return;}lockMedia(true);
+    if(state.busy||state.mediaBusy){input.value='';return;}
+    const job=beginInput('photos');
     try {
       for (const file of Array.from(input.files || [])) {
         if (state.photos.length >= 3) { toast('最多添加 3 张同一标本的照片'); break; }
-        if (file.size > 20*1024*1024) throw new Error('单张照片超过 20 MB，请降低分辨率后重试');
-        if (!/^(image\/(jpeg|png|webp|heic|heif|avif))$/.test(file.type) && !/\.(jpe?g|png|webp|heic|heif|avif)$/i.test(file.name)) throw new Error('请选择可读取的照片文件');
+        await MineralMedia.validatePhotoFile(file,{signal:job.controller.signal});checkInput(job);
         const url = URL.createObjectURL(file);
-        try { await addPhoto(url); } finally { URL.revokeObjectURL(url); }
+        try { await addPhoto(url,{},job.controller.signal);checkInput(job); } finally { URL.revokeObjectURL(url); }
       }
-    } catch (e) { toast(e.message || '照片无法读取，请选择 JPEG 或 PNG 格式'); }
-    finally { input.value = '';lockMedia(false); }
+    } catch (e) { inputError(job,e,'照片无法读取'); }
+    finally { input.value = '';finishInput(job); }
   }
   async function readVideo(input){
     const file=input.files?.[0];if(!file)return;
     if(state.busy||state.mediaBusy){input.value='';return;}
     if(state.photos.length>=3){toast('已添加 3 张图像，请先移除或开始新标本');input.value='';return;}
-    if($('#videoDialog').open)closeDialog('#videoDialog');const epoch=++mediaEpoch,controller=new AbortController();state.mediaController=controller;lockMedia(true);
-    try{const result=await MineralMedia.extractVideo(file,message=>{if(epoch===mediaEpoch)status(message);},{signal:controller.signal});
-      for(const frame of result.frames.slice(0,3-state.photos.length)){if(epoch!==mediaEpoch||controller.signal.aborted)throw new DOMException('输入已停止','AbortError');await addPhoto(frame.src,{kind:'video',time:frame.time},controller.signal);}
-      if(epoch!==mediaEpoch||controller.signal.aborted)throw new DOMException('输入已停止','AbortError');
+    const job=beginInput('video',120000);job.phase='extracting';if($('#videoDialog').open)closeDialog('#videoDialog');
+    try{const result=await MineralMedia.extractVideo(file,message=>{if(inputCurrent(job))status(message);},{signal:job.controller.signal});
+      for(const frame of result.frames.slice(0,3-state.photos.length)){checkInput(job);await addPhoto(frame.src,{kind:'video',time:frame.time},job.controller.signal);}
+      checkInput(job);
       status(`视频已取帧（${result.duration.toFixed(1)} 秒），${state.photos.length} 张图像可分析。`);
-    }catch(e){if(e.name==='AbortError')status('视频取帧已停止，已提交的照片保留。');else{status(e.message,true);toast(e.message);}}finally{input.value='';if(state.mediaController===controller){state.mediaController=null;lockMedia(false);}}
+    }catch(e){inputError(job,e,'视频无法读取');}finally{input.value='';finishInput(job);}
   }
   async function recordVideo(){
     if(isNative()){$('#videoInput').click();return;}
-    const epoch=++mediaEpoch;$('#recordVideo').disabled=true;$('#chooseVideo').disabled=true;
+    if(state.busy||state.mediaBusy)return;
+    const job=beginInput('record-video',60000);job.phase='permission';$('#recordVideo').disabled=true;$('#chooseVideo').disabled=true;
     try{if(!window.MediaRecorder||!navigator.mediaDevices?.getUserMedia)throw new Error('当前环境无法录制，请选择视频文件');
-      videoStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
-      if(epoch!==mediaEpoch||!$('#videoDialog').open){stopRecording(true);return;}
+      const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
+      if(!inputCurrent(job)||!$('#videoDialog').open){stream.getTracks().forEach(t=>t.stop());return;}
+      videoStream=stream;job.phase='recording';
       $('#videoPreview').hidden=false;$('#videoPreview').srcObject=videoStream;
-      const chunks=[];discardRecording=false;recorder=new MediaRecorder(videoStream);
-      recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data);};
-      recorder.onstop=()=>{const cancelled=discardRecording;stopRecording(cancelled);$('#stopVideo').hidden=true;$('#recordVideo').disabled=false;$('#chooseVideo').disabled=false;if(cancelled||!chunks.length)return;
+      const chunks=[];discardRecording=false;const currentRecorder=new MediaRecorder(videoStream);recorder=currentRecorder;
+      currentRecorder.ondataavailable=e=>{if(inputCurrent(job)&&e.data.size)chunks.push(e.data);};
+      currentRecorder.onstop=()=>{if(!inputCurrent(job))return;const cancelled=discardRecording;stopRecording(cancelled);recorder=null;$('#stopVideo').hidden=true;$('#recordVideo').disabled=false;$('#chooseVideo').disabled=false;finishInput(job);if(cancelled||!chunks.length)return;
         const file=new File(chunks,'specimen-video.webm',{type:chunks[0].type||'video/webm'});void readVideo({files:[file],value:''});};
-      recorder.start();$('#stopVideo').hidden=false;$('#recordVideo').disabled=true;$('#chooseVideo').disabled=true;$('#videoStatus').textContent='正在录制，同一标本缓慢变化视角；20 秒后自动结束。';
-      recordTimer=setTimeout(()=>stopRecording(),20000);
-    }catch(e){stopRecording(true);$('#recordVideo').disabled=false;$('#chooseVideo').disabled=false;toast(`无法录制：${e.name==='NotAllowedError'?'请允许相机访问':e.message}`);}
+      currentRecorder.onerror=()=>{if(inputCurrent(job)){inputError(job,new Error('录制组件失败，请选择已有视频文件'),'无法录制');cancelInput(false);}};
+      currentRecorder.start();$('#stopVideo').hidden=false;$('#recordVideo').disabled=true;$('#chooseVideo').disabled=true;$('#videoStatus').textContent='正在录制，同一标本缓慢变化视角；20 秒后自动结束。';
+      recordTimer=setTimeout(()=>{if(inputCurrent(job))stopRecording();},20000);
+    }catch(e){if(inputJob===job){stopRecording(true);$('#recordVideo').disabled=false;$('#chooseVideo').disabled=false;inputError(job,e,'无法录制');}finishInput(job);}
   }
   function observation() { return { hardness:$('#hardness').value, luster:$('#luster').value }; }
   function setBusy(busy) {
@@ -449,14 +478,16 @@
     if (state.busy || state.mediaBusy || !state.photos.length) return;
     const h = $('#hardness').value;
     if (h && (!Number.isFinite(Number(h)) || Number(h)<1 || Number(h)>10)) { toast('实测硬度需在 1–10 之间，未测量请留空'); $('#hardness').focus(); return; }
-    invalidate(); setBusy(true); state.controller = new AbortController();
+    invalidate(); setBusy(true); const controller=new AbortController();state.controller=controller;
+    const current=()=>state.controller===controller&&!controller.signal.aborted;
     try {
-      const result = await MineralEngine.analyze(state.photos, { signal:state.controller.signal, report:status,
+      const result = await MineralEngine.analyze(state.photos.map(p=>({...p})), { signal:controller.signal, report:(...args)=>{if(current())status(...args);},
         observation:observation(), precision:$('#precision').checked });
+      if(!current())return;
       state.result = result; renderResult(result); status('分析完成，请比较候选并复核实测物性。');
       $('#result').scrollIntoView({ behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth', block:'start' });
-    } catch (e) { if (e.name === 'AbortError') status('分析已停止，照片已保留。'); else {status(e.message || '分析失败，请重新拍摄或准备离线资源。',true);$('#analysisRecovery').hidden=false;} }
-    finally { state.controller = null; setBusy(false); }
+    } catch (e) { if(state.controller!==controller)return;if (e.name === 'AbortError') status('分析已停止，照片已保留。'); else {status(e.message || '分析失败，请重新拍摄或准备离线资源。',true);$('#analysisRecovery').hidden=false;} }
+    finally { if(state.controller===controller){state.controller = null; setBusy(false);} }
   }
   function checkMarkup(check) { const field=check.property==='光泽'?'luster':check.property==='摩氏硬度'?'hardness':'';return `<p class="physical-check ${check.status==='conflict'?'conflict':''}">${check.status==='conflict'?'存在冲突':'物性符合'} · ${html(check.property)}：实测 ${html(check.observed)}，资料 ${propertyMarkup(check.expected,field)}</p>`; }
   function renderResult(r) {
@@ -473,9 +504,9 @@
     $('#saveBtn').innerHTML = state.recordId?'<i data-lucide="bookmark-check"></i>更新标本':'<i data-lucide="bookmark-plus"></i>保存标本'; icons();
   }
   function resetSample() {
-    if (state.busy || state.mediaBusy) return;
-    if(state.photos.length&&state.draftDirty&&!confirm('当前标本尚有未保存内容。开始新标本将清空当前照片和观察，已保存记录保留。继续吗？'))return;
-    state.photos = []; state.active = 0; invalidate();state.recordId=null;state.draftDirty=false;
+    if(state.draftDirty&&!confirm('当前标本尚有未保存内容。开始新标本将清空当前照片和观察，已保存记录保留。继续吗？'))return;
+    restoreAllowed=false;cancelInput(false);cancelAnalysis(false);
+    state.photos = []; state.active = 0; invalidate();state.specimenEpoch++;state.recordId=null;state.draftDirty=false;
     $('#notes').value = ''; $('#sampleId').value = ''; $('#hardness').value = ''; $('#luster').value = '';
     renderPhotos(); status('拍摄或选择一张照片即可开始。'); window.scrollTo({top:0,behavior:'instant'});
   }
@@ -487,7 +518,7 @@
   async function save() {
     if (!state.result || state.busy || state.saving) return;
     state.saving=true;
-    const snapshot={result:state.result,recordId:state.recordId,revision:state.revision,photos:state.photos.map(p=>({...p})),scene:state.scene,notes:$('#notes').value.trim(),sampleId:$('#sampleId').value.trim(),observation:observation()};
+    const snapshot={result:state.result,recordId:state.recordId,specimenEpoch:state.specimenEpoch,revision:state.revision,photos:state.photos.map(p=>({...p})),scene:state.scene,notes:$('#notes').value.trim(),sampleId:$('#sampleId').value.trim(),observation:observation()};
     $('#saveBtn').disabled = true;
     try {
       const r = snapshot.result, id = snapshot.recordId || (crypto.randomUUID?.() || `specimen-${Date.now()}-${Math.random().toString(36).slice(2)}`);
@@ -496,7 +527,7 @@
       await SpecimenStore.put({ ...r, id, time:old?.time || Date.now(), name:name(r.key), photos, scene:snapshot.scene,
         notes:snapshot.notes, sampleId:snapshot.sampleId, observation:snapshot.observation,
         confirmedKey:old?.confirmedKey || '', confirmationMethod:old?.confirmationMethod || '' });
-      if(state.result===r){state.recordId = id;if(state.revision===snapshot.revision)state.draftDirty=false; $('#saveBtn').innerHTML = '<i data-lucide="bookmark-check"></i>更新标本';icons();} toast('标本已保存在这台设备');
+      if(state.specimenEpoch===snapshot.specimenEpoch){state.recordId = id;if(state.revision===snapshot.revision)state.draftDirty=false; $('#saveBtn').innerHTML = '<i data-lucide="bookmark-check"></i>更新标本';icons();} toast('标本已保存在这台设备');
     } catch (e) { toast(e.message); } finally { state.saving=false;$('#saveBtn').disabled = state.busy; }
   }
   function properties(k,reference) {
@@ -589,7 +620,7 @@
   function updateClassFilter(){const scheme=$('#classScheme').value,scope=$('#libraryScope').value||'all',previous=$('#classFilter').value,available=libraryItems.filter(item=>libraryScopeMatches(item,scope));const counts=new Map();available.forEach(item=>{const key=libraryCategory(item,scheme);counts.set(key,(counts.get(key)||0)+1);});const labels=[...schemes[scheme],'体系外 / 待核对','分类未收录'];$('#classFilter').innerHTML='<option value="">全部类别</option>'+labels.map(c=>`<option value="${html(c)}">${html(c)} · ${counts.get(c)||0}</option>`).join('');$('#classFilter').value=labels.includes(previous)?previous:'';renderLibrary();}
   function renderSearchHistory(){const rows=SearchHistory.read();for(const kind of ['library','records']){const entries=rows.map((x,i)=>({...x,index:i})).filter(x=>x.kind===kind);$(kind==='library'?'#searchHistory':'#recordSearchHistory').innerHTML=entries.length?'<div class="history-heading"><span>历史搜索 · 本机</span><button type="button" data-clear-history>清空全部历史</button></div><div class="history-chips">'+entries.map(x=>`<button type="button" data-history="${x.index}">${html(x.query)}</button>`).join('')+'</div>':'';}}
   function saveSearch(kind){SearchHistory.save($(kind==='library'?'#librarySearch':'#recordSearch').value,kind);renderSearchHistory();}
-  function setMode(mode){state.mode=mode==='online'?'online':'offline';document.querySelectorAll('[data-mode]').forEach(b=>{b.classList.toggle('selected',b.dataset.mode===state.mode);b.setAttribute('aria-pressed',String(b.dataset.mode===state.mode));});$('#connectionLabel').textContent=state.mode==='offline'?'本机识别':navigator.onLine?'联网 · 本机识别':'无网络 · 本机识别';$('#assistCurrent').hidden=state.mode!=='online';try{localStorage.setItem('shikuang-mode-v2',state.mode);}catch(_){} }
+  function setMode(mode){state.mode=mode==='online'?'online':'offline';if(state.mode!=='online'||!navigator.onLine)cancelAssist();document.querySelectorAll('[data-mode]').forEach(b=>{b.classList.toggle('selected',b.dataset.mode===state.mode);b.setAttribute('aria-pressed',String(b.dataset.mode===state.mode));});$('#connectionLabel').textContent=state.mode==='offline'?'本机识别':navigator.onLine?'联网 · 本机识别':'无网络 · 本机识别';$('#assistCurrent').hidden=state.mode!=='online';try{localStorage.setItem('shikuang-mode-v2',state.mode);}catch(_){} }
   async function renderRecords() {
     state.records = await SpecimenStore.list();
     const query = $('#recordSearch').value.trim().toLowerCase();
@@ -649,20 +680,23 @@
       const manifest=await bounded(async signal=>{if(MineralEngine.prepare)return MineralEngine.prepare({signal});const response=await fetch('./model-manifest.json',{signal,cache:'reload'});if(!response.ok)throw new Error(`模型目录下载失败 (${response.status})`);return response.json();},30000,'模型目录读取超时',controller.signal);
       if(!Array.isArray(manifest.models))throw new Error('模型目录不完整，请重试');
       if(manifest.models.some(model=>!/^models\/[a-z\d_.-]+\.onnx$/i.test(model.path||'')))throw new Error('模型资源路径无效，请重新准备');
-      assets.push(...new Set(manifest.models.map(model=>'./'+model.path)));
+      if(typeof MineralEngine.modelResources!=='function')throw new Error('模型资源接口未就绪，请更新页面后重新准备');
+      const resources=MineralEngine.modelResources(manifest);
+      assets.push(...new Set(resources.map(model=>model.url)));
       const modelBytes=manifest.models.reduce((sum,model)=>sum+(Number(model.bytes)||0),0),sizeHint=modelBytes>0?`（模型合计约 ${Math.ceil(modelBytes/1048576)} MB）`:'';
       updateModelUi();
       for (let i=0;i<assets.length;i++) {
         if(controller.signal.aborted)throw new DOMException('准备已停止','AbortError');
         $('#offlineProgress').textContent=`正在准备资源 ${i+1}/${assets.length}${sizeHint}…`;
-        const cache = await caches.open(assets[i].includes('/models/') || assets[i].endsWith('.wasm') ? 'shikuang-models-v2-20261010':'shikuang-static-2.0.2-preview.2');
-        const request = new Request(new URL(assets[i],location.href),{cache:'reload'}),model=manifest.models.find(m=>'./'+m.path===assets[i]);
+        const model=resources.find(m=>m.url===assets[i]);
+        const cache = await caches.open(model || assets[i].endsWith('.wasm') ? 'shikuang-models-v2-20261010':'shikuang-static-2.0.2-preview.2');
+        const request = new Request(new URL(assets[i],location.href),{cache:'reload'});
         await bounded(async signal=>{
           const cached=model?await cache.match(request):null;
-          if(cached&&await verifyModel(cached,model))return;
+          if(cached&&await verifyModel(cached,model,signal))return;
           if(cached)await cache.delete(request);
           const response=await fetch(request,{signal});if(!response.ok)throw new Error(`资源下载失败 (${response.status})`);
-          if(model&&!await verifyModel(response,model))throw new Error('模型资源校验失败，请检查网络后重试');
+          if(model&&!await verifyModel(response,model,signal))throw new Error('模型资源校验失败，请检查网络后重试');
           if(signal.aborted)throw new DOMException('准备已停止','AbortError');
           await cache.put(request,response);
         },90000,'该资源准备超过 90 秒，请检查网络后重试',controller.signal);
@@ -672,7 +706,15 @@
     } catch (e) { $('#offlineProgress').textContent=e.name==='AbortError'?'准备已停止。已完成的资源保留，可再次点击继续准备。':`准备未完成：${e.message}。请检查网络和存储空间后重试。`; }
     finally { if(state.offlineController===controller)state.offlineController=null;$('#offlineBtn').disabled=false;$('#cancelOffline').hidden=true; }
   }
-  async function verifyModel(response,model){if(!crypto.subtle||!/^[a-f0-9]{64}$/i.test(model.sha256||''))throw new Error('当前环境无法校验模型，请使用支持 HTTPS 的浏览器或安装版');const bytes=await response.clone().arrayBuffer(),digest=await crypto.subtle.digest('SHA-256',bytes);return Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('')===model.sha256;}
+  async function verifyModel(response,model,signal){
+    if(!crypto.subtle||!/^[a-f0-9]{64}$/i.test(model.sha256||''))throw new Error('当前环境无法校验模型，请使用支持 HTTPS 的浏览器或安装版');
+    try{
+      const check=()=>{if(signal?.aborted)throw new DOMException('准备已停止','AbortError');};check();
+      const bytes=await MineralCore.readResource(response.clone(),MineralCore.MODEL_MAX_BYTES,model.bytes,check,{signal,timeout:90000});check();
+      const digest=await crypto.subtle.digest('SHA-256',bytes);check();
+      return Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('')===model.sha256;
+    }catch(error){if(signal?.aborted||error.name==='AbortError')throw error;return false;}
+  }
   function bounded(action,timeout,message,signal){return new Promise((resolve,reject)=>{
     const controller=new AbortController();let settled=false;
     const finish=(error,value)=>{if(settled)return;settled=true;clearTimeout(timer);signal?.removeEventListener('abort',cancel);error?reject(error):resolve(value);};
@@ -682,36 +724,50 @@
     Promise.resolve().then(()=>action(controller.signal)).then(value=>finish(null,value),error=>finish(error));
   });}
   async function assist() {
+    if(state.assistController)return;
     if(state.mode!=='online'){toast('请先切换到联网模式，识别结果会继续保留');return;}
     if (!state.result) { toast('先分析一个标本，再补充文字说明'); return; }
     if(!navigator.onLine){toast('当前没有网络，本机候选仍可查看和保存');return;}
     const key = $('#apiKey').value.trim(); if (!key) { $('#apiKey').focus(); toast('请填写你自己的 DeepSeek API 密钥'); return; }
     $('#assistBtn').disabled=true; $('#assistText').textContent='正在补充文字说明…';
-    const controller=new AbortController(), timer=setTimeout(()=>controller.abort(),45000), candidate=state.result.key,revision=state.revision;state.assistController=controller;
+    const controller=new AbortController(),candidate=state.result.key,revision=state.revision,view=state.view;state.assistController=controller;
+    const current=()=>state.assistController===controller&&!controller.signal.aborted&&revision===state.revision&&view===state.view&&state.mode==='online';
     try {
       const prompt=`请以矿物学资料辅助比较候选 ${name(candidate)} (${kb(candidate).name_en||candidate})。用户观察：${$('#notes').value.slice(0,1000)||'未填写'}。实测硬度：${$('#hardness').value||'未测量'}，光泽：${$('#luster').value||'未确定'}。请简短说明鉴别特征、相似矿物区别、典型形成环境与工业用途，指出仍缺少的证据。这是未经确认的图像分类候选，不生成置信度，不确定当前标本产地。`;
       const content=$('#assistImage').checked?[{type:'text',text:prompt},...state.photos.map(p=>({type:'image_url',image_url:{url:p.src}}))]:prompt;
-      const res=await fetch('https://api.deepseek.com/chat/completions',{method:'POST',signal:controller.signal,
+      const text=await bounded(async signal=>{
+      const res=await fetch('https://api.deepseek.com/chat/completions',{method:'POST',signal,
         headers:{'Content-Type':'application/json',Authorization:`Bearer ${key}`},body:JSON.stringify({model:window.DEEPSEEK_MODEL || 'deepseek-flash',messages:[{role:'user',content}],max_tokens:1000,temperature:0.2,thinking:{type:'disabled'}})});
       if (!res.ok) throw new Error(res.status===401?'密钥无效，请检查后重试':`服务请求失败 (${res.status})`);
-      const body=await res.json(), text=body.choices?.[0]?.message?.content;
+      const bytes=await MineralCore.readResource(res,1024*1024,undefined,()=>{if(signal.aborted)throw new DOMException('请求已停止','AbortError');},{signal,timeout:45000});
+      const body=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes)), text=body.choices?.[0]?.message?.content;
       if (typeof text!=='string' || !text.trim()) throw new Error('服务未返回文字说明');
-      if(revision===state.revision)$('#assistText').textContent=`${name(candidate)} · AI 文字参考（请核对资料）\n\n${text.slice(0,8000)}`;
-    } catch (e) { if(revision===state.revision)$('#assistText').textContent=e.name==='AbortError'?'请求超时，请稍后重试。':e.message; }
-    finally { clearTimeout(timer);if(state.assistController===controller)state.assistController=null;$('#assistBtn').disabled=false; }
+      return text;
+      },45000,'文字说明请求超过 45 秒，已停止，请稍后重试',controller.signal);
+      if(current())$('#assistText').textContent=`${name(candidate)} · AI 文字参考（请核对资料）\n\n${text.slice(0,8000)}`;
+    } catch (e) { if(current())$('#assistText').textContent=e.name==='AbortError'?'请求已停止，请稍后重试。':e.message; }
+    finally { if(state.assistController===controller){state.assistController=null;$('#assistBtn').disabled=false;} }
   }
   $('#cameraBtn').addEventListener('click',()=>void capture('camera'));
   $('#galleryBtn').addEventListener('click',()=>void capture('gallery'));
   $('#videoBtn').addEventListener('click',()=>{if(!state.busy&&!state.mediaBusy){$('#videoStatus').textContent='';openDialog('#videoDialog');}});
   $('#recordVideo').addEventListener('click',()=>void recordVideo());$('#chooseVideo').addEventListener('click',()=>$('#videoFileInput').click());$('#stopVideo').addEventListener('click',()=>stopRecording());
   [$('#videoInput'),$('#videoFileInput')].forEach(input=>input.addEventListener('change',()=>void readVideo(input)));
-  $('#closeVideo').addEventListener('click',()=>{stopRecording(true);closeDialog('#videoDialog');});
-  $('#closeCamera').addEventListener('click',()=>{stopCamera();closeDialog('#cameraDialog');});
-  $('#takePhoto').addEventListener('click',async()=>{const video=$('#cameraPreview');if(!video.videoWidth)return;const canvas=document.createElement('canvas');canvas.width=video.videoWidth;canvas.height=video.videoHeight;canvas.getContext('2d').drawImage(video,0,0);const src=canvas.toDataURL('image/jpeg',.9);stopCamera();closeDialog('#cameraDialog');lockMedia(true);try{await addPhoto(src);}catch(e){toast(e.message);}finally{lockMedia(false);}});
+  $('#closeVideo').addEventListener('click',()=>{cancelInput();if($('#videoDialog').open)closeDialog('#videoDialog');});
+  $('#closeCamera').addEventListener('click',()=>{cancelInput();if($('#cameraDialog').open)closeDialog('#cameraDialog');});
+  $('#takePhoto').addEventListener('click',async()=>{
+    const job=inputJob;if(state.busy||job?.kind!=='camera'||job.phase!=='preview'||!inputCurrent(job))return;job.phase='decoding';
+    try{
+      const video=$('#cameraPreview'),dimensions=MineralMedia.scaledDimensions(video.videoWidth,video.videoHeight,'相机画面');
+      const canvas=document.createElement('canvas');canvas.width=dimensions.width;canvas.height=dimensions.height;
+      canvas.getContext('2d').drawImage(video,0,0,canvas.width,canvas.height);
+      const src=canvas.toDataURL('image/jpeg',.9);stopCamera();closeDialog('#cameraDialog');await addPhoto(src,{},job.controller.signal);checkInput(job);
+    }catch(e){inputError(job,e,'照片无法拍摄');stopCamera();if($('#cameraDialog').open)closeDialog('#cameraDialog');}finally{finishInput(job);}
+  });
   [$('#fileInput'),$('#cameraInput')].forEach(input=>input.addEventListener('change',()=>void readFiles(input)));
   $('#preview').addEventListener('load',updateCrop); addEventListener('resize',updateCrop);
-  $('#removePhoto').addEventListener('click',()=>{ if(state.busy)return; state.photos.splice(state.active,1);state.active=Math.max(0,state.active-1);invalidate();renderPhotos(); });
-  $('#cropRange').addEventListener('input',()=>{ if(state.busy)return; const p=state.photos[state.active];if(p){p.crop=Number($('#cropRange').value)/100;invalidate();$('#cropValue').textContent=`${$('#cropRange').value}%`;updateCrop();} });
+  $('#removePhoto').addEventListener('click',()=>{ if(state.busy||state.mediaBusy)return; state.photos.splice(state.active,1);state.active=Math.max(0,state.active-1);invalidate();renderPhotos(); });
+  $('#cropRange').addEventListener('input',()=>{ if(state.busy||state.mediaBusy)return; const p=state.photos[state.active];if(p){p.crop=Number($('#cropRange').value)/100;invalidate();$('#cropValue').textContent=`${$('#cropRange').value}%`;updateCrop();} });
   document.addEventListener('click',e=>{
     const photo=e.target.closest('[data-photo]'), detail=e.target.closest('[data-detail]'), record=e.target.closest('[data-record]');
     if(photo && !state.busy&&!state.mediaBusy){state.active=Number(photo.dataset.photo);renderPhotos();}
@@ -732,11 +788,11 @@
     $('#captureTip').textContent=state.scene==='lab'?'建议记录标本编号，拍摄整体与晶体细节，再用实测物性复核。':'同一标本添加 2–3 个角度，查看判断是否一致。每次分析一个主体。';
   }));
   ['hardness','luster','precision'].forEach(id=>$('#'+id).addEventListener('change',invalidate));
-  $('#predictBtn').addEventListener('click',()=>void predict()); $('#cancelBtn').addEventListener('click',()=>state.controller?.abort());
-  $('#cancelInput').addEventListener('click',cancelInput);$('#cancelOffline').addEventListener('click',()=>state.offlineController?.abort());
+  $('#predictBtn').addEventListener('click',()=>void predict()); $('#cancelBtn').addEventListener('click',()=>cancelAnalysis());
+  $('#cancelInput').addEventListener('click',()=>cancelInput());$('#cancelOffline').addEventListener('click',()=>state.offlineController?.abort());
   $('#retryAnalysis').addEventListener('click',()=>void predict());$('#analysisSettings').addEventListener('click',()=>{location.hash='settings';route();$('#offlineBtn').focus({preventScroll:true});});
   $('#assistCurrent').addEventListener('click',()=>{location.hash='settings';route();$('#assistSection').scrollIntoView({block:'start',behavior:'instant'});$('#apiKey').focus({preventScroll:true});});
-  ['notes','sampleId'].forEach(id=>$('#'+id).addEventListener('input',()=>{draftChanged();state.assistController?.abort();$('#assistText').textContent='';}));
+  ['notes','sampleId'].forEach(id=>$('#'+id).addEventListener('input',()=>{draftChanged();cancelAssist();}));$('#apiKey').addEventListener('input',cancelAssist);
   $('#newSample').addEventListener('click',resetSample); $('#saveBtn').addEventListener('click',()=>void save());
   $('#detailBtn').addEventListener('click',()=>{if(state.result)showDetail(state.result.key);});
   ['librarySearch','classFilter'].forEach(id=>$('#'+id).addEventListener('input',renderLibrary));
@@ -749,7 +805,7 @@
   $('#closeDetail').addEventListener('click',()=>closeDialog('#detailDialog'));$('#closeRecord').addEventListener('click',()=>closeDialog('#recordDialog'));
   $('#cancelDelete').addEventListener('click',()=>{state.pendingDelete=null;closeDialog('#confirmDialog');});
   $('#confirmDelete').addEventListener('click',async()=>{const id=state.pendingDelete;if(!id)return;try{await SpecimenStore.remove(id);state.pendingDelete=null;if(state.recordId===id)state.recordId=null;closeDialog('#confirmDialog');closeDialog('#recordDialog');await renderRecords();toast('记录已删除');}catch(e){toast(e.message);}});
-  document.querySelectorAll('dialog').forEach(d=>d.addEventListener('close',()=>{if(d.id==='cameraDialog')stopCamera();if(d.id==='videoDialog'){if(!state.mediaController)mediaEpoch++;stopRecording(true);$('#recordVideo').disabled=false;$('#chooseVideo').disabled=false;$('#stopVideo').hidden=true;}if(!document.querySelector('dialog[open]'))document.body.classList.remove('dialog-open');}));
+  document.querySelectorAll('dialog').forEach(d=>d.addEventListener('close',()=>{if(d.id==='cameraDialog'){stopCamera();if(inputJob?.kind==='camera'&&inputJob.phase!=='decoding')cancelInput();}if(d.id==='videoDialog'){if(inputJob?.kind==='record-video')cancelInput();stopRecording(true);$('#recordVideo').disabled=false;$('#chooseVideo').disabled=false;$('#stopVideo').hidden=true;}if(!document.querySelector('dialog[open]'))document.body.classList.remove('dialog-open');}));
   $('#offlineBtn').addEventListener('click',()=>void prepareOffline());$('#assistBtn').addEventListener('click',()=>void assist());
   addEventListener('hashchange',route);
   async function init() {
@@ -759,13 +815,18 @@
     try{setMode(localStorage.getItem('shikuang-mode-v2'));}catch(_){setMode('offline');}
     $('#sourceList').innerHTML=MINERAL_SOURCES.map(s=>`<a href="${html(s.url)}" target="_blank" rel="noopener noreferrer"><strong>${html(s.title)}</strong><span>${html(s.status)}</span><small>${html(s.use)}</small></a>`).join('');
     route();
+    window.__shikuangAppReady=true;
     try{await SpecimenStore.migrate();}catch(e){toast(e.message);}
     if(isNative()){
       $('#offlineInfo').textContent='安装包内置原生识别引擎、模型和资料。关闭网络后仍可分析，首次使用无需下载模型。';$('#offlineBtn').hidden=true;
       const app=plugin('App');
-      await app?.addListener('appRestoredResult',event=>{if(event.pluginId==='Camera' && event.success && event.data?.webPath)void addPhoto(event.data.webPath).catch(e=>toast(e.message));});
-      await app?.addListener('appStateChange',event=>{if(!event.isActive){state.controller?.abort();cancelInput();stopCamera();stopRecording(true);}});
-      await app?.addListener('backButton',()=>{const dialog=document.querySelector('dialog[open]');if(dialog){dialog.close();return;}if(state.busy){state.controller?.abort();return;}if(state.mediaBusy){cancelInput();return;}if(state.view!=='identify'){location.hash='identify';return;}void app.minimizeApp();});
+      await app?.addListener('appRestoredResult',event=>{
+        if(event.pluginId!=='Camera'||!event.success||!event.data?.webPath)return;
+        if(!restoreAllowed||state.view!=='identify'||state.busy||state.mediaBusy||state.photos.length||state.draftDirty){toast('上次拍摄返回的照片未替换当前标本，请从照片文件重新选择。');return;}
+        const job=beginInput('restored-camera');void addPhoto(event.data.webPath,{},job.controller.signal).catch(e=>inputError(job,e,'恢复照片失败')).finally(()=>finishInput(job));
+      });
+      await app?.addListener('appStateChange',event=>{if(!event.isActive){cancelAnalysis(false);if(inputJob?.kind==='native-camera'&&inputJob.phase==='external-camera')return;cancelInput(false);}});
+      await app?.addListener('backButton',()=>{const dialog=document.querySelector('dialog[open]');if(dialog){dialog.close();return;}if(state.busy){cancelAnalysis();return;}if(state.mediaBusy){cancelInput();return;}if(state.view!=='identify'){location.hash='identify';return;}void app.minimizeApp();});
     }else if('serviceWorker' in navigator && location.protocol==='https:' && !['127.0.0.1','localhost'].includes(location.hostname)){navigator.serviceWorker.register('./sw.js').catch(()=>{});}
     setTimeout(dismissCover,900);
   }

@@ -206,6 +206,9 @@ public final class MineralInferencePlugin extends Plugin {
         diagnostics.put("elapsedMs", SystemClock.elapsedRealtime() - job.acceptedAt);
         diagnostics.put("sessionCacheHits", job.sessionCacheHits); diagnostics.put("modelLoads", job.modelLoads);
         diagnostics.put("residentSessionCount", sessions.size());
+        diagnostics.put("runtimeVersion", environment.getVersion());
+        ActivityManager memoryManager = (ActivityManager) getContext().getSystemService(Context.ACTIVITY_SERVICE);
+        diagnostics.put("lowRamDevice", memoryManager != null && memoryManager.isLowRamDevice());
         diagnostics.put("javaHeapUsedBytesAtResult", Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory());
         result.put("diagnostics", diagnostics); return result;
     }

@@ -10,8 +10,9 @@ const manifestFixture=fixture().manifest;
 const raw=(payload)=>fixtureRaw(manifestFixture,payload);
 const pixels = new Uint8ClampedArray(224 * 224 * 4);
 for (let i=0;i<224*224;i++) { const n=i%2?180:65; pixels.set([n,n+10,n+20,255],i*4); }
-function harness(plugin, native=true, Worker, bundledBridge=false, decode=()=>Promise.resolve()) {
+function harness(plugin, native=true, Worker, bundledBridge=false, decode=()=>Promise.resolve(), migration={prepare:async()=>({native:true,restartRequired:false})}) {
   const window={MINERAL_KB:{quartz:{name_zh:'石英'},calcite:{}},IMAGENET_BLOCKED:Array(1000).fill(false),Worker,
+    MineralNativeAssets:migration,
     Capacitor:{isNativePlatform:()=>native,isPluginAvailable:()=>!!plugin,
       ...(bundledBridge?{Plugins:{MineralInference:plugin}}:{registerPlugin:()=>plugin})}};
   const context={window,MINERAL_KB:window.MINERAL_KB,MINERAL_CLASSES:Object.fromEntries(keys.map(k=>[k,k])),MineralCore:Core,
@@ -32,6 +33,18 @@ test('Android uses native plugin with identical NCHW preprocessing; never starts
   assert.ok(Math.abs(bytes.readFloatLE(0)-(65/255-.485)/.229)<1e-6);
   assert.ok(Math.abs(bytes.readFloatLE(224*224*4)-(75/255-.456)/.224)<1e-6);
   assert.deepEqual(Array.from(payload.labels),keys);assert.equal(removed,1);
+});
+test('manifest identity URLs and native migration cancellation/failure clear old configuration and recover',async()=>{
+  const migration={prepare:async()=>({native:true,restartRequired:false})};
+  const engine=harness(null,true,undefined,false,()=>Promise.resolve(),migration);
+  const manifest=await engine.prepare();
+  for(const resource of engine.modelResources(manifest)){
+    const url=new URL(resource.url);assert.equal(url.searchParams.get('manifest'),hash(Buffer.from(JSON.stringify(manifestFixture))));assert.equal(url.searchParams.get('model'),resource.sha256);
+  }
+  migration.prepare=()=>new Promise(()=>{});
+  const controller=new AbortController(),pending=engine.prepare({signal:controller.signal});controller.abort();await assert.rejects(pending,{name:'AbortError'});assert.equal(engine.configuration,null);
+  migration.prepare=async()=>{throw Error('migration failed');};await assert.rejects(engine.prepare(),/migration failed/);assert.equal(engine.manifestCacheState,'failed');
+  migration.prepare=async()=>({native:true,restartRequired:false});assert.ok(await engine.prepare());
 });
 test('cancel during stalled photo decode stops before dispatching either inference engine',async()=>{
   const engine=harness(null,true,undefined,false,()=>new Promise(()=>{})),controller=new AbortController();

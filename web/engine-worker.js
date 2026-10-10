@@ -18,12 +18,16 @@ async function modelSession(model,base,manifestHash) {
   const key=`${base}|${manifestHash}|${model.path}|${model.sha256}`;
   if(sessions.has(key))return sessions.get(key);
   let previous=0;
-  const response=await fetch(new URL(model.path,base));
-  const bytes=await MineralCore.readResource(response,MineralCore.MODEL_MAX_BYTES,model.bytes,size=>{
+  const resource=MineralCore.modelResourceURL(model,manifestHash,base);
+  let bytes;
+  try {
+  const response=await fetch(resource);
+  bytes=await MineralCore.readResource(response,MineralCore.MODEL_MAX_BYTES,model.bytes,size=>{
     if(Date.now()-previous>250){send('progress',{message:`读取 ${model.title} ${(size/1048576).toFixed(1)}/${(model.bytes/1048576).toFixed(1)} MB…`});previous=Date.now();}
   });
   if(!crypto.subtle)throw new Error('当前环境无法校验模型，请使用安装版或 HTTPS 地址');
   if(hex(await crypto.subtle.digest('SHA-256',bytes))!==model.sha256)throw new Error('模型文件校验失败，请重新准备离线资源或安装新版');
+  }catch(error){send('resource-invalid',{url:resource.href});throw error;}
   send('progress',{message:`${model.title} 已校验，正在初始化…`});
   const loaded=await ort.InferenceSession.create(bytes,{executionProviders:['wasm'],graphOptimizationLevel:'all'});
   try {

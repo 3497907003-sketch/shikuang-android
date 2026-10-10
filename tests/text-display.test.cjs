@@ -77,3 +77,10 @@ test('unavailable model configuration leaves home controls and a readable recove
   const f=fixture({engine:{prepare:()=>Promise.reject(new Error('Bad manifest')),getModels:()=>[]}});await f.settle();
   assert.match(f.node('precisionHelp').textContent,/模型清单未就绪/);await f.photo();assert.equal(f.node('predictBtn').disabled,false);
 });
+
+test('offline manifest fallback identifies the cached version and resource recovery without claiming a completed upgrade',async()=>{
+  const f=fixture({engine:{prepare:async()=>{},models:[{id:'one'}],configuration:{version:'audited-older-models'},manifestCacheState:'offline-cache'}});await f.settle();
+  assert.equal(f.node('modelResourceState').hidden,false);assert.match(f.node('modelResourceState').textContent,/网络不可达，使用已验证的缓存模型清单（audited-older-models）/);assert.match(f.node('modelResourceState').textContent,/资源不完整时停止分析，请重新准备/);assert.doesNotMatch(f.node('modelResourceState').textContent,/升级已完成|准确率/);
+  f.context.MineralEngine.manifestCacheState='network';f.context.MineralEngine.configuration={version:'current-models'};await f.photo();await f.click('predictBtn');
+  assert.match(f.node('modelResourceState').textContent,/current-models/);assert.doesNotMatch(f.node('modelResourceState').textContent,/缓存模型清单/);
+});

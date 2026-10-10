@@ -22,7 +22,7 @@ final class MineralModelContract {
     static final int INPUT_BYTES = INPUT_ELEMENTS * 4;
     static final int MAX_MODEL_BYTES = 80_000_000;
     private static final Set<String> PATHS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-        "models/mobilenet_int8.onnx", "models/efficientnet.onnx", "models/efficientnet_legacy.onnx", "models/imagenet_gate.onnx")));
+        "models/mobilenet.onnx", "models/mobilenet_int8.onnx", "models/efficientnet.onnx", "models/efficientnet_legacy.onnx", "models/imagenet_gate.onnx")));
 
     static final class Model {
         final String id, role, path, title, sha256, inputName, outputName;
