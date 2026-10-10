@@ -40,6 +40,10 @@ def jobs_fixture():
     return build, runtime
 
 
+def draft_response_fixture():
+    return {'id': 99, 'tag_name': TAG, 'target_commitish': COMMIT, 'draft': True, 'prerelease': True}
+
+
 def artifact_job_fixture():
     return {'id': 9, 'run_id': 123, 'head_sha': COMMIT, 'run_attempt': 2, 'status': 'completed', 'conclusion': 'success',
             'started_at': '2026-10-10T00:00:00Z', 'completed_at': '2026-10-10T00:10:00Z',
@@ -120,7 +124,7 @@ class DraftGateTests(unittest.TestCase):
     def test_published_during_upload(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp); (root / 'controlled-fixture.txt').write_text('fixture, never release evidence')
-            existing = {'id': 1, 'draft': True, 'prerelease': True, 'target_commitish': COMMIT}
+            existing = {'id': 1, 'tag_name': TAG, 'draft': True, 'prerelease': True, 'target_commitish': COMMIT}
             with patch.object(g, 'release_state', return_value=existing), patch.object(g, 'api', return_value={**existing, 'draft': False, 'assets': []}), patch.object(g, 'command') as cmd:
                 with self.assertRaisesRegex(ValueError, 'published or changed'):
                     g.upload_draft(SimpleNamespace(tag=TAG, source_commit=COMMIT, output=root), root, {})
@@ -129,7 +133,7 @@ class DraftGateTests(unittest.TestCase):
     def test_different_existing_asset(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp); file = root / 'controlled-fixture.txt'; file.write_text('fixture, never release evidence')
-            existing = {'id': 1, 'draft': True, 'prerelease': True, 'target_commitish': COMMIT,
+            existing = {'id': 1, 'tag_name': TAG, 'draft': True, 'prerelease': True, 'target_commitish': COMMIT,
                         'assets': [{'name': file.name, 'digest': 'sha256:' + 'f' * 64}]}
             with patch.object(g, 'release_state', return_value=existing), patch.object(g, 'api', return_value=existing), patch.object(g, 'command') as cmd:
                 with self.assertRaisesRegex(ValueError, 'never clobber'):
@@ -281,6 +285,50 @@ def check_retained_previous_failure(self):
         self.assertEqual(previous[field], old[field])
     self.assertIn('outside-successful-upload-window', previous['exclusion_reasons'])
 add_case('retained_previous_failure_artifact', check_retained_previous_failure)
+
+for case in ['wrong_tag', 'wrong_head', 'published', 'not_prerelease', 'missing_id', 'zero_id', 'string_id', 'bool_id']:
+    def check(self, case=case):
+        response = draft_response_fixture()
+        if case == 'wrong_tag': response['tag_name'] = 'v2.5.0-preview.1-other'
+        if case == 'wrong_head': response['target_commitish'] = 'b' * 40
+        if case == 'published': response['draft'] = False
+        if case == 'not_prerelease': response['prerelease'] = False
+        if case == 'missing_id': response.pop('id')
+        if case == 'zero_id': response['id'] = 0
+        if case == 'string_id': response['id'] = '99'
+        if case == 'bool_id': response['id'] = True
+        with tempfile.TemporaryDirectory() as tmp:
+            args = SimpleNamespace(tag=TAG, source_commit=COMMIT, output=Path(tmp))
+            gate = {'web_source_commit': COMMIT, 'build_url': 'https://example.invalid/build', 'runtime_url': 'https://example.invalid/runtime'}
+            with patch.object(g, 'command', return_value=SimpleNamespace(stdout=json.dumps(response))) as cmd, patch.object(g, 'api_pages') as listing:
+                with self.assertRaises(ValueError): g.create_draft(args, gate)
+                self.assertEqual(cmd.call_count, 1)
+                listing.assert_not_called()
+    add_case('create_response_reject_' + case, check)
+
+
+def check_direct_creation_id(self):
+    response = draft_response_fixture()
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp); args = SimpleNamespace(tag=TAG, source_commit=COMMIT, output=root)
+        gate = {'web_source_commit': COMMIT, 'build_url': 'https://example.invalid/build', 'runtime_url': 'https://example.invalid/runtime'}
+        with patch.object(g, 'command', return_value=SimpleNamespace(stdout=json.dumps(response))) as cmd, patch.object(g, 'api_pages') as listing:
+            created = g.create_draft(args, gate)
+            listing.assert_not_called()
+            argv = cmd.call_args.args[0]
+            self.assertEqual(argv[:5], ['gh', 'api', '--method', 'POST', f'repos/{g.REPO}/releases'])
+            body = json.loads(Path(argv[-1]).read_text())
+            self.assertTrue(body['draft'] is True and body['prerelease'] is True)
+            self.assertEqual(body['target_commitish'], COMMIT)
+            self.assertEqual(body['tag_name'], TAG)
+    self.assertEqual(created['id'], response['id'])
+add_case('create_uses_direct_validated_response_id', check_direct_creation_id)
+
+
+def check_wrong_exact_id(self):
+    with self.assertRaisesRegex(ValueError, 'Unexpected draft release ID'):
+        g.validate_draft_identity(draft_response_fixture(), TAG, COMMIT, 98)
+add_case('wrong_exact_draft_get_id_rejected', check_wrong_exact_id)
 
 for key in g.MATRICES:
     def check(self, key=key):
