@@ -1,4 +1,4 @@
-const STATIC = 'shikuang-static-2.0.0-preview.3';
+const STATIC = 'shikuang-static-2.0.1-preview.1';
 const MODELS = 'shikuang-models-v2-20261010';
 const ASSETS = ['./', './index.html', './styles.css', './app.js', './core.js', './inference.js', './storage.js', './engine-worker.js', './media.js', './history.js', './model-manifest.json', './icon-192.png', './icon-512.png', './icon-maskable.png', './version.json', './data/sources.js', './config.js', './icon.svg', './manifest.webmanifest', './data/classes.js', './data/minerals.js', './data/imagenet.js', './vendor/lucide.min.js', './vendor/ort.min.js', './vendor/ort-wasm-simd-threaded.mjs'];
 self.addEventListener('install', event => {
@@ -15,7 +15,9 @@ self.addEventListener('fetch', event => {
   const isModel = url.pathname.includes('/models/') || url.pathname.endsWith('.wasm');
   event.respondWith((async () => {
     const cache = await caches.open(isModel ? MODELS : STATIC);
-    const cached = await cache.match(event.request, {ignoreSearch:true});
+    // Explicit resource repair must bypass potentially truncated cached models.
+    const repair = ['reload', 'no-store'].includes(event.request.cache);
+    const cached = repair ? null : await cache.match(event.request, {ignoreSearch:true});
     if (cached) return cached;
     try {
       const response = await fetch(event.request);

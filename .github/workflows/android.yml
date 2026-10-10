@@ -23,8 +23,22 @@ jobs:
       - run: npm test
       - run: npm run check
       - run: npm run sync
+      - name: Prepare persistent preview signing key
+        env:
+          SIGNING_STORE: ${{ secrets.SHIKUANG_SIGNING_STORE }}
+        run: |
+          if [ -n "$SIGNING_STORE" ]; then
+            printf '%s' "$SIGNING_STORE" | base64 --decode > "$RUNNER_TEMP/shikuang-preview.p12"
+            chmod 600 "$RUNNER_TEMP/shikuang-preview.p12"
+            printf 'SHIKUANG_SIGNING_FILE=%s\n' "$RUNNER_TEMP/shikuang-preview.p12" >> "$GITHUB_ENV"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Persistent signing secret is required for a distributable preview."
+            exit 1
+          fi
       - name: Build and lint Android preview
         working-directory: android
+        env:
+          SHIKUANG_SIGNING_PASSWORD: ${{ secrets.SHIKUANG_SIGNING_PASSWORD }}
         run: ./gradlew assembleDebug lintDebug
       - uses: actions/upload-artifact@v4
         with:

@@ -1,0 +1,89 @@
+name: Android offline runtime smoke test
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'web/**'
+      - 'android/**'
+      - 'tools/**'
+      - 'package*.json'
+      - 'capacitor.config.json'
+      - '.github/workflows/android-runtime.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [30, 35]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - run: npm ci
+      - run: npm run sync
+      - name: Install official Android emulator image
+        shell: bash
+        run: |
+          SHIKUANG_ANDROID_SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          "$SHIKUANG_ANDROID_SDK/cmdline-tools/latest/bin/sdkmanager" \
+            "platform-tools" "emulator" \
+            "system-images;android-${{ matrix.api }};google_apis;x86_64"
+          printf 'no\n' | "$SHIKUANG_ANDROID_SDK/cmdline-tools/latest/bin/avdmanager" create avd \
+            --name "shikuang-api${{ matrix.api }}" \
+            --package "system-images;android-${{ matrix.api }};google_apis;x86_64" \
+            --device pixel_2 --force
+          sudo chmod 666 /dev/kvm
+      - name: Boot emulator and disconnect device networking
+        shell: bash
+        run: |
+          mkdir -p runtime-artifacts
+          SHIKUANG_ANDROID_SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          nohup "$SHIKUANG_ANDROID_SDK/emulator/emulator" \
+            -avd "shikuang-api${{ matrix.api }}" -no-window -no-audio \
+            -no-boot-anim -no-snapshot -gpu swiftshader_indirect \
+            -camera-back none -camera-front none -memory 3072 -cores 2 -accel on \
+            > runtime-artifacts/emulator.log 2>&1 &
+          timeout 180 adb wait-for-device
+          timeout 180 bash -c 'until [[ "$(adb shell getprop sys.boot_completed | tr -d "\r")" == "1" ]]; do sleep 2; done'
+          adb shell input keyevent 82
+          adb shell settings put global window_animation_scale 0
+          adb shell settings put global transition_animation_scale 0
+          adb shell settings put global animator_duration_scale 0
+          adb shell svc wifi disable
+          adb shell svc data disable
+          adb shell dumpsys webviewupdate > runtime-artifacts/webview-provider.txt
+          adb shell settings get global wifi_on > runtime-artifacts/wifi-state.txt
+          adb shell settings get global mobile_data > runtime-artifacts/mobile-data-state.txt
+          adb logcat -c
+          nohup adb logcat -v threadtime > runtime-artifacts/logcat.txt 2>&1 &
+      - name: Run packaged WebView with actual native ONNX inference
+        working-directory: android
+        run: ./gradlew --no-daemon --max-workers=2 connectedDebugAndroidTest
+      - name: Capture runtime diagnostics
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p runtime-artifacts
+          adb exec-out screencap -p > runtime-artifacts/final-screen.png || true
+          adb shell dumpsys webviewupdate > runtime-artifacts/webview-provider-final.txt || true
+          adb pull /sdcard/Android/data/com.shikuang.app.preview/files/runtime-smoke runtime-artifacts/ || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: shikuang-runtime-api-${{ matrix.api }}
+          path: |
+            runtime-artifacts/
+            android/app/build/reports/androidTests/
+            android/app/build/outputs/androidTest-results/
+          if-no-files-found: warn

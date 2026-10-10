@@ -8,19 +8,19 @@
   <title>识矿 2.0 · 随身矿物识别</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./styles.css?v=20261010-guide">
-  <script defer src="./vendor/lucide.min.js?v=20261010-guide"></script>
-  <script defer src="./config.js?v=20261010-guide"></script>
-  <script defer src="./data/classes.js?v=20261010-guide"></script>
-  <script defer src="./data/minerals.js?v=20261010-guide"></script>
-  <script defer src="./data/imagenet.js?v=20261010-guide"></script>
-  <script defer src="./data/sources.js?v=20261010-guide"></script>
-  <script defer src="./history.js?v=20261010-guide"></script>
-  <script defer src="./media.js?v=20261010-guide"></script>
-  <script defer src="./core.js?v=20261010-guide"></script>
-  <script defer src="./inference.js?v=20261010-guide"></script>
-  <script defer src="./storage.js?v=20261010-guide"></script>
-  <script defer src="./app.js?v=20261010-guide"></script>
+  <link rel="stylesheet" href="./styles.css?v=20261010-runtime">
+  <script defer src="./vendor/lucide.min.js?v=20261010-runtime"></script>
+  <script defer src="./config.js?v=20261010-runtime"></script>
+  <script defer src="./data/classes.js?v=20261010-runtime"></script>
+  <script defer src="./data/minerals.js?v=20261010-runtime"></script>
+  <script defer src="./data/imagenet.js?v=20261010-runtime"></script>
+  <script defer src="./data/sources.js?v=20261010-runtime"></script>
+  <script defer src="./history.js?v=20261010-runtime"></script>
+  <script defer src="./media.js?v=20261010-runtime"></script>
+  <script defer src="./core.js?v=20261010-runtime"></script>
+  <script defer src="./inference.js?v=20261010-runtime"></script>
+  <script defer src="./storage.js?v=20261010-runtime"></script>
+  <script defer src="./app.js?v=20261010-runtime"></script>
 </head>
 <body>
   <div id="launchCover" class="launch-cover" aria-label="识矿启动封面">
@@ -36,6 +36,7 @@
       <section id="view-identify" class="view" aria-labelledby="identifyHeading">
         <div class="page-heading"><div><p class="context">观察每一块标本</p><h1 id="identifyHeading">从一张照片开始</h1></div><div class="scene-switch" role="group" aria-label="使用场景"><button type="button" class="selected" data-scene="daily" aria-pressed="true">日常</button><button type="button" data-scene="lab" aria-pressed="false">实验室</button></div></div>
         <aside id="guideWelcome" class="guide-welcome" aria-label="新用户指南"><div><strong>第一次使用识矿？</strong><p>了解功能与操作顺序，从观察到记录。</p></div><button id="quickGuide" type="button" class="secondary"><i data-lucide="compass"></i>快速上手</button></aside>
+        <div class="sample-toolbar"><p>每次分析同一标本，换标本时先清空当前输入。</p><button type="button" id="newSample" class="secondary"><i data-lucide="rotate-ccw"></i>开始新标本</button></div>
         <div class="identify-layout">
           <div class="capture-column">
             <section class="capture-panel" aria-label="标本照片">
@@ -69,22 +70,25 @@
             <label class="precision-option"><input id="precision" type="checkbox" checked><span><strong>多模型交叉分析</strong><small>综合 3 个模型；首次使用需准备模型资源</small></span><i data-lucide="layers-2"></i></label>
             <button id="predictBtn" class="primary" type="button" disabled><i data-lucide="scan-line"></i><span id="predictLabel">分析矿物候选</span></button>
             <button id="cancelBtn" class="text-button" type="button" hidden>停止分析</button>
+            <button id="cancelInput" class="text-button" type="button" hidden>停止视频取帧</button>
             <div id="progress" class="progress-message" role="status" aria-live="polite">拍摄或选择一张照片即可开始。</div>
+            <div id="analysisRecovery" class="analysis-recovery" hidden><p>已提交的照片保留。可重试分析、重新拍摄，或检查识别资源。</p><div class="result-actions"><button id="retryAnalysis" class="secondary" type="button"><i data-lucide="rotate-cw"></i>重试分析</button><button id="analysisSettings" class="secondary" type="button"><i data-lucide="sliders-horizontal"></i>检查识别设置</button></div></div>
             <section class="result" id="result" hidden aria-labelledby="resultHeading">
-              <div class="result-heading"><span id="resultStatus" class="result-state">需要复核</span><button type="button" id="newSample" class="icon-button" aria-label="开始新标本"><i data-lucide="rotate-ccw"></i></button></div>
+              <div class="result-heading"><span id="resultStatus" class="result-state">需要复核</span></div>
               <p class="field-label">首选候选</p><h2 id="resultHeading"></h2><div class="result-sub"><span id="resultEnglish"></span><span id="resultFormula" class="formula"></span></div>
               <div class="score-row"><span>图像模型分数</span><strong id="resultScore"></strong></div><div class="score-track"><span id="scoreFill"></span></div><p class="score-caption">分数表示模型偏好，不代表实测准确率或鉴定结论。</p>
               <p id="verdict" class="verdict"></p><div id="evidenceSummary" class="evidence-summary"></div>
               <h3 class="candidate-heading">其他候选与物性对比</h3><div id="candidates" class="candidate-list"></div>
               <div id="physicalChecks"></div>
               <div class="result-actions"><button type="button" id="saveBtn" class="secondary"><i data-lucide="bookmark-plus"></i>保存标本</button><button type="button" id="detailBtn" class="secondary"><i data-lucide="book-open"></i>查看资料</button></div>
+              <button type="button" id="assistCurrent" class="secondary assist-current" hidden><i data-lucide="sparkles"></i>联网资料补充</button>
             </section>
           </div>
         </div>
       </section>
       <section id="view-library" class="view" hidden aria-labelledby="libraryHeading"><div class="page-heading"><div><p class="context">观察与对照</p><h1 id="libraryHeading">矿物图鉴</h1></div><span class="count-label" id="libraryCount"></span></div><label class="search"><i data-lucide="search"></i><input type="search" id="librarySearch" placeholder="搜索中文名、英文名或化学式" aria-label="搜索矿物"></label><div id="searchHistory" class="search-history" aria-label="历史搜索"></div><div class="library-tools"><select id="classScheme" aria-label="分类体系"><option value="strunz_10">10 类（Strunz 参考）</option><option value="class_9" selected>9 类（用户体系）</option><option value="class_8">8 类（用户体系）</option></select><select id="classFilter" aria-label="按矿物大类筛选"><option value="">全部类别</option></select><span class="field-hint">包含变种、集合体与部分岩石标本</span></div><div id="libraryList" class="library-list"></div></section>
-      <section id="view-records" class="view" hidden aria-labelledby="recordsHeading"><div class="page-heading"><div><p class="context">每块标本都有来处</p><h1 id="recordsHeading">我的标本</h1></div><span class="count-label" id="recordCount"></span></div><div class="record-tools"><label class="search"><i data-lucide="search"></i><input id="recordSearch" type="search" placeholder="搜索标本编号、矿物或备注" aria-label="搜索标本"></label><button type="button" id="exportBtn" class="icon-button" aria-label="导出全部标本"><i data-lucide="download"></i></button><button type="button" id="importBtn" class="icon-button" aria-label="导入标本文件"><i data-lucide="upload"></i></button><input id="importInput" type="file" accept="application/json,.json" hidden></div><p class="field-hint">记录保存在这台设备，导出文件可用于备份和跨设备迁移。</p><div id="recordList" class="record-list"></div></section>
-      <section id="view-settings" class="view" hidden aria-labelledby="settingsHeading"><div class="page-heading"><div><p class="context">为现场使用做好准备</p><h1 id="settingsHeading">使用与设置</h1></div></div><div class="settings-layout"><section class="settings-section"><h2>新用户使用指南</h2><p>认识四个功能页面，按步骤了解提交标本、分析与复核、离线准备、保存和备份。</p><button id="settingsGuide" type="button" class="secondary"><i data-lucide="compass"></i>打开使用指南</button></section><section class="settings-section"><h2>离线识别</h2><p id="offlineInfo">Android 安装包内置模型。网页版需先准备离线资源。</p><button id="offlineBtn" type="button" class="secondary"><i data-lucide="download-cloud"></i>准备离线资源</button><div id="offlineProgress" class="field-hint" role="status"></div></section><section class="settings-section"><h2>文字资料补充</h2><p>联网模式可调用 DeepSeek V4.1 Flash，发送候选名称、你填写的观察描述与物性，辅助比较相似矿物。默认不发送照片，辅助说明单独展示。开发电脑关机不影响直连服务。</p><label class="field-label" for="apiKey">你自己的 API 密钥</label><input id="apiKey" type="password" autocomplete="off" placeholder="仅在本次打开 App 时使用"><label class="assist-image-option"><input type="checkbox" id="assistImage"> 我选择附加当前标本照片给 DeepSeek</label><button id="assistBtn" type="button" class="secondary">为当前候选补充说明</button><p id="assistText" class="assist-text" aria-live="polite"></p></section><section class="settings-section"><h2>怎样得到更可靠的线索</h2><ol class="use-guide"><li>单独拍摄目标标本，使用均匀光线和简单背景。</li><li>拍摄不同角度与晶体细节，避免放入其他标本。</li><li>比较候选的硬度、光泽、条痕、晶形等信息。</li><li>实验室记录可补充已确认名称与确认方法。</li></ol><p>目前沿用 1.0 的 98 类图像模型。2.0 的分数与拒判阈值尚待真实场景样本校准；图片识别不能替代实验室检测。</p></section><section class="settings-section"><h2>资料与书籍来源</h2><p>来源目录用于核对鉴别依据。每条原知识资料仍需审核；网站照片不会自动成为训练真值。</p><div id="sourceList" class="source-list"></div></section><section class="settings-section"><h2>支持范围</h2><p id="coverageInfo"></p><p>类别目录不代表所有矿物均可识别。产地显示典型资料，不能由外观确定当前标本的采集地点。</p></section><section class="settings-section about"><img src="./icon.svg" width="56" height="56" alt="识矿图标"><div><h2>识矿 2.0 预览版</h2><p>让观察有依据，让记录可追溯。</p><small id="buildInfo">2.0.0-preview</small></div></section></div></section>
+      <section id="view-records" class="view" hidden aria-labelledby="recordsHeading"><div class="page-heading"><div><p class="context">每块标本都有来处</p><h1 id="recordsHeading">我的标本</h1></div><span class="count-label" id="recordCount"></span></div><div class="record-tools"><label class="search"><i data-lucide="search"></i><input id="recordSearch" type="search" placeholder="搜索标本编号、矿物或备注" aria-label="搜索标本"></label><button type="button" id="exportBtn" class="icon-button" aria-label="导出全部标本"><i data-lucide="download"></i></button><button type="button" id="importBtn" class="icon-button" aria-label="导入标本文件"><i data-lucide="upload"></i></button><input id="importInput" type="file" accept="application/json,.json" hidden></div><div id="recordSearchHistory" class="search-history" aria-label="标本历史搜索"></div><p class="field-hint">记录保存在这台设备，导出文件可用于备份和跨设备迁移。</p><div id="recordList" class="record-list"></div></section>
+      <section id="view-settings" class="view" hidden aria-labelledby="settingsHeading"><div class="page-heading"><div><p class="context">为现场使用做好准备</p><h1 id="settingsHeading">使用与设置</h1></div></div><div class="settings-layout"><section class="settings-section"><h2>新用户使用指南</h2><p>认识四个功能页面，按步骤了解提交标本、分析与复核、离线准备、保存和备份。</p><button id="settingsGuide" type="button" class="secondary"><i data-lucide="compass"></i>打开使用指南</button></section><section class="settings-section"><h2>离线识别</h2><p id="offlineInfo">Android 安装包内置模型。网页版需先准备离线资源。</p><button id="offlineBtn" type="button" class="secondary"><i data-lucide="download-cloud"></i>准备离线资源</button><button id="cancelOffline" type="button" class="text-button" hidden>停止准备</button><div id="offlineProgress" class="field-hint" role="status"></div></section><section id="assistSection" class="settings-section"><h2>联网资料补充</h2><p>切换到联网模式后，图像仍由本机分析；下方按钮才会调用 DeepSeek V4.1 Flash，发送候选名称、你填写的观察描述与物性，辅助比较相似矿物。默认不发送照片，辅助说明单独展示。开发电脑关机不影响直连服务。</p><label class="field-label" for="apiKey">你自己的 API 密钥</label><input id="apiKey" type="password" autocomplete="off" placeholder="仅在本次打开 App 时使用"><label class="assist-image-option"><input type="checkbox" id="assistImage"> 我选择附加当前标本照片给 DeepSeek</label><button id="assistBtn" type="button" class="secondary">为当前候选补充说明</button><p id="assistText" class="assist-text" aria-live="polite"></p></section><section class="settings-section"><h2>怎样得到更可靠的线索</h2><ol class="use-guide"><li>单独拍摄目标标本，使用均匀光线和简单背景。</li><li>拍摄不同角度与晶体细节，避免放入其他标本。</li><li>比较候选的硬度、光泽、条痕、晶形等信息。</li><li>实验室记录可补充已确认名称与确认方法。</li></ol><p>目前沿用 1.0 的 98 类图像模型。2.0 的分数与拒判阈值尚待真实场景样本校准；图片识别不能替代实验室检测。</p></section><section class="settings-section"><h2>资料与书籍来源</h2><p>来源目录用于核对鉴别依据。每条原知识资料仍需审核；网站照片不会自动成为训练真值。</p><div id="sourceList" class="source-list"></div></section><section class="settings-section"><h2>支持范围</h2><p id="coverageInfo"></p><p>类别目录不代表所有矿物均可识别。产地显示典型资料，不能由外观确定当前标本的采集地点。</p></section><section class="settings-section about"><img src="./icon.svg" width="56" height="56" alt="识矿图标"><div><h2>识矿 2.0 预览版</h2><p>让观察有依据，让记录可追溯。</p><small id="buildInfo">2.0.1-preview</small></div></section></div></section>
     </main>
     <nav class="bottom-nav" aria-label="主要功能"><a href="#identify" class="active" data-view="identify" aria-current="page"><i data-lucide="scan-line"></i><span>识别</span></a><a href="#library" data-view="library"><i data-lucide="gem"></i><span>图鉴</span></a><a href="#records" data-view="records"><i data-lucide="notebook-tabs"></i><span>标本</span></a><a href="#settings" data-view="settings"><i data-lucide="sliders-horizontal"></i><span>设置</span></a></nav>
   </div>
@@ -100,11 +104,11 @@
       <section data-guide-title="先提交一个清晰的标本" hidden>
         <p class="guide-lead">每次只分析同一标本。使用均匀光线与简单背景，让目标居中、对焦清晰，尽量补充 2–3 个不同角度。</p>
         <dl class="guide-features"><div><dt><i data-lucide="camera"></i>拍摄标本</dt><dd>打开相机拍摄一张照片；允许相机权限后再拍摄。</dd></div><div><dt><i data-lucide="video"></i>视频</dt><dd>选择录制或导入视频，缓慢展示同一标本。本机抽取画面供分析；最多保留 3 张图像。录制限 20 秒，导入限 90 秒、100 MB。</dd></div><div><dt><i data-lucide="folder-open"></i>照片文件</dt><dd>选择已有照片，每张不超过 20 MB；同一标本最多 3 张。格式需得到当前设备支持。</dd></div></dl>
-        <p class="guide-note">提交成功后会显示照片预览和“已提交”提示。拖动“中心分析区域”减少背景干扰；可移除照片并重新添加。视频帧可能相似，不等于独立拍摄角度。</p>
+        <p class="guide-note">提交成功后会显示照片预览和“已提交”提示。拖动“中心分析区域”减少背景干扰；可移除照片并重新添加。更换实物前点击“开始新标本”；未保存的当前输入会先询问，已保存记录保留。视频帧可能相似，不等于独立拍摄角度。</p>
       </section>
       <section data-guide-title="补充观察，让复核有依据" hidden>
         <p class="guide-lead">在“补充观察”填写颜色、晶形、条痕、磁性、采集信息等。照片是图像分析的输入；文字用于记录与联网辅助说明。</p>
-        <ol class="guide-steps"><li>日常观察可直接使用默认场景；实验室场景会展开物性复核和标本编号。</li><li>已测量的摩氏硬度与观察到的光泽，用于提示候选是否符合或冲突。未测量的项目留空。</li><li>点击“分析矿物候选”。默认综合 3 个模型；取消“多模型交叉分析”可使用单模型快速分析。</li><li>查看资源加载和分析进度。需要时点击“停止分析”；照片会保留，可再次尝试。</li></ol>
+        <ol class="guide-steps"><li>日常观察可直接使用默认场景；实验室场景会展开物性复核和标本编号。</li><li>已测量的摩氏硬度与观察到的光泽，用于提示候选是否符合或冲突。未测量的项目留空。</li><li>点击“分析矿物候选”。默认综合 3 个模型；取消“多模型交叉分析”可使用单模型快速分析。</li><li>查看资源加载和分析进度。需要时点击“停止分析”；视频取帧也可停止。失败后照片会保留，可点击“重试分析”或“检查识别设置”。</li></ol>
         <p class="guide-note">修改照片或物性后应重新分析。填写描述不会提高图像模型分数；不规则、混合或细小标本可增加背景干扰，建议补拍整体和局部细节。</p>
       </section>
       <section data-guide-title="读懂候选，再决定是否确认" hidden>
@@ -114,10 +118,10 @@
       </section>
       <section data-guide-title="联网与离线，分别怎样使用" hidden>
         <dl class="guide-features"><div><dt><i data-lucide="wifi-off"></i>离线模式</dt><dd>图像分析在本机进行。Android 安装包内置模型；网页版先在有网时进入“设置 → 准备离线资源”，等待完成，并保留浏览器缓存。之后可在同一浏览器中离线使用。</dd></div><div><dt><i data-lucide="wifi"></i>联网模式</dt><dd>本机分析后，可在设置中填写自己的 API 密钥，点击“为当前候选补充说明”，调用 DeepSeek V4.1 Flash 比较候选与观察。密钥只在本次打开期间使用。</dd></div><div><dt><i data-lucide="image"></i>照片与联网辅助</dt><dd>核心识别不会上传照片。联网辅助默认发送候选与文字观察；只有勾选附加照片才会发送当前标本图像。辅助说明单独展示，不替代本机结果。</dd></div></dl>
-        <p class="guide-note">开发电脑关机不影响本机识别；联网辅助需要手机网络及可用的 API 服务。网页版首次准备资源需要网络，清除浏览器数据后需重新准备。首次加载失败可在设置中重新准备资源。</p>
+        <p class="guide-note">开发电脑关机不影响本机识别；联网辅助需要手机网络及可用的 API 服务。网页版首次准备资源需要网络，清除浏览器数据后需重新准备。首次加载失败可在设置中重新准备资源；可随时停止准备，已完成资源保留。再次准备会校验模型并修复损坏的缓存。</p>
       </section>
       <section data-guide-title="保存、搜索与备份你的发现" hidden>
-        <ol class="guide-steps"><li>分析完成后点击“保存标本”，再从底部“标本”查看照片、时间、候选、编号与备注。</li><li>得到可靠鉴定后，在记录中补充已确认名称及确认方法，保留原始候选供追溯。</li><li>图鉴与标本支持搜索。在搜索框按回车或离开输入框后会保存搜索词；图鉴的历史搜索可再次点击使用。</li><li>标本页右上方可导出全部记录为 JSON 文件；在另一设备导入该文件即可迁移。重复导入不会覆盖已复核记录。</li></ol>
+        <ol class="guide-steps"><li>分析完成后点击“保存标本”，再从底部“标本”查看照片、时间、候选、编号与备注。</li><li>得到可靠鉴定后，在记录中补充已确认名称及确认方法，保留原始候选供追溯。</li><li>图鉴与标本支持搜索。在搜索框按回车或离开输入框后会保存搜索词；图鉴与标本分别显示各自的历史搜索，可再次点击使用。</li><li>标本页右上方可导出全部记录为 JSON 文件；在另一设备导入该文件即可迁移。重复导入不会覆盖已复核记录。</li></ol>
         <p class="guide-note">记录最多保存 100 条，搜索历史最多 20 条，均保存在当前设备。卸载或清除应用/浏览器数据可能丢失记录，请定期导出备份。指南完成后，仍可在“设置”中重新打开。</p>
         <p class="guide-lead guide-finish">准备好了，就从一张清晰的矿物照片开始。</p>
       </section>
