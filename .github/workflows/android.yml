@@ -5,6 +5,9 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: android-build-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -18,18 +21,41 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
+          cache: gradle
       - run: npm ci
       - run: npm audit --audit-level=high
       - run: npm test
       - run: npm run check
       - run: npm run sync
+      - name: Prepare persistent preview signing key
+        env:
+          SIGNING_STORE: ${{ secrets.SHIKUANG_SIGNING_STORE }}
+        run: |
+          if [ -n "$SIGNING_STORE" ]; then
+            printf '%s' "$SIGNING_STORE" | base64 --decode > "$RUNNER_TEMP/shikuang-preview.p12"
+            chmod 600 "$RUNNER_TEMP/shikuang-preview.p12"
+            printf 'SHIKUANG_SIGNING_FILE=%s\n' "$RUNNER_TEMP/shikuang-preview.p12" >> "$GITHUB_ENV"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Persistent signing secret is required for a distributable preview."
+            exit 1
+          fi
       - name: Build and lint Android preview
         working-directory: android
+        env:
+          SHIKUANG_SIGNING_PASSWORD: ${{ secrets.SHIKUANG_SIGNING_PASSWORD }}
         run: ./gradlew assembleDebug lintDebug
+      - name: Verify APK signature with the official Android SDK
+        shell: bash
+        run: |
+          SHIKUANG_ANDROID_SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          "$SHIKUANG_ANDROID_SDK/build-tools/34.0.0/apksigner" verify --verbose --print-certs \
+            android/app/build/outputs/apk/debug/app-debug.apk \
+            | tee android/app/build/outputs/apk/debug/apk-signature-verification.txt
       - uses: actions/upload-artifact@v4
         with:
           name: shikuang-2.0-preview-apk
           path: |
             android/app/build/outputs/apk/debug/app-debug.apk
+            android/app/build/outputs/apk/debug/apk-signature-verification.txt
             android/app/build/reports/lint-results-debug.html
           if-no-files-found: error

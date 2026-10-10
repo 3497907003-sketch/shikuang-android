@@ -6,6 +6,13 @@
 })(typeof globalThis === 'object' ? globalThis : this, function () {
   'use strict';
   const POLICY = Object.freeze({ score: 0.65, margin: 0.20, agreement: 2/3, version: '2.0-preview' });
+  const BACKUP_LIMIT_BYTES = 100 * 1024 * 1024;
+  function checkBackupSize(value) {
+    const bytes = typeof value === 'number' ? value : typeof value === 'string' ? new TextEncoder().encode(value).byteLength : NaN;
+    if (!Number.isFinite(bytes) || bytes < 0) throw new Error('备份文件大小无效');
+    if (bytes > BACKUP_LIMIT_BYTES) throw new Error('备份文件超过 100 MB，请选择完整的识矿 2.0 备份文件');
+    return bytes;
+  }
   function softmax(values) {
     const a = Array.from(values);
     if (!a.length || a.some(x => !Number.isFinite(x))) throw new Error('模型输出包含无效数值');
@@ -32,7 +39,12 @@
   }
   function hardnessRange(value) {
     if (value === null || value === undefined || value === '') return null;
-    const numbers = String(value).match(/\d+(?:\.\d+)?/g)?.map(Number);
+    // Directional measurements cannot be compared with an unoriented scratch test.
+    const text = String(value);
+    if (/[∥⊥]|parallel|perpendicular|\[[\d\s+-]+\]/i.test(text)) return null;
+    const normalized = text.replace(/(\d+)([¼½¾])/g, (_, whole, part) => String(Number(whole) + ({'¼':0.25,'½':0.5,'¾':0.75})[part]));
+    if (/[¼½¾]/.test(normalized)) return null;
+    const numbers = normalized.match(/\d+(?:\.\d+)?/g)?.map(Number);
     if (!numbers?.length || numbers.some(x => x < 0 || x > 10)) return null;
     return [Math.min(...numbers), Math.max(...numbers)];
   }
@@ -47,7 +59,7 @@
     if (luster && knowledge?.luster) {
       // Non-metallic and metallic are the only mutually exclusive comparison here.
       const text = knowledge.luster;
-      const hasMetal = text.replace(/非金属/g,'').includes('金属'), hasNonMetal = /非金属|玻璃|丝绢|珍珠|油脂|树脂|蜡|土状/.test(text);
+      const hasMetal = /金属|metallic/i.test(text.replace(/非金属|non[-\s]?metallic/gi,'')), hasNonMetal = /非金属|玻璃|丝绢|珍珠|油脂|树脂|蜡|土状|non[-\s]?metallic|vitreous|silky|pearly|greasy|resinous|waxy|earthy|adamantine/i.test(text);
       const compatible = luster === 'metal' ? hasMetal : hasNonMetal;
       const known = hasMetal || hasNonMetal;
       if (known) checks.push({ property: '光泽', expected: text, observed: luster === 'metal' ? '金属光泽' : '非金属光泽', status: compatible ? 'match' : 'conflict' });
@@ -131,12 +143,12 @@
       policy: str(input.policy, 100) || POLICY.version, source: 'local' };
   }
   function parseImport(text) {
-    if (text.length > 10 * 1024 * 1024) throw new Error('导入文件超过 10 MB');
+    checkBackupSize(text);
     const data = JSON.parse(text);
     if (data?.schema !== 'shikuang-records' || data.version !== 2 || !Array.isArray(data.records) || data.records.length > 100) throw new Error('请选择识矿 2.0 导出的标本文件（最多 100 条）');
     const records = data.records.map(sanitizeRecord);
     if (new Set(records.map(r => r.id)).size !== records.length) throw new Error('导入文件包含重复记录编号');
     return records;
   }
-  return { POLICY, NON_MINERAL, screen, softmax, probabilities, average, argmax, hardnessRange, evidenceFor, summarize, quality, qualityWarnings, sanitizeRecord, parseImport };
+  return { POLICY, NON_MINERAL, BACKUP_LIMIT_BYTES, checkBackupSize, screen, softmax, probabilities, average, argmax, hardnessRange, evidenceFor, summarize, quality, qualityWarnings, sanitizeRecord, parseImport };
 });

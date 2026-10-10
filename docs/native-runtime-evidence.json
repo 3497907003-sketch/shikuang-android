@@ -1,0 +1,116 @@
+{
+  "schema": "shikuang-native-runtime-evidence/v1",
+  "verifiedRun": "https://github.com/3497907003-sketch/shikuang-android/actions/runs/38058075893",
+  "verifiedHead": "d8ebf06c111f727e7defade2d7e5f6d276c297b9",
+  "conclusion": "success",
+  "observations": [
+    {
+      "androidApi": 30,
+      "userAgent": "Mozilla/5.0 (Linux; Android 11; sdk_gphone_x86_64 Build/RSR1.240422.006; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/83.0.4103.106 Mobile Safari/537.36",
+      "testCount": 2,
+      "failures": 0,
+      "workerBootDiagnostic": {
+        "status": "message",
+        "message": {
+          "type": "boot-error",
+          "message": "Unexpected token '='"
+        }
+      },
+      "nativeQuartzResult": {
+        "key": "quartz",
+        "modelCount": 3,
+        "engine": "onnx-native-android",
+        "score": 0.6632602832058662,
+        "status": "consistent"
+      },
+      "cancellation": {
+        "trigger": "native-progress",
+        "error": {
+          "name": "AbortError",
+          "message": "分析已停止"
+        }
+      },
+      "nonMineralRejection": {
+        "name": "Error",
+        "message": "这不是矿物，请您放入清晰的矿物照片。"
+      },
+      "savedRecords": [
+        {
+          "id": "specimen-1791641229400-p4wuvaf06x",
+          "key": "quartz",
+          "modelCount": 3,
+          "photoCount": 1
+        }
+      ],
+      "recordsAfterRejection": [
+        {
+          "id": "specimen-1791641229400-p4wuvaf06x",
+          "key": "quartz",
+          "modelCount": 3
+        }
+      ],
+      "wifiEnabled": false,
+      "mobileDataEnabled": false,
+      "navigatorOnline": true
+    },
+    {
+      "androidApi": 35,
+      "userAgent": "Mozilla/5.0 (Linux; Android 15; sdk_gphone64_x86_64 Build/AE3A.240806.043; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/124.0.6367.219 Mobile Safari/537.36",
+      "testCount": 2,
+      "failures": 0,
+      "workerBootDiagnostic": {
+        "status": "message",
+        "message": {
+          "type": "ready"
+        }
+      },
+      "nativeQuartzResult": {
+        "key": "quartz",
+        "modelCount": 3,
+        "engine": "onnx-native-android",
+        "score": 0.6622475298482069,
+        "status": "consistent"
+      },
+      "cancellation": {
+        "trigger": "native-progress",
+        "error": {
+          "name": "AbortError",
+          "message": "分析已停止"
+        }
+      },
+      "nonMineralRejection": {
+        "name": "Error",
+        "message": "这不是矿物，请您放入清晰的矿物照片。"
+      },
+      "savedRecords": [
+        {
+          "id": "91ec5daf-a38a-45a0-af40-3fab403046d2",
+          "key": "quartz",
+          "modelCount": 3,
+          "photoCount": 1
+        }
+      ],
+      "recordsAfterRejection": [
+        {
+          "id": "91ec5daf-a38a-45a0-af40-3fab403046d2",
+          "key": "quartz",
+          "modelCount": 3
+        }
+      ],
+      "wifiEnabled": false,
+      "mobileDataEnabled": false,
+      "navigatorOnline": true
+    }
+  ],
+  "interpretation": {
+    "rootCause": "The packaged ONNX Runtime Web script does not parse on WebView 83 (Unexpected token =). Native Android ONNX CPU inference succeeds on that same WebView and bypasses its Worker/WASM bootstrap. WebView 124 Worker boot reaches ready.",
+    "accuracyLimit": "This is a regression smoke test using an existing quartz image, not independent field accuracy or Kappa validation.",
+    "networkLimit": "Baseline run disabled Wi-Fi and mobile data, but emulated Ethernet and navigator.onLine remained active. It does not establish complete network disconnection.",
+    "artifactLimit": "Baseline Gradle cleanup uninstalled the app before screenshot and JSON pull. The complete JSON evidence is recovered from Logcat; screenshots were not preserved.",
+    "nextVerification": "Workflow now also lowers Ethernet links, asserts no IPv4/IPv6 default routes and navigator.onLine=false, and keeps test APKs installed long enough to pull evidence. This strengthened run is pending."
+  },
+  "primaryReferences": [
+    "https://developer.android.com/tools/variables",
+    "https://android.googlesource.com/platform/tools/base/+/refs/heads/mirror-goog-studio-main/build-system/gradle-core/src/main/java/com/android/build/gradle/options/BooleanOption.kt"
+  ]
+}

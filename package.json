@@ -1,6 +1,6 @@
 {
   "name": "shikuang-android",
-  "version": "2.0.0-preview",
+  "version": "2.0.2-preview",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.cjs",

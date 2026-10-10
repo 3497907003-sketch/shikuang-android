@@ -10,4 +10,9 @@ for (const file of files) {
   fs.mkdirSync(path.dirname(target), { recursive: true });
   fs.copyFileSync(path.join(root, file), target);
 }
+for (const file of ['reference-loader.js','data/catalog.json','data/crystals.json','data/image-sources.json','data/reference-manifest.json','data/licenses/ima-cnmnc-2026-09.txt']) {
+  fs.mkdirSync(path.dirname(path.join(output,file)),{recursive:true});
+  fs.copyFileSync(path.join(root,file),path.join(output,file));
+  files.push(file);
+}
 console.log(`Built ${files.length} offline assets in dist/`);

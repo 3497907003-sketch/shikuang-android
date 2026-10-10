@@ -1,0 +1,38 @@
+The New IMA List of Minerals – A Work in Progress – Updated: September 2026
+In the following pages of this document a comprehensive list of all valid mineral species is presented. The list is distributed (for terms and conditions see
+below) via the web site of the Commission on New Minerals, Nomenclature and Classification of the International Mineralogical Association, which is the
+organization in charge for approval of new minerals, and more in general for all issues related to the status of mineral species. The list, which will be
+updated on a regular basis, is intended as the primary and official source on minerals.
+Explanation of column headings:
+Name: it is the presently accepted mineral name (and in the table, minerals are sorted by name). Mineral names are common nouns, and thus have an
+initial capital letter only at the beginning of a sentence, or when they occur in an index or in a table, as in the current list.
+CNMMN/CNMNC approved formula: it is the chemical formula of the mineral.
+IMA status: A = approved (it applies to minerals approved after the establishment of the IMA in 1958); G = grandfathered (it applies to minerals
+discovered before the birth of IMA, and generally considered as valid species); Rd = redefined (it applies to existing minerals which were redefined
+during the IMA era); Rn = renamed (it applies to existing minerals which were renamed during the IMA era); Q = questionable (it applies to poorly
+characterized minerals, whose validity could be doubtful).
+IMA No. / Year: for approved minerals the IMA No. is given: it has the form XXXX-YYY, where XXXX is the year and YYY a sequential number; for
+grandfathered minerals the year of the original description is given. In some cases, typically for Rd and Rn minerals, the year may be followed by s.p.
+(special procedure): it refers to the year in which a specific action (redefinition and/or renaming) took place, and was approved by IMA. This may be
+related to the approval of a report by a dedicated subcommittee on a given group of minerals.
+Country: it is the country in which the mineral was discovered for the first time (according to the national boundaries as of today).
+First reference: it is the original reference for each mineral.
+Second reference: it is the most recent or most complete reference for each mineral, possibly including a crystal structure study.
+Caveat (IMPORTANT): the list includes selected information on the 6239 currently valid species; inevitably there will be mistakes in it. We will be
+grateful to all those who will point out errors of any kind, including typos. Please email your corrections to marco.pasero@unipi.it.
+Acknowledgments: The following persons, listed in alphabetic order, gave their contribution to the building and the update of the IMA List of Minerals:
+Malcolm Back, Cristian Biagioni, William D. Birch, Michel Blondieau, Hans-Peter Bojar, Louis J. Cabri, Fernando Cámara Artigas, Jerry Carter, Marco E.
+Ciriotti, Patricio Cuadra Càrdenas, Jeffrey de Fourestier, Frank de Wit, Dmitry Dolivo-Dobrovolsky, Robert T. Downs, Christopher Emproto, Lorenza
+Fascio, Cristiano Ferraris, Giovanni Ferraris, Joan Garcia Santiago, Robert Gault, Athanasios Godelitsas, Joshua Golden, Edward S. Grew, Ulf
+Hålenius, Luboš Harapát, Frank C. Hawthorne, László Horváth, Tomas Husdal, Christian R. Imark, Jordi Lluis Justo del Campo, Anthony R. Kampf,
+Anatoly Kasatkin, Frank Keutsch, Erika Kiechle, Johan Kjellman, Uwe Kolitsch, Ruslan I. Kostov, Vladimir G. Krivovichev, Łukasz Kruszewski, Jacques
+
+Lapaire, Lotte Melchior Larsen, Andrzej Manecki, María Florencia Márquez-Zavalía, Robert F. Martin, Tania Martins, Florias Mees, Silvio Menchetti,
+Stuart J. Mills, Owen Missen, Bee Moua, José Nicolás Muñoz Gómez, Paulo Neves, Dieter Nickolay, Thomas Oberthür, Roberta Oberti, Mikhail
+Ostrooumov, Robert E. Pedersen, Herwig Pelckmans, Pierre Perroud, Gerald A. Peters, Adam Pieczka, Jakub Plášil, Olav Revheim, Arnold P. Ritte,
+André Robbemond, Andrew C. Roberts, Megan M. Rost, Mike Rousseau, Gavin Schmidtke, Stefan Schorn, Benjamin N. Schumer, Jason Schuminski,
+Elena Sokolova, Steve Sorrell, Simon Spürgin, Patrick Stanco, Chris J. Stanley, Roy Starkey, Aminjon Sultonov, Danka Szekvőlgyiová, Pavel Uher,
+Mike Unwalla, Luc Vandenberghe, Ivan Vighetto, Pietro Vignola, Jianxiong Wang, Jeff Weissman, Thomas Witzke, Liangfeng Yang, Ming Ye, Luminita
+Zaharia.
+Distribution terms and conditions: This work is licensed under the Creative Commons Attribution-ShareAlike 3.0 Unported License.
+To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/.

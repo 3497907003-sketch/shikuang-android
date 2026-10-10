@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "version": "2026-10-10",
+  "catalog_version": "2026-09",
+  "counts": {
+    "ima_species": 6239,
+    "handbook_links": 5366,
+    "archive_records": 21503,
+    "matched_records": 9895,
+    "species_with_records": 3430
+  },
+  "files": [
+    {
+      "path": "data/catalog.json",
+      "bytes": 3869114,
+      "sha256": "8e9b3a73e2e46a16fa6821ae5e83e97ce85c5a458b26b3766664618905a3a8bb"
+    },
+    {
+      "path": "data/crystals.json",
+      "bytes": 6162899,
+      "sha256": "d010238e6b1345f2596e8c318223be4aa37209d4c1fa9197009845bceb501764"
+    },
+    {
+      "path": "data/image-sources.json",
+      "bytes": 1608654,
+      "sha256": "36917c4750fefe9435020426502c2b321ac961b056654508f1e54c790b4b6515"
+    }
+  ]
+}

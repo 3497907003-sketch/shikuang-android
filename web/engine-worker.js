@@ -1,5 +1,6 @@
 'use strict';
-importScripts('./vendor/ort.min.js','./core.js');
+let bootError;
+try{importScripts('./vendor/ort.min.js','./core.js');}catch(error){bootError=error.message||String(error);}
 const sessions = new Map();
 let manifest;
 const send = (type, value) => postMessage({ type, ...value });
@@ -38,6 +39,7 @@ async function run(session, data, count) {
   const input = new ort.Tensor('float32',data,[1,3,224,224]);
   let output;
   try {
+    if(bootError)throw new Error(`识别依赖加载失败：${bootError}`);
     output=await session.run({[session.inputNames[0]]:input});
     const values=Array.from(output[session.outputNames[0]]?.data || []);
     if(values.length!==count || values.some(x=>!Number.isFinite(x)))throw new Error('模型输出与标签清单不匹配');
@@ -47,15 +49,14 @@ async function run(session, data, count) {
 onmessage = async ({data}) => {
   if(data.type!=='analyze')return;
   try {
+    if(bootError)throw new Error(`识别依赖加载失败：${bootError}`);
     const {base,inputs,models,labels,screen,blocked}=data;
     ort.env.wasm.wasmPaths=new URL('vendor/',base).href;ort.env.wasm.numThreads=1;ort.env.wasm.proxy=false;
     if(!manifest){const res=await fetch(new URL('model-manifest.json',base));if(!res.ok)throw new Error('模型清单无法读取');manifest=await res.json();}
     if(JSON.stringify(labels)!==JSON.stringify(manifest.labels))throw new Error('模型标签类序不匹配，请更新 App');
     const runs=[],screening=[],warnings=[];
     if(screen){
-      let gate;
-      try{gate=await modelSession({file:'imagenet_gate.onnx',title:'输入筛查'},base);}
-      catch(_){warnings.push('输入筛查不可用，本次需人工复核');}
+      const gate=await modelSession({file:'imagenet_gate.onnx',title:'输入筛查'},base);
       if(gate)for(let i=0;i<inputs.length;i++){
         send('progress',{message:`筛查输入图像 ${i+1}/${inputs.length}…`});
         const values=await run(gate,inputs[i],1000);screening.push({photo:i,values});
@@ -75,3 +76,4 @@ onmessage = async ({data}) => {
     send('result',{runs,screening,warnings});
   }catch(e){send('error',{message:e.message||'识别资源无法运行，请更新 App'});}
 };
+postMessage(bootError?{type:'boot-error',message:bootError}:{type:'ready'});
