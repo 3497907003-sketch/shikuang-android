@@ -1,42 +1,5 @@
 const test = require('node:test'), assert = require('node:assert/strict');
-const fs = require('node:fs'), vm = require('node:vm');
-const Core = require('../web/core.js');
-
-function fixture({ register } = {}) {
-  class Element {
-    constructor(id) { this.id=id;this.value='';this.hidden=false;this.disabled=false;this.checked=false;this.listeners={};this.style={};this.dataset={};this.naturalWidth=256;this.naturalHeight=256;this.clientWidth=300;this.clientHeight=300;this.classList={add(){},remove(){},toggle(){}}; }
-    addEventListener(type,fn) { (this.listeners[type] ||= []).push(fn); }
-    fire(type,event={}) { for(const fn of this.listeners[type] || [])fn(event); }
-    focus(){} scrollIntoView(){} setAttribute(){} removeAttribute(){}
-    showModal(){this.open=true;} close(){this.open=false;this.fire('close');}
-    getContext(){return {drawImage:image=>{this.drawn=image;}};}
-    toDataURL(){return 'data:image/jpeg;base64,'+Buffer.from(this.drawn?.src||'thumbnail').toString('base64');}
-  }
-  const elements=new Map(), node=id=>{if(!elements.has(id))elements.set(id,new Element(id));return elements.get(id);};
-  const groups={'.view':['view-identify','view-library','view-records','view-settings'].map(node),'[data-guide-title]':Array.from({length:6},(_,i)=>{const el=node('guide-'+i);el.dataset.guideTitle='指南 '+i;return el;}),'dialog':['guideDialog','cameraDialog','videoDialog','detailDialog','recordDialog','confirmDialog'].map(node)};
-  groups['[data-view]']=['identify','library','records','settings'].map(view=>{const el=node('nav-'+view);el.dataset.view=view;return el;});
-  groups['[data-mode]']=['offline','online'].map(mode=>{const el=node('mode-'+mode);el.dataset.mode=mode;return el;});
-  groups['[data-scene]']=['daily','lab'].map(scene=>{const el=node('scene-'+scene);el.dataset.scene=scene;return el;});
-  const saved=new Map(), local=new Map(), listeners={}, confirmations=[];
-  let hash='#identify',imageId=0,analysisError,confirmResult=true;
-  const result=()=>({key:'quartz',score:.8,status:'uncertain',reasons:[],rankings:[{key:'quartz',score:.8}],checks:[],agreement:1,photoCount:1,modelCount:1});
-  const context={ document:{querySelector:s=>s==='dialog[open]'?groups.dialog.find(el=>el.open):node(s.slice(1)),querySelectorAll:s=>groups[s]||[],createElement:tag=>new Element(tag),addEventListener(){} ,body:{classList:{add(){},remove(){}}}},
-    location:{protocol:'http:',hostname:'127.0.0.1',href:'http://127.0.0.1/test/',get hash(){return hash;},set hash(v){hash=v.startsWith('#')?v:'#'+v;}},
-    navigator:{onLine:true,serviceWorker:register?{register}:undefined}, caches:{},
-    addEventListener:(type,fn)=>{listeners[type]=fn;},requestAnimationFrame:fn=>fn(),matchMedia:()=>({matches:true}),
-    setTimeout:(fn,ms)=>{const timer=setTimeout(fn,ms);timer.unref();return timer;},clearTimeout,AbortController,DOMException,Date,Math,Promise,Map,Set,Number,String,Array,Object,
-    crypto:{randomUUID:()=>`record-${saved.size+1}`},URL:{createObjectURL:()=>`blob:photo-${++imageId}`,revokeObjectURL(){}},
-    localStorage:{getItem:key=>local.get(key)||null,setItem:(key,value)=>local.set(key,value)},confirm:message=>{confirmations.push(message);return confirmResult;},
-    MINERAL_KB:{quartz:{name_zh:'石英',name_en:'Quartz',formula:'SiO₂',classification:{class_9:'氧化物/氢氧化物'}}},MINERAL_CLASSES:{quartz:{zh:'石英'}},MINERAL_SOURCES:[],MineralCore:Core,
-    MineralEngine:{image:async src=>({src,naturalWidth:256,naturalHeight:256}),analyze:async()=>{if(analysisError)throw analysisError;return result();},models:[]},
-    SpecimenStore:{migrate:async()=>{},list:async()=>[...saved.values()],put:async record=>{saved.set(record.id,record);return record;}} };
-  context.window=context;context.window.scrollTo=()=>{};
-  node('classScheme').value='class_9';node('precision').checked=true;
-  vm.runInNewContext(fs.readFileSync(require.resolve('../web/history.js'),'utf8'),context,{filename:'history.js'});
-  vm.runInNewContext(fs.readFileSync(require.resolve('../web/app.js'),'utf8'),context,{filename:'app.js'});
-  const settle=async()=>{for(let i=0;i<12;i++)await new Promise(resolve=>setImmediate(resolve));};
-  return {node,saved,confirmations,context,settle,setError:error=>{analysisError=error;},setConfirmation:value=>{confirmResult=value;},route:view=>{context.location.hash=view;listeners.hashchange();},click:async id=>{node(id).fire('click');await settle();},photo:async()=>{node('fileInput').files=[{name:'specimen.jpg',type:'image/jpeg',size:100}];node('fileInput').fire('change');await settle();}};
-}
+const {fixture}=require('./helpers/app-fixture.cjs');
 
 test('same specimen updates its saved record after retry, precision changes and crop edits',async()=>{
   const f=fixture();await f.photo();await f.click('predictBtn');await f.click('saveBtn');
@@ -74,4 +37,19 @@ test('leaving identification cancels video extraction and refuses late frames',a
   f.route('records');assert.equal(signal.aborted,true);
   complete({duration:4,frames:[{src:'data:image/jpeg;base64,TEFURQ==',time:2}]});await f.settle();
   assert.match(f.node('inputSummary').textContent,/已提交 1 张/);assert.equal(f.node('cancelInput').hidden,true);assert.equal(f.node('galleryBtn').disabled,false);
+});
+
+test('prepared reference metadata and attribution remain available after the current service worker activates offline',async()=>{
+  const fs=require('node:fs'),vm=require('node:vm'),stored=new Map();
+  const caches={open:async name=>{if(!stored.has(name))stored.set(name,new Map());const cache=stored.get(name);return {put:async(request,response)=>cache.set(typeof request==='string'?request:request.url,response),match:async request=>cache.get(typeof request==='string'?request:request.url),delete:async request=>cache.delete(typeof request==='string'?request:request.url)};},keys:async()=>[...stored.keys()],delete:async name=>stored.delete(name)};
+  const f=fixture({register:async()=>({})});f.context.caches=caches;f.context.URL=URL;f.context.Request=Request;
+  f.context.fetch=async request=>typeof request==='string'?{ok:true,json:async()=>({models:[]})}:new Response('prepared '+new URL(request.url).pathname);
+  await f.click('offlineBtn');assert.match(f.node('offlineProgress').textContent,/离线资源已准备/);
+  const events={},scope=f.context.location.href,worker={addEventListener:(type,fn)=>{events[type]=fn;},registration:{scope},clients:{claim(){}}};
+  vm.runInNewContext(fs.readFileSync(require.resolve('../web/sw.js'),'utf8'),{self:worker,caches,URL,Response,fetch:async()=>{throw new Error('offline');}});
+  let activation;events.activate({waitUntil:promise=>{activation=promise;}});await activation;
+  for(const asset of ['data/catalog.json','data/crystals.json','data/image-sources.json','data/reference-manifest.json','data/licenses/ima-cnmnc-2026-09.txt']){
+    let response;events.fetch({request:new Request(new URL(asset,scope)),respondWith:promise=>{response=promise;},waitUntil(){}});
+    const cached=await response;assert.equal(cached.status,200,asset);assert.match(await cached.text(),/^prepared /,asset);
+  }
 });

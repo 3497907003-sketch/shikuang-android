@@ -23,6 +23,62 @@
   const name = key => kb(key).name_zh || window.MINERAL_CLASSES[key]?.zh || key;
   const date = time => new Date(time).toLocaleString('zh-CN', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
   const types = { amber:'有机宝石', lapis_lazuli:'岩石标本', limonite:'矿物集合体', hornblende:'矿物族', tourmaline:'矿物族', agate:'石英变种', jasper:'石英集合体', flint:'石英集合体', amethyst:'石英变种', carnelian:'玉髓变种', chalcedony:'石英集合体', chrysoprase:'玉髓变种', amazonite:'微斜长石变种', nephritis:'矿物集合体' };
+  const libraryPageSize=80,catalogById=new Map(),catalogByDetail=new Map();
+  let catalog={},catalogRows=[],crystalSource={},crystalById=new Map(),imageSource={},imageRows=[],imagesByName=new Map(),libraryItems=[],referenceLoading;
+  let selectedCrystals=[],crystalsShown=0,selectedImages=[],imagesShown=0;
+  const normalizeSearch=value=>String(value||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  const referenceModelSupported=(reference,key)=>[key,reference?.detail_key,...(Array.isArray(reference?.legacy_keys)?reference.legacy_keys:[])].some(label=>!!MINERAL_CLASSES[label]);
+  const makeLibraryItem=(key,detail,reference)=>({key,detail,reference,
+    title:detail?.name_zh||reference?.name_en||detail?.name_en||key,
+    english:reference?.name_en||detail?.name_en||'',formula:reference?.formula||detail?.formula||'',
+    model:referenceModelSupported(reference,key),expanded:!!detail,crystals:reference?crystalById.get(reference.id)||[]:[],
+    search:normalizeSearch([key,detail?.name_zh,detail?.name_en,detail?.formula,reference?.name_en,reference?.formula,...(Array.isArray(reference?.aliases_en)?reference.aliases_en:[])].filter(Boolean).join('\n'))});
+  function rebuildReferenceIndex(){
+    catalog=window.MINERAL_CATALOG||{};crystalSource=window.MINERAL_CRYSTAL_RECORDS||{};imageSource=window.MINERAL_IMAGE_SOURCES||{};
+    catalogRows=(Array.isArray(catalog.minerals)?catalog.minerals:Array.isArray(catalog.entries)?catalog.entries:[]).filter(row=>row&&typeof row.id==='string'&&typeof row.name_en==='string'&&row.name_en.trim());
+    catalogById.clear();catalogByDetail.clear();crystalById=new Map();
+    imageRows=Array.isArray(imageSource.records)?imageSource.records.filter(row=>row&&row.mineral_name&&safeLink(row.image_page_url)):[];imagesByName=new Map();
+    for(const row of imageRows){const key=normalizeSearch(row.mineral_name);if(!imagesByName.has(key))imagesByName.set(key,[]);imagesByName.get(key).push(row);}
+    for(const row of catalogRows){
+      catalogById.set(row.id,row);
+      for(const key of [row.detail_key,...(Array.isArray(row.legacy_keys)?row.legacy_keys:[])])if(key&&window.MINERAL_KB[key]&&!catalogByDetail.has(key))catalogByDetail.set(key,row);
+      const raw=crystalSource.by_species?.[row.id]||crystalSource.by_species?.[row.name_en]||[];
+      const records=Array.isArray(raw)?raw.filter(r=>r&&r.cell&&!/\b(synthetic|theoretical|simulat\w*|hypothetical|idealized)\b/i.test([r.article_title,r.experimental_notes].join(' '))):[];
+      if(records.length)crystalById.set(row.id,records);
+    }
+    libraryItems=catalogRows.map(row=>{const detail=window.MINERAL_KB[row.detail_key];return makeLibraryItem(detail?row.detail_key:'catalog:'+row.id,detail||null,row);})
+      .concat(Object.entries(window.MINERAL_KB).filter(([key])=>!catalogByDetail.has(key)).map(([key,detail])=>makeLibraryItem(key,detail,null)));
+    libraryFingerprint=undefined;
+  }
+  let libraryMatches=[],libraryShown=0,libraryFingerprint;
+  const safeLink=value=>/^https?:\/\//i.test(String(value||''))?String(value):'';
+  function catalogSourceMarkup(row){
+    const source=catalog.source||{},url=safeLink(row?.source_url||source.url),page=Number(row?.source_page),licenseUrl=safeLink(source.license_url),link=url.replace(/#.*$/,'')+(Number.isInteger(page)&&page>0?'#page='+page:'');
+    return `<p>${html(source.title||'IMA–CNMNC 矿物清单')}${catalog.version?' · '+html(catalog.version):''}${catalog.retrieved_at?' · 获取于 '+html(catalog.retrieved_at):''}</p>${url?`<p><a href="${html(link)}" target="_blank" rel="noopener noreferrer">查看官方清单${Number.isInteger(page)&&page>0?' · 第 '+page+' 页':''}</a></p>`:''}${source.license?`<p class="field-hint">许可：${licenseUrl?`<a href="${html(licenseUrl)}" target="_blank" rel="noopener noreferrer">${html(source.license)}</a>`:html(source.license)}。基础字段来自以上原始清单；本应用保留来源与页码。</p>`:''}${source.attribution?`<p class="field-hint">${html(source.attribution)}</p>`:''}`;
+  }
+  function renderCatalogIntro(){
+    const handbookCount=catalogRows.filter(row=>safeLink(row.handbook_url)).length;
+    $('#catalogIntro').innerHTML=`<strong>${catalogRows.length?`官方目录 ${catalogRows.length} 种 · ${handbookCount} 个详细 PDF 链接 · ${crystalById.size} 种有晶胞记录`:'原有矿物资料'}</strong><p>名称与化学式可离线搜索。基础目录未提供的中文名、物性与成因不会自动补写；新增资料不会增加图像模型类别。${catalogRows.length?'IMA 状态与首次发现国家按原表保留。晶胞为文献样品数据，PDF 全文需要联网。':''}</p>${imageRows.length?`<p>标本图库：${imageRows.length} 条图片出处，涉及 ${imagesByName.size} 个矿物名称；通过训练审核 ${imageRows.filter(row=>row.training_ready===true).length} 条。图库用于查阅来源，不能作为已完成训练或已验证标签的证明。</p>`:''}${catalogRows.length?`<details class="catalog-attribution"><summary>资料来源与许可</summary>${catalogSourceMarkup()}</details>`:''}`;
+    $('#coverageInfo').textContent=`当前图像模型有 ${Object.keys(MINERAL_CLASSES).length} 个原有标签，原有扩展资料 ${Object.keys(MINERAL_KB).length} 条${catalogRows.length?`，官方基础目录 ${catalogRows.length} 种、${handbookCount} 个在线详细 PDF 链接、${crystalById.size} 种文献晶胞记录`:''}。目录覆盖不等于图像识别范围；现场准确率与未覆盖对象拒判能力仍待盲测。`;
+  }
+  function initializeCatalogUi(){
+    rebuildReferenceIndex();
+    $('.library-tools').insertAdjacentHTML('afterbegin','<select id="libraryScope" aria-label="按资料范围筛选"><option value="all">全部目录</option><option value="expanded">有扩展资料</option><option value="model">图像模型范围</option><option value="crystals">有晶胞记录</option></select>');
+    $('#libraryList').insertAdjacentHTML('beforebegin','<aside id="catalogIntro" class="catalog-intro"></aside><div class="catalog-loading"><p id="catalogLoadState" role="status" aria-live="polite"></p><button id="catalogRetry" type="button" class="secondary" hidden>重试打开完整资料库</button></div>');
+    $('#libraryList').insertAdjacentHTML('afterend','<div class="library-pagination"><p id="libraryStatus" role="status" aria-live="polite"></p><button id="libraryMore" type="button" class="secondary" hidden>加载更多 80 项</button></div>');
+    $('#libraryScope').addEventListener('change',()=>{updateClassFilter();});$('#libraryMore').addEventListener('click',()=>{appendLibraryPage();});
+    $('#librarySearch').placeholder='搜索中文 / 英文矿物名或化学式';
+    $('#catalogRetry').addEventListener('click',()=>{void ensureReferenceCatalog(true);});renderCatalogIntro();
+    guidePages[0]?.insertAdjacentHTML('beforeend','<p class="guide-note">图鉴可打开 IMA 基础目录与文献晶胞记录，按“全部目录 / 有扩展资料 / 图像模型范围 / 有晶胞记录”筛选，支持英文与化学式离线搜索。每次展示 80 项，可继续加载。首次发现国家不代表当前标本产地；晶胞来自文献样品，不从照片推定。官网清单、详细 PDF 与标本图库原页需要联网。图库只列来源链接；照片质量、许可、共生矿物与标签仍需专家审核，不代表已经加入识别训练。未收录的物性明确留空。</p>');
+  }
+  function ensureReferenceCatalog(retry=false){
+    const loader=window.MineralReference;if(!loader?.load)return Promise.resolve();
+    if(referenceLoading)return referenceLoading;
+    if(loader.status==='ready'&&catalog===window.MINERAL_CATALOG)return Promise.resolve();
+    $('#catalogLoadState').textContent='正在打开完整资料库，可先搜索原有资料。图像识别不等待目录加载。';$('#catalogRetry').hidden=true;
+    referenceLoading=Promise.resolve().then(()=>loader.load({retry})).then(()=>{rebuildReferenceIndex();renderCatalogIntro();updateClassFilter();$('#catalogLoadState').textContent=`完整资料库已就绪：${catalogRows.length} 种官方矿物目录，支持离线搜索。`;}).catch(error=>{$('#catalogLoadState').textContent=`完整资料库暂未打开：${String(error.message||'资源读取失败').slice(0,160)}。原有资料仍可查阅。`;$('#catalogRetry').hidden=false;}).finally(()=>{referenceLoading=null;});
+    return referenceLoading;
+  }
   function icons() { window.lucide?.createIcons(); }
   let toastTimer;
   function toast(message) { $('#toast').textContent = message; $('#toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { $('#toast').hidden = true; }, 4500); }
@@ -64,7 +120,7 @@
     state.view = view;
     document.querySelectorAll('.view').forEach(el => { el.hidden = el.id !== `view-${view}`; });
     document.querySelectorAll('[data-view]').forEach(el => { el.classList.toggle('active', el.dataset.view === view); if (el.dataset.view === view) el.setAttribute('aria-current','page'); else el.removeAttribute('aria-current'); });
-    if (view === 'library') renderLibrary();
+    if (view === 'library') { renderLibrary(); void ensureReferenceCatalog(); }
     if (view === 'records') void renderRecords().catch(e => toast(e.message));
     window.scrollTo({ top:0, behavior:'instant' });
     requestAnimationFrame(updateCrop);
@@ -225,26 +281,83 @@
       if(state.result===r){state.recordId = id;if(state.revision===snapshot.revision)state.draftDirty=false; $('#saveBtn').innerHTML = '<i data-lucide="bookmark-check"></i>更新标本';icons();} toast('标本已保存在这台设备');
     } catch (e) { toast(e.message); } finally { state.saving=false;$('#saveBtn').disabled = state.busy; }
   }
-  function properties(k) {
-    const values = [['化学式',k.formula],['摩氏硬度',k.hardness],['晶系',k.crystal_system],['光泽',k.luster],['条痕',k.streak],['颜色',k.color],['晶体习性',k.habit],['分类',k.classification?.class_9]];
-    return `<dl class="detail-properties">${values.filter(([,v]) => v!==undefined && v!=='').map(([label,value]) => `<div><dt>${label}</dt><dd>${html(value)}</dd></div>`).join('')}</dl>`;
+  function properties(k,reference) {
+    const facts=reference?.physical_properties||k.verified_properties||{},values=[['化学式',reference?.formula||k.formula,'formula'],['摩氏硬度',k.hardness,'hardness'],['实测密度',null,'density_measured'],['晶系',k.crystal_system,'crystal_system'],['解理',k.cleavage,'cleavage'],['光泽',k.luster,'luster'],['条痕',k.streak,'streak'],['颜色',k.color,'color'],['晶体习性',k.habit,'habit'],['分类',k.classification?.class_9,'classification']];
+    return `<dl class="detail-properties">${values.map(([label,legacy,field])=>{
+      const fact=facts[field],value=fact?.value,usable=fact?.status!=='unavailable'&&value!==undefined&&value!==null&&String(value).trim()!==''&&!/^(?:n\.?\s*d\.?|not determined|unknown)$/i.test(String(value).trim());
+      let text,provenance='';
+      if(usable){const url=safeLink(fact.source_url),page=Number(fact.source_page);text=html(value)+(fact.unit&&fact.unit!=='Mohs'?' '+html(fact.unit):'');if(fact.raw&&String(fact.raw)!==String(value))text+=`<small class="property-raw">原文：${html(fact.raw)}</small>`;provenance=url?`<a class="property-source" href="${html(url.replace(/#.*$/,'')+(Number.isInteger(page)&&page>0?'#page='+page:''))}" target="_blank" rel="noopener noreferrer">MSA 矿物手册${Number.isInteger(page)&&page>0?' · 第 '+page+' 页':''}</a>`:'<small class="property-source">已收录来源字段</small>';if(fact.status!=='verified')provenance+=`<small class="property-source">${fact.status==='source_inferred'?'据来源推定 · ':''}待复核</small>`;}
+      else if(field==='formula'&&(reference?.formula||k.formula_source)){const source=reference?{url:reference.source_url,page:reference.source_page}:k.formula_source,url=safeLink(source.url),page=Number(source.page);text=html(reference?.formula||k.formula);provenance=url?`<a class="property-source" href="${html(url.replace(/#.*$/,'')+(Number.isInteger(page)&&page>0?'#page='+page:''))}" target="_blank" rel="noopener noreferrer">IMA 官方清单${Number.isInteger(page)&&page>0?' · 第 '+page+' 页':''}</a>`:'<small class="property-source">IMA 官方清单</small>';}
+      else if(fact){const url=safeLink(fact.source_url),page=Number(fact.source_page),review=fact.status==='needs_review';text=review?'待复核':'未收录';provenance=`<small class="property-source">${review?'提取内容待复核，暂不作为有效物性':fact.status==='source_inferred'?'来源推测尚无可核验值':'原文未给出可用值'}${review&&fact.note?'；'+html(fact.note):''}</small>`+(url?`<a class="property-source" href="${html(url.replace(/#.*$/,'')+(Number.isInteger(page)&&page>0?'#page='+page:''))}" target="_blank" rel="noopener noreferrer">查看原始物性页</a>`:'');}
+      else{const present=legacy!==undefined&&legacy!==null&&legacy!=='';text=html(present?legacy:'未收录');if(present)provenance='<small class="property-source">原项目资料 · 待复核</small>';}
+      return `<div><dt>${label}</dt><dd>${text}${provenance}</dd></div>`;
+    }).join('')}</dl>`;
   }
   function showDetail(key) {
-    const k = kb(key); if (!Object.keys(k).length) { toast('该候选暂未收录资料'); return; }
-    $('#detailTitle').textContent = name(key);
-    $('#detailType').textContent = `${types[key] || '矿物资料'} · ${window.MINERAL_CLASSES[key]?'图像模型支持':'仅供资料查阅'}`;
-    $('#detailBody').innerHTML = `<p class="field-hint">${html(k.name_en || key)}${k.summary?' · '+html(k.summary):''}</p>${properties(k)}${k.formation?`<section class="detail-section"><h3>形成与产出</h3><p>${html(k.formation)}</p></section>`:''}${k.typical_localities?.length?`<section class="detail-section"><h3>典型产地</h3><p>${html(k.typical_localities.join('、'))}</p></section>`:''}${k.industrial_uses?.length?`<section class="detail-section"><h3>用途</h3><ul>${k.industrial_uses.map(x=>`<li>${html(x)}</li>`).join('')}</ul></section>`:''}<section class="detail-section"><h3>资料来源</h3><p class="field-hint">${html((k.source_refs || []).join('；') || '项目原有矿物知识库')}。沿用项目已有资料，尚未逐条核验；未收录的物性不参与复核。</p></section>`;
+    const reference=key.startsWith('catalog:')?catalogById.get(key.slice(8)):catalogByDetail.get(key),detailKey=window.MINERAL_KB[key]?key:reference?.detail_key||key,k=kb(detailKey);
+    if (!Object.keys(k).length&&!reference) { toast('该候选暂未收录资料'); return; }
+    $('#detailTitle').textContent = k.name_zh||reference?.name_en||name(detailKey);
+    $('#detailType').textContent = `${types[detailKey] || (reference?'IMA 基础目录':'矿物资料')} · ${referenceModelSupported(reference,detailKey)?'图像模型支持':Object.keys(k).length?'有扩展资料':'资料查阅'}`;
+    const referenceFields=reference?[['IMA 英文名称',reference.name_en],['IMA 状态（原表代码）',reference.ima_status],['IMA 编号 / 原表年份',reference.ima_number],['首次发现国家',reference.discovery_country],['矿物符号',reference.symbol]]:[];
+    const handbook=safeLink(reference?.handbook_url);
+    $('#detailBody').innerHTML = `<p class="field-hint">${html(reference?.name_en||k.name_en||key)}${k.summary?' · '+html(k.summary):''}</p>${properties(k,reference)}${reference?`<section class="detail-section"><h3>官方目录字段</h3><dl class="detail-properties">${referenceFields.filter(([,value])=>value!==undefined&&value!=='').map(([label,value])=>`<div><dt>${html(label)}</dt><dd>${html(value)}</dd></div>`).join('')}</dl><p class="field-hint">以上按原表保留。IMA 编号中的年份不推算为批准时间；首次发现国家不代表当前标本产地。</p></section>`:''}${k.formation?`<section class="detail-section"><h3>形成与产出</h3><p>${html(k.formation)}</p></section>`:reference?'<section class="detail-section"><h3>形成与产出</h3><p>未收录</p></section>':''}${k.typical_localities?.length?`<section class="detail-section"><h3>典型产地</h3><p>${html(k.typical_localities.join('、'))}</p></section>`:''}${k.industrial_uses?.length?`<section class="detail-section"><h3>用途</h3><ul>${k.industrial_uses.map(x=>`<li>${html(x)}</li>`).join('')}</ul></section>`:reference?'<section class="detail-section"><h3>用途</h3><p>未收录</p></section>':''}${reference?`<section class="detail-section"><h3>原表参考文献</h3>${[reference.first_reference,reference.second_reference].filter(Boolean).map(text=>`<p>${html(text)}</p>`).join('')||'<p>未收录</p>'}</section>`:''}${handbook?`<section class="detail-section"><h3>在线详细资料</h3><p><a href="${html(handbook)}" target="_blank" rel="noopener noreferrer">打开官方矿物手册 PDF</a></p><p class="field-hint">需要联网，按官方英文名称匹配的详细资料链接。全文未打包进离线目录。</p></section>`:''}<section class="detail-section"><h3>资料来源</h3>${reference?catalogSourceMarkup(reference):''}${Object.keys(k).length?`<p class="field-hint">原项目扩展资料：${html((k.source_refs || []).join('；') || '项目原有矿物知识库')}。物性按字段标注来源；形成、产地、用途与其他未标官方出处的原项目资料仍待复核。未收录的物性不参与复核。</p>`:'<p class="field-hint">当前展示官方基础字段与已列明的文献数据。未补充的中文名和物性明确留空；目录范围不代表图像识别能力。</p>'}</section>`;
+    selectedCrystals=reference?crystalById.get(reference.id)||[]:[];crystalsShown=0;
+    if(reference){$('#detailBody').insertAdjacentHTML('beforeend',crystalSectionMarkup());appendCrystalRecords();}
+    selectedImages=imagesByName.get(normalizeSearch(reference?.name_en||k.name_en))||[];imagesShown=0;
+    if(selectedImages.length){$('#detailBody').insertAdjacentHTML('beforeend',imageSectionMarkup());appendImageRecords();}
     openDialog('#detailDialog'); icons();
   }
+  function imageSectionMarkup(){
+    return `<details class="detail-section image-section"><summary>标本图库与鉴定出处（联网） · ${selectedImages.length} 条</summary><p class="field-hint">这里只列在线图片出处，未下载图片或把这些照片加入识别训练。公开许可不等于标签正确；共生标本需专家标注目标矿物。鉴定水平来自来源记录，本项目尚未独立核验。</p><div id="imageRecords" class="image-records"></div><p id="imageStatus" class="field-hint" role="status" aria-live="polite"></p><button type="button" class="secondary" id="moreImages" data-more-images>查看更多图库出处</button></details>`;
+  }
+  function imageRecordMarkup(record){
+    const evidence=record.identification_evidence||{},levels={rruff_xrd_and_chemical_analysis:'来源称已用 X 射线衍射与化学分析确认',rruff_single_crystal_xrd:'来源标注单晶 X 射线衍射',rruff_raman_only:'来源标注拉曼证据，其他鉴定待复核',rruff_status_requires_review:'来源鉴定状态待复核',museum_photo_label_only_requires_expert_review:'博物馆照片标签，需专家复核'},permissions={unverified_photo_reuse_permission:'照片再使用权限待确认',per_file_open_license_requires_compliance_and_review:'原页注明公开许可，转载与训练仍需合规复核',per_file_public_domain_claim_requires_review:'原页标为公有领域，权利状态待复核'},licenseUrl=safeLink(record.license_url),evidenceUrl=safeLink(evidence.evidence_url);
+    const components=Array.isArray(record.additional_indexed_components)?record.additional_indexed_components.map(item=>typeof item==='string'?item:item?.name_en||item?.mineral_name).filter(Boolean):[];
+    return `<article class="image-record"><h4><a href="${html(safeLink(record.image_page_url))}" target="_blank" rel="noopener noreferrer">打开 ${html(record.source||'原始来源')} 图片原页</a></h4><p>样品编号：${html(record.sample_id||'未注明')} · 矿物：${html(record.mineral_name)}</p><p>来源鉴定：${html(levels[evidence.level]||evidence.level||'未注明，需复核')}${evidenceUrl?` · <a href="${html(evidenceUrl)}" target="_blank" rel="noopener noreferrer">查看鉴定记录</a>`:''}</p>${evidence.sample_locality?`<p>来源记录产地：${html(evidence.sample_locality)}</p>`:''}${components.length?`<p>同时索引的组分：${html(components.join('、'))}。共生目标需专家核定。</p>`:''}<p>作者：${html(record.author||'未注明')} · 许可：${record.license?(licenseUrl?`<a href="${html(licenseUrl)}" target="_blank" rel="noopener noreferrer">${html(record.license)}</a>`:html(record.license)):'待查'}</p><p class="field-hint">${html(permissions[record.permission_status]||'权利状态待复核')}。图像质量与矿物标签尚需审核；本条${record.training_ready===true?'被元数据标为可训练，新增模型仍需单独验证':'尚未通过训练审核'}。</p></article>`;
+  }
+  function appendImageRecords(){
+    if(!selectedImages.length)return;
+    const next=selectedImages.slice(imagesShown,imagesShown+5);$('#imageRecords').insertAdjacentHTML('beforeend',next.map(imageRecordMarkup).join(''));imagesShown+=next.length;
+    $('#imageStatus').textContent=`已展示 ${imagesShown} / ${selectedImages.length} 条图库出处`;
+    $('#moreImages').hidden=imagesShown>=selectedImages.length;$('#moreImages').textContent=`查看更多 ${Math.min(5,selectedImages.length-imagesShown)} 条出处`;
+  }
+  function crystalSectionMarkup(){
+    const source=crystalSource.source||{},url=safeLink(source.url);
+    return `<section class="detail-section crystal-section"><h3>实验晶胞与结构文献</h3><p class="field-hint">以下为文献中各样品的测量记录，长度单位 Å，角度单位 °；空间群按原文保留。不能从标本照片推定晶胞，也不能因原文未注明合成就认定样品天然。</p>${selectedCrystals.length?'<div id="crystalRecords" class="crystal-records"></div><p id="crystalStatus" class="field-hint" role="status" aria-live="polite"></p><button type="button" class="secondary" id="moreCrystals" data-more-crystals>查看更多晶胞记录</button>':'<p>该矿物的实验晶胞记录尚未收录。</p>'}${source.title?`<p class="field-hint">资料来源：${url?`<a href="${html(url)}" target="_blank" rel="noopener noreferrer">${html(source.title)}</a>`:html(source.title)}。${html(source.scope||'测量事实与书目信息，未转载论文全文。')}</p>`:''}</section>`;
+  }
+  function crystalRecordMarkup(record,index){
+    const values=[['a',record.cell.a,'Å'],['b',record.cell.b,'Å'],['c',record.cell.c,'Å'],['α',record.cell.alpha,'°'],['β',record.cell.beta,'°'],['γ',record.cell.gamma,'°']],url=safeLink(record.source_url);
+    return `<article class="crystal-record"><h4>样品记录 ${index+1} · ${html(record.id||'编号未收录')}</h4><dl class="crystal-cell">${values.map(([label,value,unit])=>`<div><dt>${label}</dt><dd>${html(value===undefined||value===null?'未收录':value+' '+unit)}</dd></div>`).join('')}</dl><p><strong>空间群：</strong>${html(record.space_group||'未收录')}</p>${record.authors?`<p><strong>作者：</strong>${html(record.authors)}</p>`:''}${record.article_title?`<p><strong>论文：</strong>${html(record.article_title)}</p>`:''}${record.citation?`<p><strong>出处：</strong>${html(record.citation)}</p>`:''}<p class="experimental-notes"><strong>实验条件 / 原文备注：</strong>${html(record.experimental_notes||'未注明')}</p><p><strong>样品来源状态：</strong>${html(record.sample_origin||'原文未注明；不能据此推定天然来源')}</p><p class="field-hint">记录 ID：${html(record.id||'未收录')} · 原始文件：${html(record.source_file||'未收录')}${url?` · <a href="${html(url)}" target="_blank" rel="noopener noreferrer">查看原始数据库</a>`:''}</p></article>`;
+  }
+  function appendCrystalRecords(){
+    if(!selectedCrystals.length)return;
+    const next=selectedCrystals.slice(crystalsShown,crystalsShown+5);
+    $('#crystalRecords').insertAdjacentHTML('beforeend',next.map((record,index)=>crystalRecordMarkup(record,crystalsShown+index)).join(''));crystalsShown+=next.length;
+    $('#crystalStatus').textContent=`已展示 ${crystalsShown} / ${selectedCrystals.length} 条文献样品记录`;
+    $('#moreCrystals').hidden=crystalsShown>=selectedCrystals.length;
+    $('#moreCrystals').textContent=`查看更多 ${Math.min(5,selectedCrystals.length-crystalsShown)} 条记录`;
+  }
+  function libraryCard(item){const detail=item.detail||{},kind=item.model?'模型候选':item.expanded?'扩展资料':'基础目录';return `<button type="button" class="mineral-card" data-detail="${html(item.key)}"><span class="mineral-symbol" aria-hidden="true">${html((item.formula || '◇').slice(0,4))}</span><strong>${html(item.title)}</strong>${item.title!==item.english?`<small>${html(item.english)}</small>`:''}<span class="card-formula formula">${html(item.formula || '化学式未收录')}</span><span class="category">${html(types[item.key] || (detail.classification?category(detail,$('#classScheme').value):'分类未收录'))} · ${kind}</span></button>`;}
+  function updateLibraryPageStatus(){
+    $('#libraryStatus').textContent=`已展示 ${libraryShown} / ${libraryMatches.length} 项${libraryMatches.length?' · 每次加载 80 项':''}`;
+    $('#libraryMore').hidden=libraryShown>=libraryMatches.length;
+    $('#libraryMore').textContent=`加载更多 ${Math.min(libraryPageSize,libraryMatches.length-libraryShown)} 项`;
+  }
+  function appendLibraryPage(){const next=libraryMatches.slice(libraryShown,libraryShown+libraryPageSize);if(next.length){$('#libraryList').insertAdjacentHTML('beforeend',next.map(libraryCard).join(''));libraryShown+=next.length;}updateLibraryPageStatus();}
   function renderLibrary() {
-    const query = $('#librarySearch').value.trim().toLowerCase(), filter = $('#classFilter').value,scheme=$('#classScheme').value;
-    const items = Object.entries(MINERAL_KB).filter(([key,k]) => [name(key), k.name_en, k.formula, key].some(x => String(x||'').toLowerCase().includes(query)) && (!filter || category(k,scheme) === filter));
-    $('#libraryCount').textContent = `${items.length} 项资料`;
-    $('#libraryList').innerHTML = items.length ? items.map(([key,k]) => `<button type="button" class="mineral-card" data-detail="${html(key)}"><span class="mineral-symbol" aria-hidden="true">${html((k.formula || '◇').slice(0,4))}</span><strong>${html(name(key))}</strong><small>${html(k.name_en || key)}</small><span class="card-formula formula">${html(k.formula || '化学式未收录')}</span><span class="category">${html(types[key] || category(k,scheme))} · ${MINERAL_CLASSES[key]?'模型候选':'资料'}</span></button>`).join('') : '<div class="empty-state"><h2>没有匹配的资料</h2><p>试试矿物名称、英文名或化学式。</p></div>';
+    const query=normalizeSearch($('#librarySearch').value.trim()),filter=$('#classFilter').value,scheme=$('#classScheme').value,scope=$('#libraryScope').value||'all',fingerprint=JSON.stringify([query,filter,scheme,scope]);
+    if(fingerprint===libraryFingerprint){updateLibraryPageStatus();return;}
+    libraryFingerprint=fingerprint;libraryShown=0;
+    libraryMatches=libraryItems.filter(item=>item.search.includes(query)&&(!filter||libraryCategory(item,scheme)===filter)&&libraryScopeMatches(item,scope));
+    $('#libraryCount').textContent=`${libraryMatches.length} 项资料`;
+    $('#libraryList').innerHTML=libraryMatches.length?'':'<div class="empty-state"><h2>没有匹配的资料</h2><p>试试英文矿物名称、中文名或化学式，也可切换资料范围。</p></div>';
+    appendLibraryPage();
   }
   const schemes={strunz_10:['自然元素','硫化物','卤化物','氧化物','硝酸盐/碳酸盐','硼酸盐','硫酸盐','磷酸盐','硅酸盐','有机化合物'],class_9:['自然元素','硫化物/硫盐','卤化物','氧化物/氢氧化物','硝酸盐','碳酸盐','钼酸盐/钨酸盐','磷酸盐/砷酸盐/钒酸盐','硅酸盐'],class_8:['自然元素','硫化物','卤化物','氧化物及氢氧化物','碳酸盐/硝酸盐/硼酸盐','硫酸盐','磷酸盐','硅酸盐']};
   function category(k,scheme){let value=k.classification?.[scheme]||'';if(scheme==='strunz_10'&&['碳酸盐','硝酸盐'].includes(value))value='硝酸盐/碳酸盐';if(scheme==='strunz_10'&&value.startsWith('氧化物'))value='氧化物';if(scheme==='class_8'&&value.startsWith('氧化物'))value='氧化物及氢氧化物';return schemes[scheme]?.includes(value)?value:'体系外 / 待核对';}
-  function updateClassFilter(){const scheme=$('#classScheme').value;$('#classFilter').innerHTML='<option value="">全部类别</option>'+[...schemes[scheme],'体系外 / 待核对'].map(c=>{const count=Object.values(MINERAL_KB).filter(k=>category(k,scheme)===c).length;return `<option value="${html(c)}">${html(c)} · ${count}</option>`;}).join('');renderLibrary();}
+  function libraryCategory(item,scheme){return item.detail?.classification?category(item.detail,scheme):'分类未收录';}
+  function libraryScopeMatches(item,scope){return scope==='expanded'?item.expanded:scope==='model'?item.model:scope==='crystals'?item.crystals.length>0:true;}
+  function updateClassFilter(){const scheme=$('#classScheme').value,scope=$('#libraryScope').value||'all',previous=$('#classFilter').value,available=libraryItems.filter(item=>libraryScopeMatches(item,scope));const counts=new Map();available.forEach(item=>{const key=libraryCategory(item,scheme);counts.set(key,(counts.get(key)||0)+1);});const labels=[...schemes[scheme],'体系外 / 待核对','分类未收录'];$('#classFilter').innerHTML='<option value="">全部类别</option>'+labels.map(c=>`<option value="${html(c)}">${html(c)} · ${counts.get(c)||0}</option>`).join('');$('#classFilter').value=labels.includes(previous)?previous:'';renderLibrary();}
   function renderSearchHistory(){const rows=SearchHistory.read();for(const kind of ['library','records']){const entries=rows.map((x,i)=>({...x,index:i})).filter(x=>x.kind===kind);$(kind==='library'?'#searchHistory':'#recordSearchHistory').innerHTML=entries.length?'<div class="history-heading"><span>历史搜索 · 本机</span><button type="button" data-clear-history>清空全部历史</button></div><div class="history-chips">'+entries.map(x=>`<button type="button" data-history="${x.index}">${html(x.query)}</button>`).join('')+'</div>':'';}}
   function saveSearch(kind){SearchHistory.save($(kind==='library'?'#librarySearch':'#recordSearch').value,kind);renderSearchHistory();}
   function setMode(mode){state.mode=mode==='online'?'online':'offline';document.querySelectorAll('[data-mode]').forEach(b=>{b.classList.toggle('selected',b.dataset.mode===state.mode);b.setAttribute('aria-pressed',String(b.dataset.mode===state.mode));});$('#connectionLabel').textContent=state.mode==='offline'?'本机识别':navigator.onLine?'联网 · 本机识别':'无网络 · 本机识别';$('#assistCurrent').hidden=state.mode!=='online';try{localStorage.setItem('shikuang-mode-v2',state.mode);}catch(_){} }
@@ -301,7 +414,7 @@
     if(state.offlineController)return;
     const controller=new AbortController();state.offlineController=controller;
     $('#offlineBtn').disabled=true;$('#cancelOffline').hidden=false;
-    const assets = ['./','./index.html','./styles.css','./app.js','./core.js','./inference.js','./engine-worker.js','./history.js','./media.js','./storage.js','./config.js','./manifest.webmanifest','./model-manifest.json','./icon.svg','./icon-192.png','./icon-512.png','./icon-maskable.png','./version.json','./data/classes.js','./data/minerals.js','./data/sources.js','./data/imagenet.js','./vendor/lucide.min.js','./vendor/ort.min.js','./vendor/ort-wasm-simd-threaded.mjs','./vendor/ort-wasm-simd-threaded.wasm', ...MineralEngine.models.map(m=>'./models/'+m.file),'./models/imagenet_gate.onnx'];
+    const assets = ['./','./index.html','./styles.css','./app.js','./core.js','./inference.js','./engine-worker.js','./history.js','./media.js','./storage.js','./reference-loader.js','./config.js','./manifest.webmanifest','./model-manifest.json','./icon.svg','./icon-192.png','./icon-512.png','./icon-maskable.png','./version.json','./data/classes.js','./data/minerals.js','./data/sources.js','./data/imagenet.js','./data/catalog.json','./data/crystals.json','./data/image-sources.json','./data/reference-manifest.json','./data/licenses/ima-cnmnc-2026-09.txt','./vendor/lucide.min.js','./vendor/ort.min.js','./vendor/ort-wasm-simd-threaded.mjs','./vendor/ort-wasm-simd-threaded.wasm', ...MineralEngine.models.map(m=>'./models/'+m.file),'./models/imagenet_gate.onnx'];
     try {
       await bounded(()=>navigator.serviceWorker.register('./sw.js'),15000,'离线服务启动超时',controller.signal);
       const manifest=await bounded(async signal=>{const response=await fetch('./model-manifest.json',{signal,cache:'reload'});if(!response.ok)throw new Error(`模型目录下载失败 (${response.status})`);return response.json();},30000,'模型目录读取超时',controller.signal);
@@ -309,7 +422,7 @@
       for (let i=0;i<assets.length;i++) {
         if(controller.signal.aborted)throw new DOMException('准备已停止','AbortError');
         $('#offlineProgress').textContent=`正在准备资源 ${i+1}/${assets.length}（模型共约 70 MB）…`;
-        const cache = await caches.open(assets[i].includes('/models/') || assets[i].endsWith('.wasm') ? 'shikuang-models-v2-20261010':'shikuang-static-2.0.1-preview.1');
+        const cache = await caches.open(assets[i].includes('/models/') || assets[i].endsWith('.wasm') ? 'shikuang-models-v2-20261010':'shikuang-static-2.0.2-preview.1');
         const request = new Request(new URL(assets[i],location.href),{cache:'reload'}),model=manifest.models.find(m=>'./'+m.path===assets[i]);
         await bounded(async signal=>{
           const cached=model?await cache.match(request):null;
@@ -371,6 +484,8 @@
     if(photo && !state.busy&&!state.mediaBusy){state.active=Number(photo.dataset.photo);renderPhotos();}
     if(e.target.closest('[data-add-photo]') && !state.busy)void capture('camera');
     if(detail)showDetail(detail.dataset.detail);
+    if(e.target.closest('[data-more-crystals]'))appendCrystalRecords();
+    if(e.target.closest('[data-more-images]'))appendImageRecords();
     if(record)showRecord(record.dataset.record);
     const history=e.target.closest('[data-history]');if(history){const item=SearchHistory.read()[Number(history.dataset.history)];if(item){$(item.kind==='library'?'#librarySearch':'#recordSearch').value=item.query;location.hash=item.kind;route();}}
     if(e.target.closest('[data-clear-history]')&&confirm('清空这台设备上图鉴与标本的全部搜索历史？')){SearchHistory.clear();renderSearchHistory();}
@@ -406,10 +521,9 @@
   async function init() {
     icons();
     try { $('#guideWelcome').hidden = localStorage.getItem('shikuang-guide-complete-v2') === '1'; } catch (_) {}
-    updateClassFilter();renderSearchHistory();
+    initializeCatalogUi();updateClassFilter();renderSearchHistory();
     try{setMode(localStorage.getItem('shikuang-mode-v2'));}catch(_){setMode('offline');}
     $('#sourceList').innerHTML=MINERAL_SOURCES.map(s=>`<a href="${html(s.url)}" target="_blank" rel="noopener noreferrer"><strong>${html(s.title)}</strong><span>${html(s.status)}</span><small>${html(s.use)}</small></a>`).join('');
-    $('#coverageInfo').textContent=`当前图像模型有 ${Object.keys(MINERAL_CLASSES).length} 个原有标签，资料库 ${Object.keys(MINERAL_KB).length} 条。包括矿物、变种、集合体与部分岩石标本，现场准确率和未覆盖矿物拒判能力仍待盲测。`;
     route();
     try{await SpecimenStore.migrate();}catch(e){toast(e.message);}
     if(isNative()){

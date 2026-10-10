@@ -7,8 +7,8 @@ android {
         applicationId "com.shikuang.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 20001
-        versionName "2.0.1"
+        versionCode 20002
+        versionName "2.0.2"
         manifestPlaceholders = [appLabel: "识矿"]
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {

@@ -1,6 +1,9 @@
-const STATIC = 'shikuang-static-2.0.1-preview.1';
+const STATIC = 'shikuang-static-2.0.2-preview.1';
 const MODELS = 'shikuang-models-v2-20261010';
 const ASSETS = ['./', './index.html', './styles.css', './app.js', './core.js', './inference.js', './storage.js', './engine-worker.js', './media.js', './history.js', './model-manifest.json', './icon-192.png', './icon-512.png', './icon-maskable.png', './version.json', './data/sources.js', './config.js', './icon.svg', './manifest.webmanifest', './data/classes.js', './data/minerals.js', './data/imagenet.js', './vendor/lucide.min.js', './vendor/ort.min.js', './vendor/ort-wasm-simd-threaded.mjs'];
+// Large reference files enter the cache when opened or explicitly prepared.
+// Installing the app shell must not compete with the first photo analysis.
+ASSETS.push('./reference-loader.js','./data/reference-manifest.json','./data/licenses/ima-cnmnc-2026-09.txt');
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(STATIC).then(async cache => { await cache.addAll(ASSETS); await self.skipWaiting(); }));
 });
