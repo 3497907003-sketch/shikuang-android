@@ -36,8 +36,9 @@ function fixture({ register, catalog, crystals, images, crystalSystems, loader, 
   vm.runInNewContext(fs.readFileSync(require.resolve('../../web/media.js'),'utf8'),context,{filename:'media.js'});
   vm.runInNewContext(fs.readFileSync(require.resolve('../../web/app.js'),'utf8'),context,{filename:'app.js'});
   const settle=async()=>{for(let i=0;i<12;i++)await new Promise(resolve=>setImmediate(resolve));};
+  const until=async predicate=>{const deadline=Date.now()+2000;while(!predicate()){if(Date.now()>=deadline)throw new Error('Fixture task did not settle within 2 seconds');await new Promise(resolve=>setTimeout(resolve,5));}};
   const photoFile=(width=256,height=256)=>{const bytes=Buffer.alloc(33);Buffer.from([137,80,78,71,13,10,26,10]).copy(bytes);bytes.writeUInt32BE(13,8);bytes.write('IHDR',12);bytes.writeUInt32BE(width,16);bytes.writeUInt32BE(height,20);const file=new Blob([bytes],{type:'image/png'});file.name='specimen.png';return file;};
-  return {node,saved,created,revoked,confirmations,context,settle,photoFile,documentClick:async(selector,dataset={})=>{const target={closest:query=>query===selector?{dataset}:null};for(const fn of documentListeners.click||[])fn({target});await settle();},setError:error=>{analysisError=error;},setConfirmation:value=>{confirmResult=value;},route:view=>{context.location.hash=view;listeners.hashchange();},click:async id=>{node(id).fire('click');await settle();},photo:async()=>{node('fileInput').files=[photoFile()];node('fileInput').fire('change');await settle();}};
+  return {node,saved,created,revoked,confirmations,context,settle,until,photoFile,documentClick:async(selector,dataset={})=>{const target={closest:query=>query===selector?{dataset}:null};for(const fn of documentListeners.click||[])fn({target});await settle();},setError:error=>{analysisError=error;},setConfirmation:value=>{confirmResult=value;},route:view=>{context.location.hash=view;listeners.hashchange();},click:async id=>{node(id).fire('click');await settle();},photo:async()=>{node('fileInput').files=[photoFile()];node('fileInput').fire('change');await settle();}};
 }
 
 module.exports={fixture};
