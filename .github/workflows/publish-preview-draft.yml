@@ -1,0 +1,83 @@
+name: Verify and upload Android preview draft only
+on:
+  workflow_dispatch:
+    inputs:
+      build_run_id:
+        description: Successful persistent-signing android.yml workflow_dispatch run ID
+        required: true
+        type: string
+      runtime_run_id:
+        description: Successful android-runtime.yml run ID with all four genuine runtime matrices
+        required: true
+        type: string
+      source_commit:
+        description: Exact 40-character Android head SHA shared by both runs (web SHA is in source sync)
+        required: true
+        type: string
+      tag:
+        description: Draft prerelease tag; an already published release is always rejected
+        required: true
+        type: string
+        default: v2.5.0-preview.1
+permissions:
+  contents: read
+concurrency:
+  group: preview-draft-${{ github.repository }}-${{ inputs.tag }}
+  cancel-in-progress: false
+jobs:
+  verified-draft:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      actions: read
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BUILD_RUN_ID: ${{ inputs.build_run_id }}
+      RUNTIME_RUN_ID: ${{ inputs.runtime_run_id }}
+      SOURCE_COMMIT: ${{ inputs.source_commit }}
+      PREVIEW_TAG: ${{ inputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Fail closed on run, matrix, source and draft identity before downloading
+        run: >-
+          python3 tools/publish_preview_draft.py
+          --repo "$GITHUB_REPOSITORY" --build-run "$BUILD_RUN_ID"
+          --runtime-run "$RUNTIME_RUN_ID" --source-commit "$SOURCE_COMMIT"
+          --tag "$PREVIEW_TAG" --output "$RUNNER_TEMP/shikuang-draft"
+          --preflight-only
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Install official Android SDK build tools 35
+        shell: bash
+        run: |
+          set -euo pipefail
+          SHIKUANG_ANDROID_SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          "$SHIKUANG_ANDROID_SDK/cmdline-tools/latest/bin/sdkmanager" "build-tools;35.0.0"
+          test -x "$SHIKUANG_ANDROID_SDK/build-tools/35.0.0/apksigner"
+          test -x "$SHIKUANG_ANDROID_SDK/build-tools/35.0.0/aapt"
+          test -x "$SHIKUANG_ANDROID_SDK/build-tools/35.0.0/zipalign"
+          printf 'SHIKUANG_BUILD_TOOLS=%s\n' "$SHIKUANG_ANDROID_SDK/build-tools/35.0.0" >> "$GITHUB_ENV"
+      - name: Independently inspect the APK and four offline runtime artifacts; upload draft only
+        run: >-
+          python3 tools/publish_preview_draft.py
+          --repo "$GITHUB_REPOSITORY" --build-run "$BUILD_RUN_ID"
+          --runtime-run "$RUNTIME_RUN_ID" --source-commit "$SOURCE_COMMIT"
+          --tag "$PREVIEW_TAG" --output "$RUNNER_TEMP/shikuang-draft"
+          --build-tools "$SHIKUANG_BUILD_TOOLS" --upload-draft
+      - name: Preserve gate evidence even if a draft upload fails
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shikuang-preview-draft-gate-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/shikuang-draft/preflight.json
+            ${{ runner.temp }}/shikuang-draft/release/*.json
+            ${{ runner.temp }}/shikuang-draft/release/*.txt
+            ${{ runner.temp }}/shikuang-draft/release/SHA256SUMS
+          if-no-files-found: warn
