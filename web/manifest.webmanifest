@@ -1,11 +1,1 @@
-{
-  "name": "识矿 · 矿物识别",
-  "short_name": "识矿",
-  "start_url": "./",
-  "display": "standalone",
-  "background_color": "#f5f2eb",
-  "theme_color": "#17211c",
-  "icons": [
-    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
-  ]
-}
+{"name": "识矿 2.0 · 随身矿物识别", "short_name": "识矿", "id": "./", "start_url": "./#identify", "scope": "./", "display": "standalone", "background_color": "#edf2f4", "theme_color": "#143946", "icons": [{"src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"}, {"src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"}, {"src": "./icon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}]}

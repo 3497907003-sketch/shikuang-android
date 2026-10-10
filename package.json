@@ -1,14 +1,30 @@
 {
   "name": "shikuang-android",
-  "version": "1.0.0",
+  "version": "2.0.0-preview",
   "private": true,
   "scripts": {
-    "sync": "cap sync android"
+    "test": "node --test tests/*.test.cjs",
+    "check": "node tools/check.cjs",
+    "build": "node tools/build.cjs",
+    "sync": "npm run build && node tools/capacitor.cjs sync android",
+    "apk": "npm run sync && cd android && ./gradlew assembleDebug"
   },
   "dependencies": {
     "@capacitor/android": "^6.2.2",
+    "@capacitor/app": "6.0.3",
     "@capacitor/camera": "^6.1.3",
     "@capacitor/cli": "^6.2.2",
-    "@capacitor/core": "^6.2.2"
+    "@capacitor/core": "^6.2.2",
+    "@capacitor/filesystem": "6.0.4",
+    "@capacitor/share": "6.0.4"
+  },
+  "overrides": {
+    "tar": "7.5.21"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "fake-indexeddb": "^6.2.5"
   }
 }

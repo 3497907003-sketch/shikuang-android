@@ -1,132 +1,97 @@
 <!doctype html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#17211c" />
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-    <title>识矿 · 矿物识别</title>
-    <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="icon" href="./icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="./vendor/animate.min.css" />
-    <link rel="stylesheet" href="./styles.css" />
-    <script defer src="./vendor/lucide.min.js"></script>
-    <script defer src="./vendor/ort.min.js?v=5"></script>
-    <script defer src="./config.js?v=5"></script>
-    <script defer src="./data/classes.js?v=5"></script>
-    <script defer src="./data/minerals.js?v=5"></script>
-    <script defer src="./data/imagenet.js?v=5"></script>
-    <script defer src="./data/graph.js?v=5"></script>
-    <script defer src="./app.js?v=35"></script>
-  </head>
-  <body>
-    <canvas class="ambient" id="ambient" aria-hidden="true"></canvas>
-    <div class="splash" id="splash" role="status" aria-live="polite">
-      <canvas class="splash-canvas" id="splashCanvas" aria-hidden="true"></canvas>
-      <div class="splash-formulas" aria-hidden="true">
-        <span>SiO₂</span><span>CaCO₃</span><span>FeS₂</span><span>Cu₂O</span><span>ZnS</span>
-      </div>
-      <div class="splash-core">
-        <span class="splash-mark"></span>
-        <span class="splash-ring ring-a"></span>
-        <span class="splash-ring ring-b"></span>
-      </div>
-      <h1 class="splash-title">识矿</h1>
-      <p class="splash-sub">矿物识别 · 正在准备识别引擎</p>
-      <div class="splash-bar"><span id="splashBar"></span></div>
-      <span class="splash-status" id="splashStatus">加载模型…</span>
-    </div>
-
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#143946">
+  <meta name="description" content="识矿 2.0：拍摄标本，多角度分析矿物候选，结合物性复核，建立自己的标本记录。">
+  <title>识矿 2.0 · 随身矿物识别</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css?v=20261010">
+  <script defer src="./vendor/lucide.min.js?v=20261010"></script>
+  <script defer src="./config.js?v=20261010"></script>
+  <script defer src="./data/classes.js?v=20261010"></script>
+  <script defer src="./data/minerals.js?v=20261010"></script>
+  <script defer src="./data/imagenet.js?v=20261010"></script>
+  <script defer src="./data/sources.js?v=20261010"></script>
+  <script defer src="./history.js?v=20261010"></script>
+  <script defer src="./media.js?v=20261010"></script>
+  <script defer src="./core.js?v=20261010"></script>
+  <script defer src="./inference.js?v=20261010"></script>
+  <script defer src="./storage.js?v=20261010"></script>
+  <script defer src="./app.js?v=20261010"></script>
+</head>
+<body>
+  <div id="launchCover" class="launch-cover" aria-label="识矿启动封面">
+    <div class="launch-grid" aria-hidden="true"></div><div class="launch-orbit" aria-hidden="true"></div>
+    <div class="launch-content"><p class="launch-eyebrow">SHIKUANG · MINERAL LAB</p><div class="launch-crystal"><img src="./icon.svg" width="148" height="148" alt="识矿晶体图标"></div><h1>识矿<span>2.0</span></h1><p>从细节，认识一块矿物。</p><div class="launch-line" aria-hidden="true"></div><small>正在打开本机标本工作台</small><button id="enterApp" type="button">立即进入 <span aria-hidden="true">→</span></button></div>
+  </div>
+  <div class="app-shell">
     <header class="app-header">
-      <div class="brand">
-        <span class="brand-mark animate__animated animate__fadeInDown" aria-hidden="true"></span>
-        <div class="brand-text">
-          <h1>识矿</h1>
-          <p>Mineral ID · 矿物识别</p>
-        </div>
-      </div>
-      <div class="status" id="statusBadge"><span class="dot"></span><span id="statusText">就绪</span></div>
-      <button class="history-btn" id="historyBtn" type="button" title="历史记录"><i data-lucide="history"></i></button>
-      <div class="mode-switch" id="modeSwitch" role="group" aria-label="运行模式">
-        <button class="mode-chip active" data-netmode="offline" type="button">离线</button>
-        <button class="mode-chip" data-netmode="online" type="button">联网</button>
-      </div>
+      <a class="brand" href="#identify" aria-label="识矿，返回识别"><img src="./icon.svg" width="42" height="42" alt=""><div><strong>识矿<span class="version">2.0</span></strong><small>随身矿物识别</small></div></a>
+      <div class="header-tools"><div class="mode-switch" role="group" aria-label="运行模式"><button type="button" data-mode="offline" class="selected" aria-pressed="true">离线</button><button type="button" data-mode="online" aria-pressed="false">联网</button></div><span class="connection"><span class="status-dot"></span><span id="connectionLabel">本机分析</span></span></div>
     </header>
-
-    <main class="app-main animate__animated animate__fadeInUp">
-      <div class="update-banner" id="updateBanner" hidden>
-        <span>发现新版本</span>
-        <button id="updateReload" type="button">立即刷新</button>
-      </div>
-      <section class="mode-row" role="tablist" aria-label="输入方式">
-        <button class="mode active" data-mode="photo" type="button"><i data-lucide="camera"></i>拍照</button>
-        <button class="mode" data-mode="video" type="button"><i data-lucide="video"></i>视频</button>
-        <button class="mode" data-mode="file" type="button"><i data-lucide="folder-open"></i>文件</button>
-      </section>
-
-      <section class="capture-panel">
-        <div class="stage animate__animated animate__zoomIn" id="stage">
-          <video id="camera" autoplay playsinline muted></video>
-          <img id="preview" alt="预览" hidden />
-          <div class="placeholder" id="placeholder">
-            <i data-lucide="scan-line"></i>
-            <p>将矿物置于取景框内</p>
-            <span>支持照片、视频与文字描述</span>
+    <main>
+      <section id="view-identify" class="view" aria-labelledby="identifyHeading">
+        <div class="page-heading"><div><p class="context">观察每一块标本</p><h1 id="identifyHeading">从一张照片开始</h1></div><div class="scene-switch" role="group" aria-label="使用场景"><button type="button" class="selected" data-scene="daily" aria-pressed="true">日常</button><button type="button" data-scene="lab" aria-pressed="false">实验室</button></div></div>
+        <div class="identify-layout">
+          <div class="capture-column">
+            <section class="capture-panel" aria-label="标本照片">
+              <div class="stage" id="stage">
+                <img id="preview" alt="当前标本照片，中心框为分析区域" hidden>
+                <div id="captureEmpty" class="capture-empty">
+                  <svg class="specimen-crystal" viewBox="0 0 150 190" aria-hidden="true"><path d="M76 10 112 41 122 129 76 177 28 136 38 46Z" fill="#6fb4bd"/><path d="m76 10 0 167-29-55 8-83Z" fill="#a9d6d9"/><path d="m76 10 36 31-24 2-12 134Z" fill="#d4edef"/><path d="m76 177 12-134 34 86Z" fill="#458f9c"/><path d="m28 136 19-14 29 55Z" fill="#407985"/><path d="m38 46 17-7-8 83-19 14Z" fill="#78bdc5"/><path d="m76 10 36 31 10 88-46 48-48-41 10-90Z" fill="none" stroke="#c0e2e5" stroke-width="1.5"/></svg>
+                  <h2>让标本进入视野</h2><p>光线均匀 · 主体居中 · 对焦清晰</p>
+                </div>
+                <div id="cropFrame" class="crop-frame" hidden><span class="scan-line"></span></div>
+                <span id="stageLabel" class="stage-label">照片留在本机</span>
+                <button type="button" id="removePhoto" class="stage-remove" aria-label="移除当前照片" hidden><i data-lucide="x"></i></button>
+              </div>
+              <div class="capture-actions"><button type="button" id="cameraBtn" class="capture-camera"><i data-lucide="camera"></i>拍摄标本</button><button type="button" id="videoBtn" class="capture-gallery"><i data-lucide="video"></i>视频</button><button type="button" id="galleryBtn" class="capture-gallery"><i data-lucide="folder-open"></i>照片文件</button></div>
+              <input id="cameraInput" type="file" accept="image/*" capture="environment" hidden>
+              <input id="fileInput" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/avif" multiple hidden>
+              <input id="videoInput" type="file" accept="video/*" capture="environment" hidden><input id="videoFileInput" type="file" accept="video/*" hidden>
+              <p id="inputSummary" class="input-summary" hidden></p>
+              <div id="photoStrip" class="photo-strip" aria-label="同一标本的不同角度" hidden></div>
+              <div id="cropControl" class="crop-control" hidden><label for="cropRange">中心分析区域 <output id="cropValue">100%</output></label><input id="cropRange" type="range" min="50" max="100" step="5" value="100"><small>将目标晶体放在框内，缩小范围可减少背景干扰。</small></div>
+            </section>
+            <div class="capture-guidance"><i data-lucide="focus"></i><p id="captureTip">同一标本添加 2–3 个角度，查看判断是否一致。每次分析一个主体。视频仅在本机取帧。</p></div>
           </div>
-          <div class="recording-pill" id="recordingPill" hidden><span></span>正在录制</div>
-        </div>
-
-        <div class="controls">
-          <button class="tool" id="cameraBtn" type="button" title="拍摄照片"><i data-lucide="camera"></i><span>拍照</span></button>
-          <button class="tool record" id="recordBtn" type="button" title="开始录像"><i data-lucide="circle"></i><span>录像</span></button>
-          <button class="tool" id="galleryBtn" type="button" title="选择文件"><i data-lucide="folder-open"></i><span>文件</span></button>
-          <button class="tool" id="clearBtn" type="button" title="清空"><i data-lucide="x"></i><span>清空</span></button>
-        </div>
-        <input id="fileInput" type="file" accept="image/*,video/*" hidden />
-      </section>
-
-      <section class="describe">
-        <label for="description"><i data-lucide="message-square-text"></i>补充描述</label>
-        <textarea id="description" rows="3" placeholder="例如：绿色、肾状集合体、有同心环带，来自铜矿氧化带……"></textarea>
-      </section>
-
-      <button class="primary" id="predictBtn" type="button">
-        <i data-lucide="sparkles"></i><span id="predictLabel">识别矿物</span>
-      </button>
-
-      <section class="result animate__animated animate__fadeInUp" id="result" hidden aria-live="polite">
-        <div class="result-head">
-          <div>
-            <p class="eyebrow">识别结果</p>
-            <h2 id="resultName">—</h2>
-            <p class="formula" id="resultFormula"></p>
+          <div class="analysis-column">
+            <section class="observation-panel">
+              <div class="section-heading"><h2>补充观察</h2><span>可选</span></div>
+              <label class="field-label" for="notes">外观与采集信息</label><textarea id="notes" rows="2" maxlength="2000" placeholder="例如：绿色，有环带；采集于矿区附近。"></textarea>
+              <details id="labObservations"><summary><span><i data-lucide="flask-conical"></i>物性复核</span><i data-lucide="chevron-down"></i></summary><div class="observation-fields"><label>实测摩氏硬度<input id="hardness" type="number" inputmode="decimal" min="1" max="10" step="0.5" placeholder="未测量"></label><label>观察到的光泽<select id="luster"><option value="">未确定</option><option value="metal">金属光泽</option><option value="nonmetal">非金属光泽</option></select></label></div><p class="field-hint">物性用于提示符合或冲突；文字描述不会提高图像模型分数。未测量的项目请留空。</p></details>
+              <div id="sampleIdField" class="sample-id" hidden><label class="field-label" for="sampleId">实验室标本编号</label><input id="sampleId" maxlength="100" placeholder="例如：LAB-2026-001"></div>
+            </section>
+            <label class="precision-option"><input id="precision" type="checkbox" checked><span><strong>多模型交叉分析</strong><small>综合 3 个模型；首次使用需准备模型资源</small></span><i data-lucide="layers-2"></i></label>
+            <button id="predictBtn" class="primary" type="button" disabled><i data-lucide="scan-line"></i><span id="predictLabel">分析矿物候选</span></button>
+            <button id="cancelBtn" class="text-button" type="button" hidden>停止分析</button>
+            <div id="progress" class="progress-message" role="status" aria-live="polite">拍摄或选择一张照片即可开始。</div>
+            <section class="result" id="result" hidden aria-labelledby="resultHeading">
+              <div class="result-heading"><span id="resultStatus" class="result-state">需要复核</span><button type="button" id="newSample" class="icon-button" aria-label="开始新标本"><i data-lucide="rotate-ccw"></i></button></div>
+              <p class="field-label">首选候选</p><h2 id="resultHeading"></h2><div class="result-sub"><span id="resultEnglish"></span><span id="resultFormula" class="formula"></span></div>
+              <div class="score-row"><span>图像模型分数</span><strong id="resultScore"></strong></div><div class="score-track"><span id="scoreFill"></span></div><p class="score-caption">分数表示模型偏好，不代表实测准确率或鉴定结论。</p>
+              <p id="verdict" class="verdict"></p><div id="evidenceSummary" class="evidence-summary"></div>
+              <h3 class="candidate-heading">其他候选与物性对比</h3><div id="candidates" class="candidate-list"></div>
+              <div id="physicalChecks"></div>
+              <div class="result-actions"><button type="button" id="saveBtn" class="secondary"><i data-lucide="bookmark-plus"></i>保存标本</button><button type="button" id="detailBtn" class="secondary"><i data-lucide="book-open"></i>查看资料</button></div>
+            </section>
           </div>
-          <span class="confidence" id="resultConf">0%</span>
         </div>
-        <div class="meter"><div class="meter-fill" id="meterFill"></div></div>
-        <div class="verdict" id="verdict"></div>
-
-        <div class="tabs" role="tablist">
-          <button class="tab active" data-tab="basic" type="button">基本信息</button>
-          <button class="tab" data-tab="origin" type="button">产地成因</button>
-          <button class="tab" data-tab="use" type="button">工业用途</button>
-          <button class="tab" data-tab="graph" type="button">关系图谱</button>
-          <button class="tab" data-tab="rank" type="button">候选排名</button>
-        </div>
-        <div class="tab-panel" id="tab-basic"></div>
-        <div class="tab-panel" id="tab-origin" hidden></div>
-        <div class="tab-panel" id="tab-use" hidden></div>
-        <div class="tab-panel" id="tab-graph" hidden></div>
-        <div class="tab-panel" id="tab-rank" hidden></div>
       </section>
-
-      <section class="history-panel" id="historyPanel" hidden aria-label="历史搜索记录">
-        <div class="history-head">
-          <h2>历史搜索记录</h2>
-          <button class="history-clear" id="historyClear" type="button">清空</button>
-        </div>
-        <ul class="history-list" id="historyList"></ul>
-      </section>
+      <section id="view-library" class="view" hidden aria-labelledby="libraryHeading"><div class="page-heading"><div><p class="context">观察与对照</p><h1 id="libraryHeading">矿物图鉴</h1></div><span class="count-label" id="libraryCount"></span></div><label class="search"><i data-lucide="search"></i><input type="search" id="librarySearch" placeholder="搜索中文名、英文名或化学式" aria-label="搜索矿物"></label><div id="searchHistory" class="search-history" aria-label="历史搜索"></div><div class="library-tools"><select id="classScheme" aria-label="分类体系"><option value="strunz_10">10 类（Strunz 参考）</option><option value="class_9" selected>9 类（用户体系）</option><option value="class_8">8 类（用户体系）</option></select><select id="classFilter" aria-label="按矿物大类筛选"><option value="">全部类别</option></select><span class="field-hint">包含变种、集合体与部分岩石标本</span></div><div id="libraryList" class="library-list"></div></section>
+      <section id="view-records" class="view" hidden aria-labelledby="recordsHeading"><div class="page-heading"><div><p class="context">每块标本都有来处</p><h1 id="recordsHeading">我的标本</h1></div><span class="count-label" id="recordCount"></span></div><div class="record-tools"><label class="search"><i data-lucide="search"></i><input id="recordSearch" type="search" placeholder="搜索标本编号、矿物或备注" aria-label="搜索标本"></label><button type="button" id="exportBtn" class="icon-button" aria-label="导出全部标本"><i data-lucide="download"></i></button><button type="button" id="importBtn" class="icon-button" aria-label="导入标本文件"><i data-lucide="upload"></i></button><input id="importInput" type="file" accept="application/json,.json" hidden></div><p class="field-hint">记录保存在这台设备，导出文件可用于备份和跨设备迁移。</p><div id="recordList" class="record-list"></div></section>
+      <section id="view-settings" class="view" hidden aria-labelledby="settingsHeading"><div class="page-heading"><div><p class="context">为现场使用做好准备</p><h1 id="settingsHeading">使用与设置</h1></div></div><div class="settings-layout"><section class="settings-section"><h2>离线识别</h2><p id="offlineInfo">Android 安装包内置模型。网页版需先准备离线资源。</p><button id="offlineBtn" type="button" class="secondary"><i data-lucide="download-cloud"></i>准备离线资源</button><div id="offlineProgress" class="field-hint" role="status"></div></section><section class="settings-section"><h2>文字资料补充</h2><p>联网模式可调用 DeepSeek V4.1 Flash，发送候选名称、你填写的观察描述与物性，辅助比较相似矿物。默认不发送照片，辅助说明单独展示。开发电脑关机不影响直连服务。</p><label class="field-label" for="apiKey">你自己的 API 密钥</label><input id="apiKey" type="password" autocomplete="off" placeholder="仅在本次打开 App 时使用"><label class="assist-image-option"><input type="checkbox" id="assistImage"> 我选择附加当前标本照片给 DeepSeek</label><button id="assistBtn" type="button" class="secondary">为当前候选补充说明</button><p id="assistText" class="assist-text" aria-live="polite"></p></section><section class="settings-section"><h2>怎样得到更可靠的线索</h2><ol class="use-guide"><li>单独拍摄目标标本，使用均匀光线和简单背景。</li><li>拍摄不同角度与晶体细节，避免放入其他标本。</li><li>比较候选的硬度、光泽、条痕、晶形等信息。</li><li>实验室记录可补充已确认名称与确认方法。</li></ol><p>目前沿用 1.0 的 98 类图像模型。2.0 的分数与拒判阈值尚待真实场景样本校准；图片识别不能替代实验室检测。</p></section><section class="settings-section"><h2>资料与书籍来源</h2><p>来源目录用于核对鉴别依据。每条原知识资料仍需审核；网站照片不会自动成为训练真值。</p><div id="sourceList" class="source-list"></div></section><section class="settings-section"><h2>支持范围</h2><p id="coverageInfo"></p><p>类别目录不代表所有矿物均可识别。产地显示典型资料，不能由外观确定当前标本的采集地点。</p></section><section class="settings-section about"><img src="./icon.svg" width="56" height="56" alt="识矿图标"><div><h2>识矿 2.0 预览版</h2><p>让观察有依据，让记录可追溯。</p><small id="buildInfo">2.0.0-preview</small></div></section></div></section>
     </main>
-  </body>
+    <nav class="bottom-nav" aria-label="主要功能"><a href="#identify" class="active" data-view="identify" aria-current="page"><i data-lucide="scan-line"></i><span>识别</span></a><a href="#library" data-view="library"><i data-lucide="gem"></i><span>图鉴</span></a><a href="#records" data-view="records"><i data-lucide="notebook-tabs"></i><span>标本</span></a><a href="#settings" data-view="settings"><i data-lucide="sliders-horizontal"></i><span>设置</span></a></nav>
+  </div>
+  <dialog id="cameraDialog" aria-label="拍摄标本"><div class="dialog-head"><h2>拍摄标本照片</h2><button id="closeCamera" type="button" class="icon-button" aria-label="关闭相机"><i data-lucide="x"></i></button></div><video id="cameraPreview" autoplay muted playsinline></video><p class="field-hint">把单一标本放在画面中，对焦后拍摄。</p><button id="takePhoto" type="button" class="primary">拍摄这一角度</button></dialog>
+  <dialog id="videoDialog" aria-label="标本视频"><div class="dialog-head"><h2>标本短视频</h2><button id="closeVideo" type="button" class="icon-button" aria-label="关闭视频"><i data-lucide="x"></i></button></div><p class="field-hint">缓慢移动视角，展示同一标本。录制最多 20 秒；导入最多 90 秒、100 MB。本机取帧，不保存完整视频。</p><video id="videoPreview" autoplay muted playsinline hidden></video><div class="result-actions"><button id="recordVideo" type="button" class="secondary"><i data-lucide="video"></i>录制视频</button><button id="chooseVideo" type="button" class="secondary">选择视频文件</button><button id="stopVideo" type="button" class="secondary" hidden>结束并取帧</button></div><p id="videoStatus" class="field-hint" role="status"></p></dialog>
+  <dialog id="detailDialog" aria-labelledby="detailTitle"><div class="dialog-head"><div><span id="detailType" class="field-label"></span><h2 id="detailTitle"></h2></div><button type="button" class="icon-button" id="closeDetail" aria-label="关闭资料"><i data-lucide="x"></i></button></div><div id="detailBody"></div></dialog>
+  <dialog id="recordDialog" aria-labelledby="recordTitle"><div class="dialog-head"><h2 id="recordTitle">标本记录</h2><button id="closeRecord" type="button" class="icon-button" aria-label="关闭标本"><i data-lucide="x"></i></button></div><div id="recordBody"></div></dialog>
+  <dialog id="confirmDialog" aria-labelledby="confirmTitle"><h2 id="confirmTitle">删除这条标本记录？</h2><p>可以先导出备份。删除后无法在 App 内恢复。</p><div class="result-actions"><button type="button" id="cancelDelete" class="secondary">保留记录</button><button type="button" id="confirmDelete" class="danger-button">删除记录</button></div></dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+</body>
 </html>

@@ -1,1064 +1,365 @@
-"use strict";
-
-const DEEPSEEK_API_KEY = window.DEEPSEEK_API_KEY || localStorage.getItem("shikuang_ds_key") || "";
-const DEEPSEEK_MODEL = window.DEEPSEEK_MODEL || "deepseek-flash";
-
-const state = {
-  mode: "photo",
-  stream: null,
-  recorder: null,
-  recordedChunks: [],
-  recording: false,
-  currentImage: null,
-  currentVideo: null,
-  lastResult: null,
-  onlineMode: false,
-};
-let stopSplashMinerals = null;
-
-const $ = (sel) => document.querySelector(sel);
-const camera = $("#camera");
-const preview = $("#preview");
-const placeholder = $("#placeholder");
-const stage = $("#stage");
-const recordingPill = $("#recordingPill");
-const cameraBtn = $("#cameraBtn");
-const recordBtn = $("#recordBtn");
-const galleryBtn = $("#galleryBtn");
-const clearBtn = $("#clearBtn");
-const historyBtn = $("#historyBtn");
-const fileInput = $("#fileInput");
-const predictBtn = $("#predictBtn");
-const resultPanel = $("#result");
-
-function setStatus(text, busy = false) {
-  $("#statusText").textContent = text;
-  $("#statusBadge").querySelector(".dot").style.background = busy ? "#d58a2a" : "#0f8f6b";
-}
-
-function initAmbient() {
-  const canvas = $("#ambient");
-  if (!canvas) return;
-  const ctx = canvas.getContext("2d");
-  let dots = [];
-  const resize = () => {
-    canvas.width = innerWidth;
-    canvas.height = innerHeight;
-    const count = Math.min(70, Math.max(28, Math.round(innerWidth * innerHeight / 22000)));
-    dots = Array.from({ length: count }, () => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      vx: (Math.random() - 0.5) * 0.22,
-      vy: (Math.random() - 0.5) * 0.22,
-      r: Math.random() * 1.7 + 0.7,
-      hue: Math.random() > 0.5 ? 154 : 34,
-    }));
-  };
-  const tick = () => {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    for (let i = 0; i < dots.length; i++) {
-      const a = dots[i];
-      a.x += a.vx;
-      a.y += a.vy;
-      if (a.x < 0 || a.x > canvas.width) a.vx *= -1;
-      if (a.y < 0 || a.y > canvas.height) a.vy *= -1;
-      ctx.beginPath();
-      ctx.arc(a.x, a.y, a.r, 0, Math.PI * 2);
-      ctx.fillStyle = `hsla(${a.hue}, 52%, 34%, .16)`;
-      ctx.fill();
-      for (let j = i + 1; j < dots.length; j++) {
-        const b = dots[j];
-        const dx = a.x - b.x;
-        const dy = a.y - b.y;
-        const d2 = dx * dx + dy * dy;
-        if (d2 < 15000) {
-          ctx.beginPath();
-          ctx.moveTo(a.x, a.y);
-          ctx.lineTo(b.x, b.y);
-          ctx.strokeStyle = "rgba(15,143,107,.055)";
-          ctx.lineWidth = 1;
-          ctx.stroke();
-        }
-      }
-    }
-    requestAnimationFrame(tick);
-  };
-  addEventListener("resize", resize);
-  resize();
-  tick();
-}
-
-function initSplashMinerals() {
-  const canvas = document.getElementById("splashCanvas");
-  if (!canvas) return;
-  const ctx = canvas.getContext("2d");
-  let particles = [];
-  let running = true;
-  const resize = () => {
-    canvas.width = innerWidth;
-    canvas.height = innerHeight;
-    particles = Array.from({ length: 38 }, () => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      vx: (Math.random() - 0.5) * 0.18,
-      vy: (Math.random() - 0.5) * 0.18,
-      r: Math.random() * 2.1 + 0.7,
-      hue: Math.random() > 0.55 ? 154 : 34,
-      spin: Math.random() * Math.PI,
-      spinSpeed: (Math.random() - 0.5) * 0.02,
-    }));
-  };
-  const drawCrystal = (x, y, r, a, hue) => {
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(a);
-    ctx.beginPath();
-    ctx.moveTo(0, -r * 2.4);
-    ctx.lineTo(r * 1.1, 0);
-    ctx.lineTo(0, r * 2.4);
-    ctx.lineTo(-r * 1.1, 0);
-    ctx.closePath();
-    ctx.strokeStyle = `hsla(${hue}, 48%, 52%, .28)`;
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(-r * 0.55, 0);
-    ctx.lineTo(0, -r * 2.4);
-    ctx.lineTo(r * 0.55, 0);
-    ctx.closePath();
-    ctx.strokeStyle = `hsla(${hue}, 46%, 66%, .12)`;
-    ctx.stroke();
-    ctx.restore();
-  };
-  const tick = () => {
-    if (!running) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    for (const p of particles) {
-      p.x += p.vx;
-      p.y += p.vy;
-      p.spin += p.spinSpeed;
-      if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
-      if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
-      drawCrystal(p.x, p.y, p.r, p.spin, p.hue);
-    }
-    requestAnimationFrame(tick);
-  };
-  addEventListener("resize", resize);
-  resize();
-  tick();
-  return () => {
-    running = false;
-  };
-}
-
-function setMode(mode) {
-  state.mode = mode;
-  document.querySelectorAll(".mode").forEach((b) => b.classList.toggle("active", b.dataset.mode === mode));
-  state.currentImage = null;
-  state.currentVideo = null;
-  preview.hidden = true;
-  placeholder.hidden = false;
-  camera.hidden = true;
-  if (mode === "photo") {
-    void startCamera();
-  } else if (mode === "video") {
-    void startCamera();
-  } else {
-    stopCamera();
+(function () {
+  'use strict';
+  const $ = s => document.querySelector(s);
+  const state = { photos: [], active: 0, scene: 'daily', result: null, busy: false, controller: null,
+    recordId: null, records: [], selectedRecord: null, pendingDelete: null, view: 'identify', mode:'offline', mediaBusy:false, saving:false };
+  let cameraStream,videoStream,recorder,recordTimer,discardRecording=false,mediaEpoch=0;
+  function stopCamera(){cameraStream?.getTracks().forEach(t=>t.stop());cameraStream=null;$('#cameraPreview').srcObject=null;}
+  function stopRecording(discard=false){discardRecording=discard;if(recorder?.state==='recording')recorder.stop();clearTimeout(recordTimer);videoStream?.getTracks().forEach(t=>t.stop());videoStream=null;$('#videoPreview').srcObject=null;$('#videoPreview').hidden=true;}
+  function lockMedia(busy){state.mediaBusy=busy;for(const id of ['cameraBtn','videoBtn','galleryBtn','removePhoto'])$('#'+id).disabled=busy||state.busy;$('#predictBtn').disabled=busy||state.busy||!state.photos.length;}
+  function dismissCover(){$('#launchCover').hidden=true;}
+  setTimeout(dismissCover,2000);$('#enterApp').addEventListener('click',dismissCover);
+  const nativePlugins = new Map();
+  const isNative = () => !!window.Capacitor?.isNativePlatform?.();
+  function plugin(name) {
+    if (!isNative()) return null;
+    if (!nativePlugins.has(name)) nativePlugins.set(name, window.Capacitor.registerPlugin?.(name) || window.Capacitor.Plugins?.[name]);
+    return nativePlugins.get(name);
   }
-}
-
-async function startCamera() {
-  if (state.stream) return;
-  try {
-    state.stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "environment" },
-      audio: state.mode === "video",
-    });
-    camera.srcObject = state.stream;
-    camera.hidden = false;
-    preview.hidden = true;
-    placeholder.hidden = true;
-  } catch (err) {
-    setStatus("相机不可用");
-    camera.hidden = true;
-    placeholder.hidden = false;
-    placeholder.innerHTML = '<i data-lucide="camera-off"></i><p>相机不可用</p><span>请点击下方“文件”选择矿物照片</span>';
-    if (window.lucide) lucide.createIcons();
+  const html = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  const pct = v => `${Math.round(Math.min(1, Math.max(0, Number(v) || 0)) * 100)}%`;
+  const kb = key => window.MINERAL_KB[key] || {};
+  const name = key => kb(key).name_zh || window.MINERAL_CLASSES[key]?.zh || key;
+  const date = time => new Date(time).toLocaleString('zh-CN', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+  const types = { amber:'有机宝石', lapis_lazuli:'岩石标本', limonite:'矿物集合体', hornblende:'矿物族', tourmaline:'矿物族', agate:'石英变种', jasper:'石英集合体', flint:'石英集合体', amethyst:'石英变种', carnelian:'玉髓变种', chalcedony:'石英集合体', chrysoprase:'玉髓变种', amazonite:'微斜长石变种', nephritis:'矿物集合体' };
+  function icons() { window.lucide?.createIcons(); }
+  let toastTimer;
+  function toast(message) { $('#toast').textContent = message; $('#toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { $('#toast').hidden = true; }, 4500); }
+  function status(message, error = false) { $('#progress').textContent = message; $('#progress').classList.toggle('error', error); }
+  function openDialog(id) { $(id).showModal(); document.body.classList.add('dialog-open'); }
+  function closeDialog(id) { $(id).close(); if (!document.querySelector('dialog[open]')) document.body.classList.remove('dialog-open'); }
+  function invalidate() {
+    if (state.result) status('照片或物性已改变，请重新分析。');
+    state.result = null; state.recordId = null; $('#result').hidden = true;
   }
-}
-
-function stopCamera() {
-  if (state.stream) {
-    state.stream.getTracks().forEach((t) => t.stop());
-    state.stream = null;
-    camera.srcObject = null;
+  function route() {
+    const requested = location.hash.slice(1), view = ['identify','library','records','settings'].includes(requested) ? requested : 'identify';
+    state.view = view;
+    document.querySelectorAll('.view').forEach(el => { el.hidden = el.id !== `view-${view}`; });
+    document.querySelectorAll('[data-view]').forEach(el => { el.classList.toggle('active', el.dataset.view === view); if (el.dataset.view === view) el.setAttribute('aria-current','page'); else el.removeAttribute('aria-current'); });
+    if (view === 'library') renderLibrary();
+    if (view === 'records') void renderRecords().catch(e => toast(e.message));
+    window.scrollTo({ top:0, behavior:'instant' });
+    requestAnimationFrame(updateCrop);
   }
-  camera.hidden = true;
-  if (!state.currentImage && !state.currentVideo) placeholder.hidden = false;
-}
-
-function showPreviewFromImage(url) {
-  state.currentImage = url;
-  state.currentVideo = null;
-  preview.src = url;
-  preview.hidden = false;
-  camera.hidden = true;
-  placeholder.hidden = true;
-  stopCamera();
-}
-
-function showPreviewFromVideo(url) {
-  state.currentVideo = url;
-  state.currentImage = null;
-  preview.src = "";
-  preview.hidden = true;
-  camera.hidden = true;
-  placeholder.hidden = false;
-  placeholder.innerHTML = '<i data-lucide="clapperboard"></i><p>视频已就绪</p><span>点击“识别矿物”开始分析</span>';
-  if (window.lucide) lucide.createIcons();
-  stopCamera();
-}
-
-async function capturePhoto() {
-  const nativeCamera = window.Capacitor?.Plugins?.Camera;
-  if (nativeCamera?.getPhoto) {
-    try {
-      const photo = await nativeCamera.getPhoto({
-        resultType: "dataUrl",
-        source: "CAMERA",
-        quality: 90,
-        allowEditing: false,
-        correctOrientation: true,
-      });
-      if (photo?.dataUrl) {
-        showPreviewFromImage(photo.dataUrl);
-        setStatus("照片已就绪");
-        return;
-      }
-    } catch (_) {
-      // fall through to WebView camera below
-    }
+  function updateCrop() {
+    const p = state.photos[state.active], img = $('#preview'), frame = $('#cropFrame'), stage = $('#stage');
+    if (!p || !img.naturalWidth) return;
+    const scale = Math.min(stage.clientWidth / img.naturalWidth, stage.clientHeight / img.naturalHeight);
+    const side = Math.min(img.naturalWidth, img.naturalHeight) * scale * p.crop;
+    Object.assign(frame.style, { left:`${(stage.clientWidth-side)/2}px`, top:`${(stage.clientHeight-side)/2}px`, width:`${side}px`, height:`${side}px`, right:'auto', bottom:'auto' });
   }
-  if (!state.stream) return;
-  const canvas = document.createElement("canvas");
-  canvas.width = camera.videoWidth || 1280;
-  canvas.height = camera.videoHeight || 720;
-  canvas.getContext("2d").drawImage(camera, 0, 0, canvas.width, canvas.height);
-  canvas.toBlob((blob) => {
-    showPreviewFromImage(URL.createObjectURL(blob));
-    setStatus("照片已就绪");
-  }, "image/jpeg", 0.92);
-}
-
-async function toggleRecording() {
-  if (state.recording) {
-    state.recorder.stop();
-    return;
+  function renderPhotos() {
+    const hasPhotos = state.photos.length > 0, p = state.photos[state.active];
+    $('#captureEmpty').hidden = hasPhotos; $('#preview').hidden = !hasPhotos; $('#cropFrame').hidden = !hasPhotos;
+    $('#removePhoto').hidden = !hasPhotos; $('#photoStrip').hidden = !hasPhotos; $('#cropControl').hidden = !hasPhotos;
+    $('#predictBtn').disabled = !hasPhotos || state.busy || state.mediaBusy;
+    if (p) { $('#preview').src = p.src; $('#cropRange').value = p.crop * 100; $('#cropValue').textContent = `${Math.round(p.crop * 100)}%`; }
+    else $('#preview').removeAttribute('src');
+    $('#stageLabel').textContent = hasPhotos ? `角度 ${state.active+1} · 中心区域分析` : '照片留在本机';
+    if(p?.kind==='video')$('#stageLabel').textContent=`视频帧 ${(p.time||0).toFixed(1)} 秒 · 中心区域分析`;
+    $('#inputSummary').hidden=!hasPhotos;$('#inputSummary').textContent=hasPhotos?`已提交 ${state.photos.length} 张图像${state.photos.some(p=>p.kind==='video')?'（含视频帧）':''}，可开始分析。`:'';
+    $('#photoStrip').innerHTML = state.photos.map((photo,i) => `<button type="button" class="photo-thumbnail ${i === state.active?'active':''}" data-photo="${i}" aria-label="查看角度 ${i+1}" aria-pressed="${i===state.active}"><img src="${html(photo.src)}" alt="角度 ${i+1}"><span>${i+1}</span></button>`).join('') + (state.photos.length < 3 ? '<button type="button" class="photo-add" data-add-photo aria-label="添加同一标本的另一个角度"><i data-lucide="plus"></i></button>':'') + `<span class="angle-count">${state.photos.length}/3 个角度</span>`;
+    icons(); updateCrop();
   }
-  if (!state.stream) await startCamera();
-  const mime = MediaRecorder.isTypeSupported("video/webm") ? "video/webm" : "video/mp4";
-  state.recordedChunks = [];
-  state.recorder = new MediaRecorder(state.stream, { mimeType: mime });
-  state.recorder.ondataavailable = (e) => {
-    if (e.data.size > 0) state.recordedChunks.push(e.data);
-  };
-  state.recorder.onstop = () => {
-    state.recording = false;
-    recordBtn.querySelector("i").dataset.lucide = "circle";
-    if (window.lucide) lucide.createIcons();
-    recordingPill.hidden = true;
-    const blob = new Blob(state.recordedChunks, { type: mime });
-    showPreviewFromVideo(URL.createObjectURL(blob));
-    setStatus("视频已就绪");
-  };
-  state.recording = true;
-  recordingPill.hidden = false;
-  recordBtn.querySelector("i").dataset.lucide = "square";
-  if (window.lucide) lucide.createIcons();
-  state.recorder.start();
-}
-
-function clearAll() {
-  state.currentImage = null;
-  state.currentVideo = null;
-  fileInput.value = "";
-  $("#description").value = "";
-  preview.hidden = true;
-  camera.hidden = false;
-  placeholder.innerHTML = '<i data-lucide="scan-line"></i><p>将矿物置于取景框内</p><span>支持照片、视频与文字描述</span>';
-  placeholder.hidden = false;
-  resultPanel.hidden = true;
-  if (window.lucide) lucide.createIcons();
-  if (state.mode === "photo" || state.mode === "video") void startCamera();
-}
-
-function dismissSplash() {
-  const splash = document.getElementById("splash");
-  if (stopSplashMinerals) stopSplashMinerals();
-  if (!splash) return;
-  splash.classList.add("done");
-  setTimeout(() => splash.remove(), 700);
-}
-
-function setSplash(status) {
-  const el = document.getElementById("splashStatus");
-  if (el) el.textContent = status;
-}
-
-async function imageToDataUrl(src) {
-  const resp = await fetch(src);
-  const blob = await resp.blob();
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-}
-
-async function predictDeepSeekImage() {
-  if (!DEEPSEEK_API_KEY) throw new Error("DeepSeek 密钥未配置");
-  if (!state.currentImage) throw new Error("请先选择矿物照片");
-  const dataUrl = await imageToDataUrl(state.currentImage);
-  const description = $("#description").value.trim();
-  const prompt = [
-    "你是矿物鉴定专家。请识别图片中的矿物。",
-    "只能返回一个 JSON 对象，不要 Markdown，不要解释。字段：",
-    '{"name_zh":"中文名","name_en":"英文名","formula":"化学式","confidence":0到1,"origin":"产地","formation":"形成原因","industrial_uses":["工业用途"],"features":["鉴别特征"]}',
-    description ? `用户补充描述：${description}` : "",
-    "如果不是矿物、图片不清晰、或属于人物/动物/日常物品，返回 {\"error\":\"这不是矿物，请您放入清晰的矿物照片。\"}",
-  ].join("\n");
-  const res = await fetch("https://api.deepseek.com/chat/completions", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${DEEPSEEK_API_KEY}` },
-    body: JSON.stringify({
-      model: DEEPSEEK_MODEL,
-      messages: [{ role: "user", content: [{ type: "text", text: prompt }, { type: "image_url", image_url: { url: dataUrl } }] }],
-      temperature: 0.2,
-      max_tokens: 4000,
-    }),
-  });
-  if (!res.ok) throw new Error(`DeepSeek 请求失败（${res.status}）`);
-  const data = await res.json();
-  const content = data.choices?.[0]?.message?.content || "";
-  const firstBrace = content.indexOf("{");
-  const lastBrace = content.lastIndexOf("}");
-  const jsonText = firstBrace >= 0 && lastBrace > firstBrace ? content.slice(firstBrace, lastBrace + 1) : content.trim();
-  let parsed;
-  try {
-    parsed = JSON.parse(jsonText);
-  } catch (_) {
-    parsed = { name_zh: content.replace(/\n/g, " ").slice(0, 80) };
+  async function addPhoto(src,metadata={}) {
+    if (state.busy || state.photos.length >= 3) { toast('每个标本最多 3 个角度，开始新标本可继续拍摄'); return; }
+    const img = await MineralEngine.image(src);
+    if(state.busy||state.photos.length>=3)return;
+    if (img.naturalWidth * img.naturalHeight > 40000000) throw new Error('照片分辨率过大，请选择低于 4000 万像素的图片');
+    const scale = Math.min(1, 1536 / Math.max(img.naturalWidth,img.naturalHeight));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(img.naturalWidth * scale); canvas.height = Math.round(img.naturalHeight * scale);
+    canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+    const normalized = canvas.toDataURL('image/jpeg',0.9);
+    if (state.photos.some(p=>p.src === normalized)) { toast('这张照片已添加，请补充同一标本的不同角度'); return; }
+    invalidate(); state.photos.push({ src:normalized, crop:1,...metadata });
+    state.active = state.photos.length-1; renderPhotos(); status('照片已就绪，可添加其他角度或开始分析。');
   }
-  parsed = normalizeDeepSeekResult(parsed);
-  if (parsed.error) throw new Error(parsed.error);
-  return parsed;
-}
-
-async function predictOnline() {
-  if (!DEEPSEEK_API_KEY) throw new Error("DeepSeek 密钥未配置，请在设置中填写后重试。");
-  if (state.currentVideo) {
-    const local = await predictVideoOnnx();
-    const text = await deepseekText(
-      `本地识别为 ${local.name_zh}（${local.name_en}）。请判断图片是否为矿物，并补充产地、成因、工业用途和鉴别特征。`
-    );
-    return { ...local, ai: text };
-  }
-  return await predictDeepSeekImage();
-}
-
-function normalizeDeepSeekResult(data) {
-  const first = (keys) => keys.map((k) => data[k]).find((v) => v !== undefined && v !== null && v !== "");
-  return {
-    ...data,
-    name_zh: first(["name_zh", "矿物名称", "中文名", "名称", "矿物名"]) || data.name_zh || "",
-    name_en: first(["name_en", "英文名称", "英文名", "English Name", "英文"]) || data.name_en || "",
-    formula: first(["formula", "化学式", "分子式", "Formula"]) || data.formula || "",
-    confidence: first(["confidence", "置信度", "Confidence"]) ?? data.confidence,
-    origin: first(["origin", "产地", "Origin", "典型产地"]) || data.origin || "",
-    formation: first(["formation", "形成原因", "成因", "Formation"]) || data.formation || "",
-    industrial_uses: first(["industrial_uses", "工业用途", "用途", "Industrial Uses"]) || data.industrial_uses || [],
-    features: first(["features", "鉴别特征", "特征", "Features"]) || data.features || [],
-  };
-}
-
-async function deepseekText(prompt) {
-  if (!DEEPSEEK_API_KEY) return "";
-  const res = await fetch("https://api.deepseek.com/chat/completions", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${DEEPSEEK_API_KEY}` },
-    body: JSON.stringify({
-      model: DEEPSEEK_MODEL,
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.4,
-      max_tokens: 3000,
-    }),
-  });
-  if (!res.ok) return "";
-  const data = await res.json();
-  const message = data.choices?.[0]?.message || {};
-  return message.content || message.reasoning_content || "";
-}
-
-function renderDeepSeekResult(data) {
-  const result = {
-    name_zh: data.name_zh || "未知矿物",
-    name_en: data.name_en || "",
-    formula: data.formula || "",
-    confidence: Number(data.confidence || 0.7),
-    threshold: 0.5,
-    accepted: true,
-    knowledge: {
-      name_zh: data.name_zh,
-      name_en: data.name_en,
-      formula: data.formula,
-      formation: data.formation,
-      typical_localities: [data.origin],
-      industrial_uses: data.industrial_uses || [],
-      crystal_system: (data.features || []).join("；"),
-      luster: "",
-      hardness: "",
-    },
-    rankings: [{ key: data.name_en || "mineral", name_zh: data.name_zh, confidence: Number(data.confidence || 0.7) }],
-    ai: data.ai || "",
-  };
-  renderResult(result);
-  saveHistory(result);
-  if (result.ai) {
-    document.getElementById("tab-use").innerHTML += `<div class="kv"><dt>AI 辅助</dt><dd>${escapeHtml(result.ai)}</dd></div>`;
-  }
-}
-
-async function predict() {
-  if (!state.currentImage && !state.currentVideo) {
-    setStatus("请先拍照或选择媒体");
-    return;
-  }
-  predictBtn.disabled = true;
-  predictBtn.classList.add("loading");
-  $("#predictLabel").textContent = "识别中…";
-  setStatus("识别中…", true);
-  try {
-    if (state.onlineMode) {
-      const data = await predictOnline();
-      renderDeepSeekResult(data);
-      setStatus("识别完成");
-    } else {
-      const local = state.currentVideo ? await predictVideoOnnx() : await predictOnnx();
-      renderResult(local);
-      setStatus("本地识别完成");
-    }
-  } catch (err) {
-    if (DEEPSEEK_API_KEY && state.currentImage) {
+  function cancelled(error) { return /cancel|取消|canceled/i.test(error?.message || ''); }
+  async function capture(source) {
+    if (state.busy || state.mediaBusy) return;
+    if (state.photos.length >= 3) { toast('已添加 3 个角度，请先分析或移除一张照片'); return; }
+    if (isNative()) {
+      lockMedia(true);
       try {
-        const data = await predictDeepSeekImage();
-        renderDeepSeekResult(data);
-        setStatus("联网识别完成");
-        return;
-      } catch (_) {
-        // continue to local fallback below
-      }
-    }
-    let fallbackError = "";
+        const photo = await plugin('Camera').getPhoto({ quality:90, width:1536, height:1536,
+          resultType:'uri', source:source === 'camera' ? 'CAMERA':'PHOTOS', correctOrientation:true,
+          allowEditing:false, saveToGallery:false });
+        if (photo.webPath) await addPhoto(photo.webPath);
+        else throw new Error('相机未返回可读取的照片，请重试');
+      } catch (e) { if (!cancelled(e)) toast(`无法读取照片：${e.message || '请检查相机权限'}`); } finally {lockMedia(false);}
+    } else if(source==='camera'){
+      lockMedia(true);try{if(!navigator.mediaDevices?.getUserMedia)throw new Error('此环境无法打开相机，请使用安装版或 HTTPS');cameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});$('#cameraPreview').srcObject=cameraStream;openDialog('#cameraDialog');}
+      catch(e){stopCamera();toast(`无法打开相机：${e.name==='NotAllowedError'?'请允许相机访问':e.message}`);}finally{lockMedia(false);}
+    }else $('#fileInput').click();
+  }
+  async function readFiles(input) {
+    if(state.busy||state.mediaBusy){input.value='';return;}lockMedia(true);
     try {
-      const local = state.currentVideo ? await predictVideoOnnx() : await predictOnnx();
-      renderResult(local);
-      if (state.onlineMode) {
-        const text = await deepseekText(`本地识别为 ${local.name_zh}（${local.name_en}）。请简要补充产地、成因、工业用途与最可靠鉴别特征。`);
-        if (text) document.getElementById("tab-use").innerHTML += `<div class="kv"><dt>AI 辅助</dt><dd>${escapeHtml(text)}</dd></div>`;
+      for (const file of Array.from(input.files || [])) {
+        if (state.photos.length >= 3) { toast('最多添加 3 张同一标本的照片'); break; }
+        if (file.size > 20*1024*1024) throw new Error('单张照片超过 20 MB，请降低分辨率后重试');
+        if (!/^(image\/(jpeg|png|webp|heic|heif|avif))$/.test(file.type) && !/\.(jpe?g|png|webp|heic|heif|avif)$/i.test(file.name)) throw new Error('请选择可读取的照片文件');
+        const url = URL.createObjectURL(file);
+        try { await addPhoto(url); } finally { URL.revokeObjectURL(url); }
       }
-      setStatus("本地识别完成");
-      return;
-    } catch (localErr) {
-      fallbackError = localErr.message || String(localErr);
-    }
-    setStatus("识别失败");
-    resultPanel.hidden = false;
-    resultPanel.classList.remove("show");
-    void resultPanel.offsetWidth;
-    resultPanel.classList.add("show");
-    $("#resultName").textContent = "无法识别";
-    $("#resultFormula").textContent = "";
-    $("#resultConf").textContent = "—";
-    $("#meterFill").style.width = "0";
-    $("#verdict").textContent = fallbackError || err.message || "无法连接识别服务";
-    $("#verdict").className = "verdict rejected";
-    ["basic", "origin", "use", "graph", "rank"].forEach((id) => {
-      document.getElementById(`tab-${id}`).innerHTML = "";
-    });
-  } finally {
-    predictBtn.disabled = false;
-    predictBtn.classList.remove("loading");
-    $("#predictLabel").textContent = "识别矿物";
+    } catch (e) { toast(e.message || '照片无法读取，请选择 JPEG 或 PNG 格式'); }
+    finally { input.value = '';lockMedia(false); }
   }
-}
-
-function renderResult(data) {
-  state.lastResult = data;
-  saveHistory(data);
-  resultPanel.hidden = false;
-  resultPanel.classList.remove("show");
-  void resultPanel.offsetWidth;
-  resultPanel.classList.add("show");
-  $("#resultName").textContent = `${data.name_zh} · ${data.name_en}`;
-  $("#resultFormula").textContent = data.formula || "";
-  const pct = Math.round(data.confidence * 100);
-  $("#resultConf").textContent = `${pct}%`;
-  $("#meterFill").style.width = `${pct}%`;
-  const verdict = $("#verdict");
-  if (data.accepted) {
-    verdict.textContent = `置信度高于判定阈值 ${Math.round(data.threshold * 100)}%`;
-    verdict.className = "verdict accepted";
-  } else {
-    verdict.textContent = `低于判定阈值 ${Math.round(data.threshold * 100)}%，建议补充描述或更换拍摄角度`;
-    verdict.className = "verdict rejected";
+  async function readVideo(input){
+    const file=input.files?.[0];if(!file)return;
+    if(state.busy||state.mediaBusy){input.value='';return;}
+    if(state.photos.length>=3){toast('已添加 3 张图像，请先移除或开始新标本');input.value='';return;}
+    lockMedia(true);if($('#videoDialog').open)closeDialog('#videoDialog');const epoch=++mediaEpoch;
+    try{const result=await MineralMedia.extractVideo(file,status);
+      for(const frame of result.frames.slice(0,3-state.photos.length))await addPhoto(frame.src,{kind:'video',time:frame.time});
+      status(`视频已取帧（${result.duration.toFixed(1)} 秒），${state.photos.length} 张图像可分析。`);
+    }catch(e){status(e.message,true);toast(e.message);}finally{input.value='';lockMedia(false);}
   }
-
-  const k = data.knowledge || {};
-  $("#tab-basic").innerHTML = kvTable({
-    "矿物名称": `${k.name_zh || data.name_zh} (${k.name_en || data.name_en})`,
-    "化学式": k.formula || data.formula,
-    "Strunz大类": k.classification?.strunz_10,
-    "九大类体系": k.classification?.class_9,
-    "八大类体系": k.classification?.class_8,
-    "晶系": k.crystal_system,
-    "摩氏硬度": k.hardness,
-    "光泽": k.luster,
-    "条痕": k.streak,
-    "颜色": k.color,
-    "晶体习性": k.habit,
-  });
-  $("#tab-origin").innerHTML = kvTable({
-    "典型产地": (k.typical_localities || []).join("、"),
-    "形成原因": k.formation,
-  });
-  $("#tab-use").innerHTML = tagList(k.industrial_uses || []);
-  $("#tab-rank").innerHTML = (data.rankings || [])
-    .map(
-      (r, i) => `
-      <div class="rank-row">
-        <span>${i + 1}. ${r.name_zh}</span>
-        <div class="rank-bar"><span style="width:${Math.round(r.confidence * 100)}%"></span></div>
-        <span class="rank-conf">${Math.round(r.confidence * 100)}%</span>
-      </div>`
-    )
-    .join("");
-  renderGraph(data);
-}
-
-function renderGraph(data) {
-  const panel = document.getElementById("tab-graph");
-  if (!panel) return;
-  const key = data.key || data.rankings?.[0]?.key;
-  const graph = window.MINERAL_GRAPH?.[key];
-  if (!graph || !graph.nodes?.length) {
-    panel.innerHTML = "<p>暂无关系图谱</p>";
-    return;
+  async function recordVideo(){
+    if(isNative()){$('#videoInput').click();return;}
+    const epoch=++mediaEpoch;$('#recordVideo').disabled=true;$('#chooseVideo').disabled=true;
+    try{if(!window.MediaRecorder||!navigator.mediaDevices?.getUserMedia)throw new Error('当前环境无法录制，请选择视频文件');
+      videoStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
+      if(epoch!==mediaEpoch||!$('#videoDialog').open){stopRecording(true);return;}
+      $('#videoPreview').hidden=false;$('#videoPreview').srcObject=videoStream;
+      const chunks=[];discardRecording=false;recorder=new MediaRecorder(videoStream);
+      recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data);};
+      recorder.onstop=()=>{const cancelled=discardRecording;stopRecording(cancelled);$('#stopVideo').hidden=true;$('#recordVideo').disabled=false;$('#chooseVideo').disabled=false;if(cancelled||!chunks.length)return;
+        const file=new File(chunks,'specimen-video.webm',{type:chunks[0].type||'video/webm'});void readVideo({files:[file],value:''});};
+      recorder.start();$('#stopVideo').hidden=false;$('#recordVideo').disabled=true;$('#chooseVideo').disabled=true;$('#videoStatus').textContent='正在录制，同一标本缓慢变化视角；20 秒后自动结束。';
+      recordTimer=setTimeout(()=>stopRecording(),20000);
+    }catch(e){stopRecording(true);$('#recordVideo').disabled=false;$('#chooseVideo').disabled=false;toast(`无法录制：${e.name==='NotAllowedError'?'请允许相机访问':e.message}`);}
   }
-  const mineral = graph.nodes.find((n) => n.id === "mineral");
-  const others = graph.nodes.filter((n) => n.id !== "mineral");
-  const total = others.length;
-  const cx = 300;
-  const cy = 220;
-  const radius = Math.min(155, 88 + total * 8);
-  const positions = new Map();
-  positions.set("mineral", { x: cx, y: cy });
-  others.forEach((node, i) => {
-    const angle = (Math.PI * 2 * i) / total - Math.PI / 2;
-    positions.set(node.id, {
-      x: cx + Math.cos(angle) * radius,
-      y: cy + Math.sin(angle) * radius,
-    });
-  });
-  const color = (type) =>
-    type === "mineral"
-      ? "#0a6b50"
-      : type === "formula"
-        ? "#c9473f"
-        : type === "locality"
-          ? "#b6761b"
-          : type === "use"
-            ? "#315fa8"
-            : "#68716a";
-  const short = (text) => (text.length > 10 ? `${text.slice(0, 10)}…` : text);
-  const nodesSvg = graph.nodes
-    .map((node) => {
-      const p = positions.get(node.id);
-      const fill = color(node.type);
-      const r = node.type === "mineral" ? 27 : 12;
-      return `<g transform="translate(${p.x} ${p.y})">
-        <circle r="${r}" fill="${fill}" opacity=".92"></circle>
-        <circle r="${r}" fill="none" stroke="rgba(255,255,255,.8)" stroke-width="1"></circle>
-        <text y="${r + 13}" text-anchor="middle" fill="#4c554e" font-size="11">${escapeHtml(short(node.label))}</text>
-      </g>`;
-    })
-    .join("");
-  const linksSvg = graph.links
-    .map((link) => {
-      const a = positions.get(link.source);
-      const b = positions.get(link.target);
-      if (!a || !b) return "";
-      return `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="rgba(15,143,107,.25)" stroke-width="1"></line>`;
-    })
-    .join("");
-  panel.innerHTML = `
-    <div class="graph-wrap">
-      <svg viewBox="0 0 600 440" role="img" aria-label="矿物关系图谱">
-        <g>${linksSvg}${nodesSvg}</g>
-      </svg>
-      <p class="graph-hint">中心为识别矿物，外圈为成分、晶系、产地与工业用途关系。</p>
-    </div>`;
-}
-
-function escapeHtml(value) {
-  return String(value ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
-}
-
-function kvTable(rows) {
-  return Object.entries(rows)
-    .filter(([, v]) => v !== undefined && v !== null && v !== "")
-    .map(([k, v]) => `<dl class="kv"><dt>${k}</dt><dd>${v}</dd></dl>`)
-    .join("");
-}
-
-function tagList(items) {
-  if (!items.length) return "<p>暂无资料</p>";
-  return `<div class="tag-list">${items.map((x) => `<span class="tag">${x}</span>`).join("")}</div>`;
-}
-
-let ortSessions = null;
-let gateSession = null;
-let gateLoadingPromise = null;
-
-async function waitFor(fn, timeout = 15000) {
-  const start = Date.now();
-  while (!fn()) {
-    if (Date.now() - start > timeout) throw new Error("资源加载超时");
-    await new Promise((r) => setTimeout(r, 250));
+  function observation() { return { hardness:$('#hardness').value, luster:$('#luster').value }; }
+  function setBusy(busy) {
+    state.busy = busy; $('#stage').classList.toggle('analyzing',busy); $('#cancelBtn').hidden = !busy;
+    $('#predictLabel').textContent = busy ? '正在分析标本…':'分析矿物候选';
+    for (const id of ['cameraBtn','videoBtn','galleryBtn','removePhoto','cropRange','hardness','luster','precision','newSample','saveBtn']) $('#'+id).disabled = busy;
+    if(state.saving)$('#saveBtn').disabled=true;
+    document.querySelectorAll('[data-scene]').forEach(b => { b.disabled = busy; });
+    $('#predictBtn').disabled = busy || !state.photos.length;
   }
-}
-
-async function getOnnxSessions() {
-  if (ortSessions) return ortSessions;
-  await waitFor(() => !!window.ort, 6000);
-  if (!window.ort) throw new Error("浏览器推理组件未加载");
-  const vendorBase = new URL("./vendor/", location.href).href;
-  const modelBase = new URL("./models/", location.href).href;
-  window.ort.env.wasm.wasmPaths = vendorBase;
-  window.ort.env.wasm.numThreads = 1;
-  window.ort.env.wasm.proxy = false;
-  const loadWithTimeout = (url) => Promise.race([
-    window.ort.InferenceSession.create(url, { executionProviders: ["wasm"], graphOptimizationLevel: "all" }),
-    new Promise((_, reject) => setTimeout(() => reject(new Error("模型加载超时")), 90000)),
-  ]);
-  const mob = await loadWithTimeout(modelBase + "mobilenet_int8.onnx?v=1");
-  ortSessions = [mob];
-  Promise.all([
-    loadWithTimeout(modelBase + "efficientnet.onnx?v=5"),
-    loadWithTimeout(modelBase + "efficientnet_legacy.onnx?v=3"),
-  ])
-    .then(([eff, legacy]) => {
-      if (!ortSessions.some((s) => s === eff)) ortSessions = [mob, eff, legacy];
-    })
-    .catch(() => {});
-  return ortSessions;
-}
-
-async function getGateSession() {
-  if (gateSession) return gateSession;
-  if (gateLoadingPromise) return gateLoadingPromise;
-  gateLoadingPromise = (async () => {
-    await waitFor(() => !!window.ort && !!window.IMAGENET_CLASSES);
-    const modelBase = new URL("./models/", location.href).href;
-    gateSession = await window.ort.InferenceSession.create(modelBase + "imagenet_gate.onnx?v=2", { executionProviders: ["wasm"], graphOptimizationLevel: "all" });
-    return gateSession;
-  })().catch((err) => {
-    console.warn("gate unavailable", err);
-    gateLoadingPromise = null;
-    return null;
-  });
-  return gateLoadingPromise;
-}
-
-async function imageToImageNetTensor(src) {
-  const img = new Image();
-  img.src = src;
-  await img.decode();
-  const short = Math.min(img.width, img.height);
-  const sx = (img.width - short) / 2;
-  const sy = (img.height - short) / 2;
-  const canvas = document.createElement("canvas");
-  canvas.width = 224;
-  canvas.height = 224;
-  const ctx = canvas.getContext("2d");
-  ctx.drawImage(img, sx, sy, short, short, 0, 0, 224, 224);
-  const data = ctx.getImageData(0, 0, 224, 224).data;
-  const input = new Float32Array(3 * 224 * 224);
-  const mean = [0.485, 0.456, 0.406];
-  const std = [0.229, 0.224, 0.225];
-  for (let c = 0; c < 3; c++) {
-    for (let i = 0; i < 224 * 224; i++) {
-      input[c * 224 * 224 + i] = (data[i * 4 + c] / 255 - mean[c]) / std[c];
-    }
-  }
-  return new window.ort.Tensor("float32", input, [1, 3, 224, 224]);
-}
-
-async function rejectNonMineral() {
-  if (!state.currentImage || !gateSession) return false;
-  try {
-    const tensor = await imageToImageNetTensor(state.currentImage);
-    const output = await gateSession.run({ input: tensor });
-    const logits = output.logits.data;
-    const exp = logits.map((x) => Math.exp(x));
-    const sum = exp.reduce((a, b) => a + b, 0);
-    const probs = exp.map((x) => x / sum);
-    let top = 0;
-    for (let i = 1; i < probs.length; i++) if (probs[i] > probs[top]) top = i;
-    const isBlocked = window.IMAGENET_BLOCKED?.[top] && probs[top] >= 0.22;
-    return isBlocked ? { index: top, label: window.IMAGENET_CLASSES[top], confidence: probs[top] } : false;
-  } catch (_) {
-    return false;
-  }
-}
-
-let mediaPipeFacePromise = null;
-
-async function getMediaPipeFaceDetector() {
-  if (mediaPipeFacePromise) return mediaPipeFacePromise;
-  mediaPipeFacePromise = (async () => {
+  async function predict() {
+    if (state.busy || state.mediaBusy || !state.photos.length) return;
+    const h = $('#hardness').value;
+    if (h && (!Number.isFinite(Number(h)) || Number(h)<1 || Number(h)>10)) { toast('实测硬度需在 1–10 之间，未测量请留空'); $('#hardness').focus(); return; }
+    invalidate(); setBusy(true); state.controller = new AbortController();
     try {
-      const vision = await import(new URL("./vendor/mediapipe/vision_bundle.mjs", location.href));
-      const fileset = await vision.FilesetResolver.forVisionTasks(
-        new URL("./vendor/mediapipe/wasm/", location.href).href
-      );
-      return await vision.FaceDetector.createFromOptions(fileset, {
-        baseOptions: {
-          modelAssetPath: new URL("./models/face_detector.tflite", location.href).href,
-          delegate: "GPU",
-        },
-        minDetectionConfidence: 0.85,
-      });
-    } catch (err) {
-      console.warn("MediaPipe face detector unavailable", err);
-      return null;
-    }
-  })();
-  return mediaPipeFacePromise;
-}
-
-async function rejectHumanByFace() {
-  const detector = await getMediaPipeFaceDetector();
-  if (!detector || !state.currentImage) return false;
-  try {
-    const image = new Image();
-    image.src = state.currentImage;
-    await image.decode();
-    const result = await Promise.race([
-      detector.detect(image),
-      new Promise((_, reject) => setTimeout(() => reject(new Error("face detect timeout")), 4500)),
-    ]);
-    const detections = result && result.detections ? result.detections : [];
-    return detections.some((d) => d.categories && d.categories[0] && d.categories[0].score >= 0.85);
-  } catch (_) {
-    return false;
+      const result = await MineralEngine.analyze(state.photos, { signal:state.controller.signal, report:status,
+        observation:observation(), precision:$('#precision').checked });
+      state.result = result; renderResult(result); status('分析完成，请比较候选并复核实测物性。');
+      $('#result').scrollIntoView({ behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth', block:'start' });
+    } catch (e) { if (e.name === 'AbortError') status('分析已停止，照片已保留。'); else status(e.message || '分析失败，请重新拍摄或准备离线资源。',true); }
+    finally { state.controller = null; setBusy(false); }
   }
-}
-
-async function imageSkinRatio(src) {
-  const img = new Image();
-  img.src = src;
-  await img.decode();
-  const short = Math.min(img.width, img.height);
-  const sx = (img.width - short) / 2;
-  const sy = (img.height - short) / 2;
-  const canvas = document.createElement("canvas");
-  canvas.width = 96;
-  canvas.height = 96;
-  const ctx = canvas.getContext("2d");
-  ctx.drawImage(img, sx, sy, short, short, 0, 0, 96, 96);
-  const data = ctx.getImageData(0, 0, 96, 96).data;
-  let skin = 0;
-  const total = 96 * 96;
-  for (let i = 0; i < data.length; i += 4) {
-    const r = data[i];
-    const g = data[i + 1];
-    const b = data[i + 2];
-    if (
-      r > 95 && g > 40 && b > 20 &&
-      r > g && r > b &&
-      r - Math.min(g, b) > 15 &&
-      Math.abs(r - g) > 15
-    ) {
-      skin++;
-    }
+  function checkMarkup(check) { return `<p class="physical-check ${check.status==='conflict'?'conflict':''}">${check.status==='conflict'?'存在冲突':'物性符合'} · ${html(check.property)}：实测 ${html(check.observed)}，资料 ${html(check.expected)}</p>`; }
+  function renderResult(r) {
+    const k = kb(r.key); $('#result').hidden = false;
+    $('#resultHeading').textContent = name(r.key); $('#resultEnglish').textContent = k.name_en || r.key;
+    $('#resultFormula').textContent = k.formula || ''; $('#resultScore').textContent = pct(r.score);
+    $('#scoreFill').style.width = '0%'; requestAnimationFrame(() => { $('#scoreFill').style.width = pct(r.score); });
+    $('#resultStatus').textContent = r.status === 'consistent' ? '线索较一致 · 待复核':'需要更多证据';
+    $('#resultStatus').className = `result-state ${r.status==='consistent'?'consistent':''}`;
+    $('#verdict').textContent = r.reasons.length ? r.reasons.join('；') + '。建议补拍晶体细节，并对照候选物性。' : '各模型和拍摄角度的线索较一致。请对照物性后记录结论；未覆盖的类别仍可能被分到相似候选。';
+    $('#evidenceSummary').innerHTML = `<span>${r.photoCount} 张图像${state.photos.some(p=>p.kind==='video')?'（含视频帧）':''}</span><span>${r.modelCount} 个模型</span><span>模型一致度 ${pct(r.agreement)}</span>`;
+    $('#candidates').innerHTML = r.rankings.map((x,i) => { const item = kb(x.key); return `<div class="candidate-row"><button type="button" data-detail="${html(x.key)}" aria-label="查看${html(name(x.key))}资料"><strong>${i+1}. ${html(name(x.key))}</strong><span class="candidate-score">${pct(x.score)}</span></button><div class="candidate-meta"><span>硬度 ${html(item.hardness ?? '未收录')}</span><span>光泽 ${html(item.luster || '未收录')}</span></div>${(x.checks || []).filter(c => c.status==='conflict').map(checkMarkup).join('')}</div>`; }).join('');
+    $('#physicalChecks').innerHTML = (r.checks || []).filter(c => c.status==='match').map(checkMarkup).join('');
+    $('#saveBtn').innerHTML = '<i data-lucide="bookmark-plus"></i>保存标本'; icons();
   }
-  return skin / total;
-}
-
-async function imageToTensor(src, flipH = false, flipV = false) {
-  const img = new Image();
-  img.src = src;
-  await img.decode();
-  const short = Math.min(img.width, img.height);
-  const sx = (img.width - short) / 2;
-  const sy = (img.height - short) / 2;
-  const canvas = document.createElement("canvas");
-  canvas.width = 224;
-  canvas.height = 224;
-  const ctx = canvas.getContext("2d");
-  ctx.drawImage(img, sx, sy, short, short, 0, 0, 224, 224);
-  const data = ctx.getImageData(0, 0, 224, 224).data;
-  const input = new Float32Array(3 * 224 * 224);
-  const mean = [0.485, 0.456, 0.406];
-  const std = [0.229, 0.224, 0.225];
-  for (let c = 0; c < 3; c++) {
-    for (let y = 0; y < 224; y++) {
-      for (let x = 0; x < 224; x++) {
-        const sx = flipH ? 223 - x : x;
-        const sy = flipV ? 223 - y : y;
-        const idx = (sy * 224 + sx) * 4 + c;
-        input[c * 224 * 224 + y * 224 + x] = (data[idx] / 255 - mean[c]) / std[c];
+  function resetSample() {
+    if (state.busy || state.mediaBusy) return;
+    state.photos = []; state.active = 0; invalidate();
+    $('#notes').value = ''; $('#sampleId').value = ''; $('#hardness').value = ''; $('#luster').value = '';
+    renderPhotos(); status('拍摄或选择一张照片即可开始。'); window.scrollTo({top:0,behavior:'instant'});
+  }
+  async function thumbnail(src) {
+    const img = await MineralEngine.image(src), canvas = document.createElement('canvas'), scale = 256/Math.max(img.naturalWidth,img.naturalHeight);
+    canvas.width = Math.round(img.naturalWidth*scale); canvas.height = Math.round(img.naturalHeight*scale);
+    canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height); return canvas.toDataURL('image/jpeg',0.7);
+  }
+  async function save() {
+    if (!state.result || state.busy || state.saving) return;
+    state.saving=true;
+    const snapshot={result:state.result,recordId:state.recordId,photos:state.photos.map(p=>({...p})),scene:state.scene,notes:$('#notes').value.trim(),sampleId:$('#sampleId').value.trim(),observation:observation()};
+    $('#saveBtn').disabled = true;
+    try {
+      const r = snapshot.result, id = snapshot.recordId || (crypto.randomUUID?.() || `specimen-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+      const old = snapshot.recordId ? (await SpecimenStore.list()).find(x => x.id === snapshot.recordId) : null;
+      const photos = await Promise.all(snapshot.photos.map(p => thumbnail(p.src)));
+      await SpecimenStore.put({ ...r, id, time:old?.time || Date.now(), name:name(r.key), photos, scene:snapshot.scene,
+        notes:snapshot.notes, sampleId:snapshot.sampleId, observation:snapshot.observation,
+        confirmedKey:old?.confirmedKey || '', confirmationMethod:old?.confirmationMethod || '' });
+      if(state.result===r){state.recordId = id; $('#saveBtn').innerHTML = '<i data-lucide="bookmark-check"></i>更新标本';icons();} toast('标本已保存在这台设备');
+    } catch (e) { toast(e.message); } finally { state.saving=false;$('#saveBtn').disabled = state.busy; }
+  }
+  function properties(k) {
+    const values = [['化学式',k.formula],['摩氏硬度',k.hardness],['晶系',k.crystal_system],['光泽',k.luster],['条痕',k.streak],['颜色',k.color],['晶体习性',k.habit],['分类',k.classification?.class_9]];
+    return `<dl class="detail-properties">${values.filter(([,v]) => v!==undefined && v!=='').map(([label,value]) => `<div><dt>${label}</dt><dd>${html(value)}</dd></div>`).join('')}</dl>`;
+  }
+  function showDetail(key) {
+    const k = kb(key); if (!Object.keys(k).length) { toast('该候选暂未收录资料'); return; }
+    $('#detailTitle').textContent = name(key);
+    $('#detailType').textContent = `${types[key] || '矿物资料'} · ${window.MINERAL_CLASSES[key]?'图像模型支持':'仅供资料查阅'}`;
+    $('#detailBody').innerHTML = `<p class="field-hint">${html(k.name_en || key)}${k.summary?' · '+html(k.summary):''}</p>${properties(k)}${k.formation?`<section class="detail-section"><h3>形成与产出</h3><p>${html(k.formation)}</p></section>`:''}${k.typical_localities?.length?`<section class="detail-section"><h3>典型产地</h3><p>${html(k.typical_localities.join('、'))}</p></section>`:''}${k.industrial_uses?.length?`<section class="detail-section"><h3>用途</h3><ul>${k.industrial_uses.map(x=>`<li>${html(x)}</li>`).join('')}</ul></section>`:''}<section class="detail-section"><h3>资料来源</h3><p class="field-hint">${html((k.source_refs || []).join('；') || '项目原有矿物知识库')}。沿用项目已有资料，尚未逐条核验；未收录的物性不参与复核。</p></section>`;
+    openDialog('#detailDialog'); icons();
+  }
+  function renderLibrary() {
+    const query = $('#librarySearch').value.trim().toLowerCase(), filter = $('#classFilter').value,scheme=$('#classScheme').value;
+    const items = Object.entries(MINERAL_KB).filter(([key,k]) => [name(key), k.name_en, k.formula, key].some(x => String(x||'').toLowerCase().includes(query)) && (!filter || category(k,scheme) === filter));
+    $('#libraryCount').textContent = `${items.length} 项资料`;
+    $('#libraryList').innerHTML = items.length ? items.map(([key,k]) => `<button type="button" class="mineral-card" data-detail="${html(key)}"><span class="mineral-symbol" aria-hidden="true">${html((k.formula || '◇').slice(0,4))}</span><strong>${html(name(key))}</strong><small>${html(k.name_en || key)}</small><span class="card-formula formula">${html(k.formula || '化学式未收录')}</span><span class="category">${html(types[key] || category(k,scheme))} · ${MINERAL_CLASSES[key]?'模型候选':'资料'}</span></button>`).join('') : '<div class="empty-state"><h2>没有匹配的资料</h2><p>试试矿物名称、英文名或化学式。</p></div>';
+  }
+  const schemes={strunz_10:['自然元素','硫化物','卤化物','氧化物','硝酸盐/碳酸盐','硼酸盐','硫酸盐','磷酸盐','硅酸盐','有机化合物'],class_9:['自然元素','硫化物/硫盐','卤化物','氧化物/氢氧化物','硝酸盐','碳酸盐','钼酸盐/钨酸盐','磷酸盐/砷酸盐/钒酸盐','硅酸盐'],class_8:['自然元素','硫化物','卤化物','氧化物及氢氧化物','碳酸盐/硝酸盐/硼酸盐','硫酸盐','磷酸盐','硅酸盐']};
+  function category(k,scheme){let value=k.classification?.[scheme]||'';if(scheme==='strunz_10'&&['碳酸盐','硝酸盐'].includes(value))value='硝酸盐/碳酸盐';if(scheme==='strunz_10'&&value.startsWith('氧化物'))value='氧化物';if(scheme==='class_8'&&value.startsWith('氧化物'))value='氧化物及氢氧化物';return schemes[scheme]?.includes(value)?value:'体系外 / 待核对';}
+  function updateClassFilter(){const scheme=$('#classScheme').value;$('#classFilter').innerHTML='<option value="">全部类别</option>'+[...schemes[scheme],'体系外 / 待核对'].map(c=>{const count=Object.values(MINERAL_KB).filter(k=>category(k,scheme)===c).length;return `<option value="${html(c)}">${html(c)} · ${count}</option>`;}).join('');renderLibrary();}
+  function renderSearchHistory(){const rows=SearchHistory.read();$('#searchHistory').innerHTML=rows.length?'<div class="history-heading"><span>历史搜索 · 本机</span><button type="button" id="clearSearches">清空</button></div><div class="history-chips">'+rows.map((x,i)=>`<button type="button" data-history="${i}">${html(x.query)}<small>${x.kind==='records'?'标本':'图鉴'}</small></button>`).join('')+'</div>':'';}
+  function saveSearch(kind){SearchHistory.save($(kind==='library'?'#librarySearch':'#recordSearch').value,kind);renderSearchHistory();}
+  function setMode(mode){state.mode=mode==='online'?'online':'offline';document.querySelectorAll('[data-mode]').forEach(b=>{b.classList.toggle('selected',b.dataset.mode===state.mode);b.setAttribute('aria-pressed',String(b.dataset.mode===state.mode));});$('#connectionLabel').textContent=state.mode==='offline'?'本机识别':navigator.onLine?'联网辅助':'网络不可用';try{localStorage.setItem('shikuang-mode-v2',state.mode);}catch(_){} }
+  async function renderRecords() {
+    state.records = await SpecimenStore.list();
+    const query = $('#recordSearch').value.trim().toLowerCase();
+    const records = state.records.filter(r => [r.sampleId,r.notes,name(r.key),r.confirmedKey?name(r.confirmedKey):''].some(x=>String(x||'').toLowerCase().includes(query)));
+    $('#recordCount').textContent = `${state.records.length}/100 条`; $('#exportBtn').disabled = !state.records.length;
+    $('#recordList').innerHTML = records.length ? records.map(r => `<button type="button" class="record-card" data-record="${html(r.id)}">${r.photos[0]?`<img src="${html(r.photos[0])}" alt="保存的标本照片">`:'<span class="record-no-image"><i data-lucide="gem"></i></span>'}<div class="record-text"><strong>${html(r.confirmedKey?name(r.confirmedKey):name(r.key))}</strong><p>${html(r.sampleId || '未设置标本编号')} · ${r.confirmedKey?'已人工确认':'候选待复核'}</p><small>${html(date(r.time))} · 模型分数 ${pct(r.score)}</small></div><i data-lucide="chevron-right"></i></button>`).join('') : `<div class="empty-state"><i data-lucide="notebook-tabs"></i><h2>${query?'没有匹配的标本':'记录你的第一块标本'}</h2><p>${query?'试试标本编号、矿物名称或备注。':'拍摄、分析并保存。不同的标本会分别保留，便于回看与复核。'}</p>${query?'':'<a href="#identify" class="secondary">开始识别</a>'}</div>`;
+    icons();
+  }
+  function showRecord(id) {
+    const r = state.records.find(x => x.id === id); if (!r) return;
+    state.selectedRecord = r; $('#recordTitle').textContent = r.sampleId || name(r.key);
+    $('#recordBody').innerHTML = `<p class="field-hint">${html(date(r.time))} · ${r.scene==='lab'?'实验室':'日常'}记录</p><div class="record-photos">${r.photos.map(src=>`<img src="${html(src)}" alt="标本角度照片">`).join('')}</div><h3>原始模型候选：${html(name(r.key))} · ${pct(r.score)}</h3><p class="field-hint">${html(r.reasons.join('；') || '线索较一致，仍需复核')}</p><p class="assist-text">${html(r.notes || '未填写备注')}</p><div class="record-form"><label for="recordSampleId">标本编号</label><input id="recordSampleId" maxlength="100" value="${html(r.sampleId)}"><label for="confirmedKey">已确认的名称</label><select id="confirmedKey"><option value="">尚未确认</option>${Object.keys(MINERAL_KB).map(key=>`<option value="${html(key)}" ${r.confirmedKey===key?'selected':''}>${html(name(key))}</option>`).join('')}</select><label for="confirmationMethod">确认方法 / 检测报告编号</label><input id="confirmationMethod" maxlength="100" value="${html(r.confirmationMethod)}" placeholder="例如：XRD 检测，报告编号…"><p class="field-hint">人工确认单独保存，原始候选保留，便于评估模型。仅选择已知结论。</p><div class="result-actions"><button type="button" id="updateRecord" class="secondary">保存复核信息</button><button type="button" id="deleteRecord" class="danger-button">删除记录</button></div></div>`;
+    openDialog('#recordDialog'); icons();
+  }
+  async function updateRecord() {
+    const key = $('#confirmedKey').value, method = $('#confirmationMethod').value.trim();
+    if (key && !method) { toast('请填写确认方法或报告编号，让结论可追溯'); return; }
+    try {
+      await SpecimenStore.put({ ...state.selectedRecord, sampleId:$('#recordSampleId').value.trim(), confirmedKey:key, confirmationMethod:key?method:'' });
+      closeDialog('#recordDialog'); await renderRecords(); toast('复核信息已保存，原始候选已保留');
+    } catch (e) { toast(e.message); }
+  }
+  async function exportRecords() {
+    try {
+      const records = await SpecimenStore.list(); if (!records.length) { toast('暂无可导出的标本'); return; }
+      const text = JSON.stringify({ schema:'shikuang-records', version:2, exportedAt:new Date().toISOString(), records },null,2);
+      const fileName = `shikuang-specimens-${new Date().toISOString().slice(0,10)}.json`;
+      if (isNative()) {
+        const result = await plugin('Filesystem').writeFile({ path:`exports/${fileName}`, data:text, directory:'CACHE', encoding:'utf8', recursive:true });
+        await plugin('Share').share({ title:'识矿标本备份', url:result.uri, dialogTitle:'保存或分享标本备份' });
+      } else {
+        const url = URL.createObjectURL(new Blob([text], {type:'application/json'})), a = document.createElement('a');
+        a.href = url; a.download = fileName; a.click(); setTimeout(()=>URL.revokeObjectURL(url),5000);
       }
-    }
+    } catch (e) { if (!cancelled(e)) toast(`导出失败：${e.message}`); }
   }
-  return new window.ort.Tensor("float32", input, [1, 3, 224, 224]);
-}
-
-async function predictVideoOnnx() {
-  if (!state.currentVideo) throw new Error("请先录制或选择视频");
-  const video = document.createElement("video");
-  video.muted = true;
-  video.playsInline = true;
-  video.src = state.currentVideo;
-  await new Promise((resolve, reject) => {
-    video.onloadeddata = resolve;
-    video.onerror = () => reject(new Error("视频无法读取"));
-  });
-  const target = Math.min(0.35, Math.max(0.05, (video.duration || 0) / 2));
-  video.currentTime = target;
-  await new Promise((resolve, reject) => {
-    video.onseeked = resolve;
-    video.onerror = () => reject(new Error("视频无法定位帧"));
-  });
-  const canvas = document.createElement("canvas");
-  canvas.width = video.videoWidth || 640;
-  canvas.height = video.videoHeight || 480;
-  canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
-  const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
-  const previous = state.currentImage;
-  state.currentImage = dataUrl;
-  try {
-    return await predictOnnx();
-  } finally {
-    state.currentImage = previous;
+  async function importRecords(input) {
+    try {
+      const file = input.files?.[0]; if (!file) return;
+      if (file.size > 10*1024*1024) throw new Error('导入文件超过 10 MB');
+      const records = MineralCore.parseImport(await file.text());
+      if (records.some(r=>!MINERAL_KB[r.key] || (r.confirmedKey && !MINERAL_KB[r.confirmedKey]))) throw new Error('文件包含未收录的候选或确认名称');
+      const added = await SpecimenStore.merge(records); await renderRecords(); toast(`已导入 ${added} 条新记录，原记录保留`);
+    } catch (e) { toast(e.message || '导入失败，请使用识矿导出的 JSON 文件'); }
+    finally { input.value=''; }
   }
-}
-
-async function predictOnnx() {
-  if (!state.currentImage) throw new Error("请先拍照或选择图片");
-  await waitFor(() => !!window.MINERAL_CLASSES && !!window.MINERAL_KB);
-  if ((await imageSkinRatio(state.currentImage)) > 0.55) {
-    throw new Error("这不是矿物，请您放入清晰的矿物照片。");
-  }
-  if (await rejectNonMineral()) {
-    throw new Error("这不是矿物，请您放入清晰的矿物照片。");
-  }
-  const sessions = await getOnnxSessions();
-  const tensor = await imageToTensor(state.currentImage);
-  const classCount = Object.keys(window.MINERAL_CLASSES || {}).length;
-  const summed = new Array(classCount).fill(0);
-  for (const session of sessions) {
-    const output = await session.run({ input: tensor });
-    const logits = output.logits.data;
-    for (let i = 0; i < classCount; i++) summed[i] += logits[i];
-  }
-  const probs = summed.map((x) => x / sessions.length);
-  const classes = Object.keys(window.MINERAL_CLASSES || {});
-  const description = ($("#description").value || "").trim().toLowerCase();
-  if (description) {
-    for (let i = 0; i < classes.length; i++) {
-      const key = classes[i];
-      const info = window.MINERAL_CLASSES?.[key] || {};
-      const kb = window.MINERAL_KB?.[key] || {};
-      const names = [info.zh, kb.name_zh, kb.name_en, key, info.formula, kb.formula].filter(Boolean).map((s) => String(s).toLowerCase());
-      if (names.some((name) => name && description.includes(name))) {
-        probs[i] += 2.5;
+  async function prepareOffline() {
+    if (isNative()) { toast('Android 安装包内置全部识别资源，可直接离线分析'); return; }
+    if (!('caches' in window) || !('serviceWorker' in navigator)) { toast('当前浏览器不支持离线资源，请使用 Android 安装版'); return; }
+    $('#offlineBtn').disabled=true;
+    const assets = ['./','./index.html','./styles.css','./app.js','./core.js','./inference.js','./engine-worker.js','./history.js','./media.js','./storage.js','./config.js','./manifest.webmanifest','./model-manifest.json','./icon.svg','./icon-192.png','./icon-512.png','./icon-maskable.png','./version.json','./data/classes.js','./data/minerals.js','./data/sources.js','./data/imagenet.js','./vendor/lucide.min.js','./vendor/ort.min.js','./vendor/ort-wasm-simd-threaded.mjs','./vendor/ort-wasm-simd-threaded.wasm', ...MineralEngine.models.map(m=>'./models/'+m.file),'./models/imagenet_gate.onnx'];
+    try {
+      await navigator.serviceWorker.register('./sw.js');
+      for (let i=0;i<assets.length;i++) {
+        $('#offlineProgress').textContent=`正在准备资源 ${i+1}/${assets.length}（模型共约 70 MB）…`;
+        const cache = await caches.open(assets[i].includes('/models/') || assets[i].endsWith('.wasm') ? 'shikuang-models-v2-20261010':'shikuang-static-2.0.0-preview.2');
+        const request = new Request(new URL(assets[i],location.href));
+        if (!await cache.match(request)) { const response=await fetch(request); if (!response.ok) throw new Error(`资源下载失败 (${response.status})`); await cache.put(request,response); }
       }
-    }
+      $('#offlineProgress').textContent='离线资源已准备。浏览器可能因空间不足回收缓存，重要现场任务建议使用 Android 安装版。';
+      toast('离线资源已准备');
+    } catch (e) { $('#offlineProgress').textContent=`准备未完成：${e.message}。请检查网络和存储空间后重试。`; }
+    finally { $('#offlineBtn').disabled=false; }
   }
-  const maxLogit = Math.max(...probs);
-  const shifted = probs.map((x) => x - maxLogit);
-  const exp = shifted.map((x) => Math.exp(x));
-  const sum = exp.reduce((a, b) => a + b, 0);
-  const softmax = exp.map((x) => x / sum);
-  if (softmax.reduce((a, b) => Math.max(a, b), 0) < 0.18) {
-    throw new Error("这不是矿物，请您放入清晰的矿物照片。");
+  async function assist() {
+    if(state.mode!=='online'){toast('请先切换到联网模式，识别结果会继续保留');return;}
+    if (!state.result) { toast('先分析一个标本，再补充文字说明'); return; }
+    const key = $('#apiKey').value.trim(); if (!key) { $('#apiKey').focus(); toast('请填写你自己的 DeepSeek API 密钥'); return; }
+    $('#assistBtn').disabled=true; $('#assistText').textContent='正在补充文字说明…';
+    const controller=new AbortController(), timer=setTimeout(()=>controller.abort(),45000), candidate=state.result.key;
+    try {
+      const prompt=`请以矿物学资料辅助比较候选 ${name(candidate)} (${kb(candidate).name_en||candidate})。用户观察：${$('#notes').value.slice(0,1000)||'未填写'}。实测硬度：${$('#hardness').value||'未测量'}，光泽：${$('#luster').value||'未确定'}。请简短说明鉴别特征、相似矿物区别、典型形成环境与工业用途，指出仍缺少的证据。这是未经确认的图像分类候选，不生成置信度，不确定当前标本产地。`;
+      const content=$('#assistImage').checked?[{type:'text',text:prompt},...state.photos.map(p=>({type:'image_url',image_url:{url:p.src}}))]:prompt;
+      const res=await fetch('https://api.deepseek.com/chat/completions',{method:'POST',signal:controller.signal,
+        headers:{'Content-Type':'application/json',Authorization:`Bearer ${key}`},body:JSON.stringify({model:window.DEEPSEEK_MODEL || 'deepseek-flash',messages:[{role:'user',content}],max_tokens:1000,temperature:0.2,thinking:{type:'disabled'}})});
+      if (!res.ok) throw new Error(res.status===401?'密钥无效，请检查后重试':`服务请求失败 (${res.status})`);
+      const body=await res.json(), text=body.choices?.[0]?.message?.content;
+      if (typeof text!=='string' || !text.trim()) throw new Error('服务未返回文字说明');
+      $('#assistText').textContent=`${name(candidate)} · AI 文字参考（请核对资料）\n\n${text.slice(0,8000)}`;
+    } catch (e) { $('#assistText').textContent=e.name==='AbortError'?'请求超时，请稍后重试。':e.message; }
+    finally { clearTimeout(timer); $('#assistBtn').disabled=false; }
   }
-  const order = softmax.map((v, i) => i).sort((a, b) => softmax[b] - softmax[a]).slice(0, 5);
-  const rankings = order.map((idx, rank) => ({
-    key: classes[idx],
-    name_zh: window.MINERAL_CLASSES[classes[idx]].zh,
-    confidence: softmax[idx],
-    rank: rank + 1,
+  $('#cameraBtn').addEventListener('click',()=>void capture('camera'));
+  $('#galleryBtn').addEventListener('click',()=>void capture('gallery'));
+  $('#videoBtn').addEventListener('click',()=>{if(!state.busy&&!state.mediaBusy){$('#videoStatus').textContent='';openDialog('#videoDialog');}});
+  $('#recordVideo').addEventListener('click',()=>void recordVideo());$('#chooseVideo').addEventListener('click',()=>$('#videoFileInput').click());$('#stopVideo').addEventListener('click',()=>stopRecording());
+  [$('#videoInput'),$('#videoFileInput')].forEach(input=>input.addEventListener('change',()=>void readVideo(input)));
+  $('#closeVideo').addEventListener('click',()=>{stopRecording(true);closeDialog('#videoDialog');});
+  $('#closeCamera').addEventListener('click',()=>{stopCamera();closeDialog('#cameraDialog');});
+  $('#takePhoto').addEventListener('click',async()=>{const video=$('#cameraPreview');if(!video.videoWidth)return;const canvas=document.createElement('canvas');canvas.width=video.videoWidth;canvas.height=video.videoHeight;canvas.getContext('2d').drawImage(video,0,0);const src=canvas.toDataURL('image/jpeg',.9);stopCamera();closeDialog('#cameraDialog');lockMedia(true);try{await addPhoto(src);}catch(e){toast(e.message);}finally{lockMedia(false);}});
+  [$('#fileInput'),$('#cameraInput')].forEach(input=>input.addEventListener('change',()=>void readFiles(input)));
+  $('#preview').addEventListener('load',updateCrop); addEventListener('resize',updateCrop);
+  $('#removePhoto').addEventListener('click',()=>{ if(state.busy)return; state.photos.splice(state.active,1);state.active=Math.max(0,state.active-1);invalidate();renderPhotos(); });
+  $('#cropRange').addEventListener('input',()=>{ if(state.busy)return; const p=state.photos[state.active];if(p){p.crop=Number($('#cropRange').value)/100;invalidate();$('#cropValue').textContent=`${$('#cropRange').value}%`;updateCrop();} });
+  document.addEventListener('click',e=>{
+    const photo=e.target.closest('[data-photo]'), detail=e.target.closest('[data-detail]'), record=e.target.closest('[data-record]');
+    if(photo && !state.busy){state.active=Number(photo.dataset.photo);renderPhotos();}
+    if(e.target.closest('[data-add-photo]') && !state.busy)void capture('camera');
+    if(detail)showDetail(detail.dataset.detail);
+    if(record)showRecord(record.dataset.record);
+    const history=e.target.closest('[data-history]');if(history){const item=SearchHistory.read()[Number(history.dataset.history)];if(item){$(item.kind==='library'?'#librarySearch':'#recordSearch').value=item.query;location.hash=item.kind;route();}}
+    if(e.target.closest('#clearSearches')&&confirm('清空这台设备上的搜索历史？')){SearchHistory.clear();renderSearchHistory();}
+    if(e.target.closest('#updateRecord'))void updateRecord();
+    if(e.target.closest('#deleteRecord')){state.pendingDelete=state.selectedRecord?.id;openDialog('#confirmDialog');}
+  });
+  document.querySelectorAll('[data-scene]').forEach(b=>b.addEventListener('click',()=>{
+    if(state.busy)return;state.scene=b.dataset.scene;$('#labObservations').open=state.scene==='lab';$('#sampleIdField').hidden=state.scene!=='lab';
+    document.querySelectorAll('[data-scene]').forEach(el=>{el.classList.toggle('selected',el===b);el.setAttribute('aria-pressed',String(el===b));});
+    $('#captureTip').textContent=state.scene==='lab'?'建议记录标本编号，拍摄整体与晶体细节，再用实测物性复核。':'同一标本添加 2–3 个角度，查看判断是否一致。每次分析一个主体。';
   }));
-  const top = rankings[0];
-  const kb = window.MINERAL_KB?.[top.key] || {};
-  return {
-    name_zh: kb.name_zh || top.name_zh,
-    name_en: kb.name_en || classes[top.key],
-    formula: kb.formula || window.MINERAL_CLASSES[top.key].formula || "",
-    confidence: top.confidence,
-    threshold: 0.2,
-    accepted: top.confidence >= 0.2,
-    knowledge: kb,
-    rankings,
-  };
-}
-
-async function assistOnline(result) {
-  const prompt = `用户上传了一张矿物照片，本地识别结果：${result.name_zh}（${result.name_en}，${result.formula || "未知化学式"}），置信度 ${Math.round(result.confidence * 100)}%。请补充该矿物的产地、形成原因和工业用途，并说明识别时最可靠的鉴别特征。`;
-  try {
-    const res = await fetch("/api/deepseek", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt }),
-    });
-    const data = await res.json();
-    const text = data.choices?.[0]?.message?.content || data.detail || "";
-    document.getElementById("tab-use").innerHTML += `<div class="kv"><dt>AI 辅助</dt><dd>${text}</dd></div>`;
-  } catch (_) {
-    // offline fallback
+  ['hardness','luster','precision'].forEach(id=>$('#'+id).addEventListener('change',invalidate));
+  $('#predictBtn').addEventListener('click',()=>void predict()); $('#cancelBtn').addEventListener('click',()=>state.controller?.abort());
+  $('#newSample').addEventListener('click',resetSample); $('#saveBtn').addEventListener('click',()=>void save());
+  $('#detailBtn').addEventListener('click',()=>{if(state.result)showDetail(state.result.key);});
+  ['librarySearch','classFilter'].forEach(id=>$('#'+id).addEventListener('input',renderLibrary));
+  $('#classScheme').addEventListener('change',updateClassFilter);
+  for(const kind of ['library','records']){const input=$(kind==='library'?'#librarySearch':'#recordSearch');input.addEventListener('keydown',e=>{if(e.key==='Enter')saveSearch(kind);});input.addEventListener('blur',()=>saveSearch(kind));}
+  document.querySelectorAll('[data-mode]').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.mode)));addEventListener('online',()=>setMode(state.mode));addEventListener('offline',()=>setMode(state.mode));
+  $('#recordSearch').addEventListener('input',()=>void renderRecords().catch(e=>toast(e.message)));
+  $('#exportBtn').addEventListener('click',()=>void exportRecords()); $('#importBtn').addEventListener('click',()=>$('#importInput').click());
+  $('#importInput').addEventListener('change',()=>void importRecords($('#importInput')));
+  $('#closeDetail').addEventListener('click',()=>closeDialog('#detailDialog'));$('#closeRecord').addEventListener('click',()=>closeDialog('#recordDialog'));
+  $('#cancelDelete').addEventListener('click',()=>{state.pendingDelete=null;closeDialog('#confirmDialog');});
+  $('#confirmDelete').addEventListener('click',async()=>{const id=state.pendingDelete;if(!id)return;try{await SpecimenStore.remove(id);state.pendingDelete=null;if(state.recordId===id)state.recordId=null;closeDialog('#confirmDialog');closeDialog('#recordDialog');await renderRecords();toast('记录已删除');}catch(e){toast(e.message);}});
+  document.querySelectorAll('dialog').forEach(d=>d.addEventListener('close',()=>{if(d.id==='cameraDialog')stopCamera();if(d.id==='videoDialog'){mediaEpoch++;stopRecording(true);$('#recordVideo').disabled=false;$('#chooseVideo').disabled=false;$('#stopVideo').hidden=true;}if(!document.querySelector('dialog[open]'))document.body.classList.remove('dialog-open');}));
+  $('#offlineBtn').addEventListener('click',()=>void prepareOffline());$('#assistBtn').addEventListener('click',()=>void assist());
+  addEventListener('hashchange',route);
+  async function init() {
+    icons();
+    updateClassFilter();renderSearchHistory();
+    try{setMode(localStorage.getItem('shikuang-mode-v2'));}catch(_){setMode('offline');}
+    $('#sourceList').innerHTML=MINERAL_SOURCES.map(s=>`<a href="${html(s.url)}" target="_blank" rel="noopener noreferrer"><strong>${html(s.title)}</strong><span>${html(s.status)}</span><small>${html(s.use)}</small></a>`).join('');
+    $('#coverageInfo').textContent=`当前图像模型有 ${Object.keys(MINERAL_CLASSES).length} 个原有标签，资料库 ${Object.keys(MINERAL_KB).length} 条。包括矿物、变种、集合体与部分岩石标本，现场准确率和未覆盖矿物拒判能力仍待盲测。`;
+    route();
+    try{await SpecimenStore.migrate();}catch(e){toast(e.message);}
+    if(isNative()){
+      $('#offlineInfo').textContent='安装包内置全部模型和资料。关闭网络后仍可分析，不依赖在线服务。';$('#offlineBtn').hidden=true;
+      const app=plugin('App');
+      await app?.addListener('appRestoredResult',event=>{if(event.pluginId==='Camera' && event.success && event.data?.webPath)void addPhoto(event.data.webPath).catch(e=>toast(e.message));});
+      await app?.addListener('appStateChange',event=>{if(!event.isActive){state.controller?.abort();stopCamera();stopRecording(true);}});
+      await app?.addListener('backButton',()=>{const dialog=document.querySelector('dialog[open]');if(dialog){dialog.close();return;}if(state.busy){state.controller?.abort();return;}if(state.view!=='identify'){location.hash='identify';return;}void app.minimizeApp();});
+    }else if('serviceWorker' in navigator && location.protocol==='https:' && !['127.0.0.1','localhost'].includes(location.hostname)){navigator.serviceWorker.register('./sw.js').catch(()=>{});}
+    setTimeout(dismissCover,900);
   }
-}
-
-function saveHistory(data) {
-  if (!data || !data.name_zh || data.name_zh === "未知矿物" || data.name_zh === "无法识别") return;
-  const key = "shikuang_history";
-  let items = [];
-  try {
-    items = JSON.parse(localStorage.getItem(key) || "[]");
-  } catch (_) {
-    items = [];
-  }
-  const entry = {
-    name_zh: data.name_zh,
-    name_en: data.name_en || "",
-    formula: data.formula || "",
-    confidence: Math.round((data.confidence || 0) * 100),
-    time: Date.now(),
-  };
-  items = [entry, ...items.filter((x) => x.name_zh !== entry.name_zh)].slice(0, 50);
-  localStorage.setItem(key, JSON.stringify(items));
-}
-
-function renderHistory() {
-  const list = $("#historyList");
-  if (!list) return;
-  let items = [];
-  try {
-    items = JSON.parse(localStorage.getItem("shikuang_history") || "[]");
-  } catch (_) {
-    items = [];
-  }
-  if (!items.length) {
-    list.innerHTML = '<li class="history-empty">暂无历史记录</li>';
-    return;
-  }
-  list.innerHTML = items
-    .map((x) => {
-      const time = new Date(x.time).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
-      return `<li>
-        <div><div class="h-name">${escapeHtml(x.name_zh)}</div><div class="h-meta">${escapeHtml(x.name_en || "")} · ${escapeHtml(x.formula || "未知化学式")} · ${x.confidence}%</div></div>
-        <div class="h-time">${time}</div>
-      </li>`;
-    })
-    .join("");
-}
-
-async function checkVersion() {
-  try {
-    const res = await fetch(`./version.json?v=${Date.now()}`, { cache: "no-store" });
-    if (!res.ok) return;
-    const data = await res.json();
-    const current = data.version;
-    const seen = localStorage.getItem("shikuang_version");
-    localStorage.setItem("shikuang_version", current);
-    if (seen && seen !== current) {
-      const banner = document.getElementById("updateBanner");
-      if (banner) banner.hidden = false;
-    }
-  } catch (_) {
-    // offline or static hosting without version file
-  }
-}
-
-document.getElementById("updateReload").addEventListener("click", () => location.reload());
-
-document.querySelectorAll(".mode").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
-cameraBtn.addEventListener("click", () => {
-  if (state.mode !== "photo") setMode("photo");
-  void startCamera().then(capturePhoto);
-});
-recordBtn.addEventListener("click", () => {
-  if (state.mode !== "video") setMode("video");
-  toggleRecording();
-});
-galleryBtn.addEventListener("click", () => {
-  if (state.mode !== "file") setMode("file");
-  fileInput.click();
-});
-clearBtn.addEventListener("click", clearAll);
-historyBtn.addEventListener("click", () => {
-  const panel = $("#historyPanel");
-  panel.hidden = !panel.hidden;
-  if (!panel.hidden) renderHistory();
-});
-$("#historyClear").addEventListener("click", () => {
-  localStorage.removeItem("shikuang_history");
-  renderHistory();
-});
-fileInput.addEventListener("change", () => {
-  const file = fileInput.files[0];
-  if (!file) return;
-  const url = URL.createObjectURL(file);
-  if (file.type.startsWith("video/")) showPreviewFromVideo(url);
-  else showPreviewFromImage(url);
-  setStatus("媒体已就绪");
-});
-predictBtn.addEventListener("click", predict);
-document.querySelectorAll(".tab").forEach((t) =>
-  t.addEventListener("click", () => {
-    document.querySelectorAll(".tab").forEach((x) => x.classList.toggle("active", x === t));
-    document.querySelectorAll(".tab-panel").forEach((p) => (p.hidden = p.id !== `tab-${t.dataset.tab}`));
-  })
-);
-document.querySelectorAll(".mode-chip").forEach((chip) =>
-  chip.addEventListener("click", () => {
-    state.onlineMode = chip.dataset.netmode === "online";
-    document.querySelectorAll(".mode-chip").forEach((c) => c.classList.toggle("active", c === chip));
-    setStatus(state.onlineMode ? "联网模式" : "离线模式");
-  })
-);
-
-window.addEventListener("load", () => {
-  if (window.lucide) lucide.createIcons();
-  initAmbient();
-  stopSplashMinerals = initSplashMinerals();
-  checkVersion();
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.getRegistrations().then((regs) => regs.forEach((r) => r.unregister()));
-  }
-  setMode("photo");
-  setSplash("正在加载识别模型…");
-  getGateSession().catch(() => {});
-  getOnnxSessions()
-    .then(() => setStatus("就绪"))
-    .catch(() => {
-      state.onlineMode = true;
-      document.querySelectorAll(".mode-chip").forEach((c) => c.classList.toggle("active", c.dataset.netmode === "online"));
-      setStatus(DEEPSEEK_API_KEY ? "本地模型不可用，已切换联网" : "模型加载失败");
-    });
-  setTimeout(() => dismissSplash(), 2500);
-});
+  void init().catch(e=>toast(`初始化失败：${e.message}`));
+})();
