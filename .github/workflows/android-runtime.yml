@@ -86,7 +86,7 @@ jobs:
           # before disabling its radio, so first-boot telephony cannot restore it.
           timeout 90 bash -c 'until [[ "$(adb shell getprop gsm.sim.state)" == *LOADED* ]]; do sleep 2; done'
           adb shell getprop gsm.sim.state > runtime-artifacts/sim-state.txt
-          adb shell cmd connectivity help > runtime-artifacts/connectivity-shell-help.txt
+          adb shell cmd connectivity help > runtime-artifacts/connectivity-shell-help.txt 2>&1 || true
           # Official ConnectivityService shell API writes the persistent mode and broadcasts it.
           # https://android.googlesource.com/platform/packages/modules/Connectivity/+/refs/heads/android15-release/service/src/com/android/server/ConnectivityService.java
           adb shell cmd connectivity airplane-mode enable
