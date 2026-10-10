@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
-      ANDROID_AVD_HOME: ${{ runner.temp }}/shikuang-avd
+      ANDROID_AVD_HOME: /tmp/shikuang-avd
     strategy:
       fail-fast: false
       matrix:
