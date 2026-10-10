@@ -12,10 +12,15 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: android-runtime-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
   runtime:
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    env:
+      ANDROID_AVD_HOME: ${{ runner.temp }}/shikuang-avd
     strategy:
       fail-fast: false
       matrix:
@@ -30,6 +35,7 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
+          cache: gradle
       - run: npm ci
       - run: npm run sync
       - name: Install official Android emulator image
@@ -40,10 +46,13 @@ jobs:
             "platform-tools" "emulator" \
             "system-images;android-${{ matrix.api }};google_apis;x86_64"
           printf '%s\n' "$SHIKUANG_ANDROID_SDK/platform-tools" >> "$GITHUB_PATH"
+          mkdir -p "$ANDROID_AVD_HOME"
           printf 'no\n' | "$SHIKUANG_ANDROID_SDK/cmdline-tools/latest/bin/avdmanager" create avd \
             --name "shikuang-api${{ matrix.api }}" \
             --package "system-images;android-${{ matrix.api }};google_apis;x86_64" \
-            --device pixel_2 --force
+            --device pixel_2 --path "$ANDROID_AVD_HOME/shikuang-api${{ matrix.api }}.avd" --force
+          test -f "$ANDROID_AVD_HOME/shikuang-api${{ matrix.api }}.ini"
+          "$SHIKUANG_ANDROID_SDK/emulator/emulator" -list-avds
           sudo chmod 666 /dev/kvm
       - name: Boot emulator and disconnect device networking
         shell: bash
