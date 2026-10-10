@@ -4,7 +4,11 @@ Pillow EXIF-transposed decoded JPEG. They test photo orientation and ROI geometr
 inside the actual packaged WebView, never enter model training, and provide no
 new claim that the specimen identity has been independently verified.
 
-The geometry check permits a maximum RGB decoder difference of 4. This compares
-the JPEG decoder with its upright PNG reference using the same Canvas resize;
-it does not assert Pillow and Canvas resize pixels are identical. Separate
+The orientation check permits a maximum RGB decoder difference of 4 at the full
+decoded size. All three real-photo crops must use the exact center-square source
+rectangle. Their JPEG-versus-upright-PNG resize differences are reported rather
+than assumed to share a desktop rasterizer's numeric tolerance. A separately
+generated coordinate pattern checks bilinear crop boundaries within 2 RGB units;
+it is an algorithm fixture, never a mineral or training image. Neither source
+format resize parity nor Pillow-versus-Canvas pixel parity is asserted. Separate
 browser/Pillow measurement lives in the web tests/helpers preprocessing script.
