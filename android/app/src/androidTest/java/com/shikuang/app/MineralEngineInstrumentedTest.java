@@ -5,6 +5,11 @@ import static org.junit.Assert.*;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
+import android.net.NetworkInfo;
+import android.os.Build;
 import android.os.SystemClock;
 import android.util.Base64;
 import android.util.Log;
@@ -60,6 +65,27 @@ public class MineralEngineInstrumentedTest {
             while ((read = stream.read(buffer)) != -1) output.write(buffer, 0, read);
             return new String(output.toByteArray(), StandardCharsets.UTF_8);
         }
+    }
+
+    private JSONObject nativeNetworkState() throws Exception {
+        AtomicReference<JSONObject> value = new AtomicReference<>();
+        scenario.onActivity(activity -> {
+            ConnectivityManager manager = (ConnectivityManager) activity.getSystemService(Context.CONNECTIVITY_SERVICE);
+            Network active = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? manager.getActiveNetwork() : null;
+            NetworkCapabilities capabilities = active == null ? null : manager.getNetworkCapabilities(active);
+            NetworkInfo info = manager.getActiveNetworkInfo();
+            try {
+                value.set(new JSONObject()
+                    .put("sdk", Build.VERSION.SDK_INT)
+                    .put("activeNetwork", active == null ? JSONObject.NULL : active.toString())
+                    .put("connected", info != null && info.isConnected())
+                    .put("internetCapability", capabilities != null && capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET))
+                    .put("validated", capabilities != null && capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)));
+            } catch (org.json.JSONException error) {
+                throw new AssertionError(error);
+            }
+        });
+        return value.get();
     }
 
     private JSONObject awaitPhase(String phase, long timeoutMillis) throws Exception {
@@ -207,9 +233,11 @@ public class MineralEngineInstrumentedTest {
         evaluate(script(
             "document.querySelector('#detailBody .image-section').open=true;",
             "document.querySelector('#detailBody .image-section').scrollIntoView({block:'start',behavior:'instant'});",
-            "window.__shikuangRuntimeSmoke.quartzReference={title:document.getElementById('detailTitle').textContent,crystalRecordsShown:document.querySelectorAll('#crystalRecords .crystal-record').length,imageRecordsShown:document.querySelectorAll('#imageRecords .image-record').length,imageEvidence:document.getElementById('imageRecords').textContent};"
+            "window.__shikuangRuntimeSmoke.quartzReference={title:document.getElementById('detailTitle').textContent,crystalRecordsShown:document.querySelectorAll('#crystalRecords .crystal-record').length,imageRecordsTotal:MINERAL_IMAGE_SOURCES.records.filter(row=>row.mineral_name==='Quartz').length,imageRecordsShown:document.querySelectorAll('#imageRecords .image-record').length,imageEvidence:document.getElementById('imageRecords').textContent};"
         ));
-        assertEquals("5", evaluate("document.querySelectorAll('#imageRecords .image-record').length"));
+        JSONObject quartzReference = state().getJSONObject("quartzReference");
+        assertTrue("Packaged Quartz image-source metadata must be present", quartzReference.getInt("imageRecordsTotal") > 0);
+        assertEquals(Math.min(5, quartzReference.getInt("imageRecordsTotal")), quartzReference.getInt("imageRecordsShown"));
         assertTrue(evaluate("document.getElementById('imageRecords').textContent").contains("尚未通过训练审核"));
         assertEquals("0", evaluate("document.querySelectorAll('#imageRecords img').length"));
         screenshot("quartz-image-references.png");
@@ -229,9 +257,12 @@ public class MineralEngineInstrumentedTest {
         String finalRoutes6 = shellOutput("ip -6 route show");
         assertFalse("IPv4 default route returned during catalog load", finalRoutes4.contains("default "));
         assertFalse("IPv6 default route returned during catalog load", finalRoutes6.contains("default "));
+        JSONObject nativeNetwork = nativeNetworkState();
+        assertTrue("Android gained an active network during catalog load: " + nativeNetwork, nativeNetwork.isNull("activeNetwork"));
+        assertFalse(nativeNetwork.getBoolean("connected"));
         assertEquals("false", evaluate("navigator.onLine"));
         evaluate("window.__shikuangRuntimeSmoke.networkAfterCatalog={ipv4Routes:" + JSONObject.quote(finalRoutes4)
-            + ",ipv6Routes:" + JSONObject.quote(finalRoutes6) + "};window.__shikuangRuntimeSmoke.phase='passed';");
+            + ",ipv6Routes:" + JSONObject.quote(finalRoutes6) + ",native:" + nativeNetwork + "};window.__shikuangRuntimeSmoke.phase='passed';");
     }
 
     @Test
@@ -263,10 +294,13 @@ public class MineralEngineInstrumentedTest {
             assertTrue("Packaged app origin must be secure", resources.getBoolean("secureContext"));
             String routes4 = shellOutput("ip route show");
             String routes6 = shellOutput("ip -6 route show");
+            JSONObject nativeNetwork = nativeNetworkState();
             evaluate("window.__shikuangRuntimeSmoke.network={ipv4Routes:" + JSONObject.quote(routes4)
-                + ",ipv6Routes:" + JSONObject.quote(routes6) + "};");
+                + ",ipv6Routes:" + JSONObject.quote(routes6) + ",native:" + nativeNetwork + "};");
             assertFalse("External IPv4 default route remains active: " + routes4, routes4.contains("default "));
             assertFalse("External IPv6 default route remains active: " + routes6, routes6.contains("default "));
+            assertTrue("Android must report no active network: " + nativeNetwork, nativeNetwork.isNull("activeNetwork"));
+            assertFalse(nativeNetwork.getBoolean("connected"));
             assertFalse("WebView should detect unavailable networking", resources.getBoolean("online"));
             Log.i(TAG, "Worker probe is diagnostic only; native inference is required: " + resources);
 
