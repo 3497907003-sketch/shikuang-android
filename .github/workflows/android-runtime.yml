@@ -75,11 +75,25 @@ jobs:
           adb root
           timeout 60 adb wait-for-device
           test "$(adb shell id -u | tr -d '\r')" = 0
+          if [[ "${{ matrix.api }}" == "35" ]]; then
+            adb shell cmd ethernet help > runtime-artifacts/ethernet-shell-help.txt 2>&1 || true
+            # Android 15 has no Ethernet shell handler. Its pinned AIDL transaction 13
+            # is setEthernetEnabled(boolean); disable service tracking before links.
+            # https://android.googlesource.com/platform/packages/modules/Connectivity/+/refs/heads/android15-release/framework-t/src/android/net/IEthernetManager.aidl
+            adb shell service call ethernet 13 i32 0 > runtime-artifacts/ethernet-disable-parcel.txt
+            timeout 45 bash -c 'until [[ "$(adb shell dumpsys ethernet)" == *"Ethernet State: disabled"* ]]; do sleep 2; done'
+          fi
           adb shell 'for device in eth0 eth1 wlan0; do if ip link show "$device" >/dev/null 2>&1; then ip link set "$device" down; fi; done'
           test "$(timeout 20 adb get-state | tr -d '\r')" = device
+          timeout 60 bash -c 'until [[ "$(adb shell dumpsys connectivity)" == *"Active default network: none"* ]]; do sleep 2; done'
           adb shell ip route show > runtime-artifacts/ipv4-routes.txt
           adb shell ip -6 route show > runtime-artifacts/ipv6-routes.txt
+          adb shell ip route show table all > runtime-artifacts/ipv4-all-route-tables.txt
+          adb shell ip -6 route show table all > runtime-artifacts/ipv6-all-route-tables.txt
+          adb shell dumpsys ethernet > runtime-artifacts/ethernet.txt
           adb shell dumpsys connectivity > runtime-artifacts/connectivity.txt
+          adb shell getprop ro.product.cpu.abi > runtime-artifacts/device-abi.txt
+          adb shell getprop ro.product.cpu.abilist > runtime-artifacts/device-supported-abis.txt
           adb shell dumpsys webviewupdate > runtime-artifacts/webview-provider.txt
           adb shell settings get global wifi_on > runtime-artifacts/wifi-state.txt
           adb shell settings get global mobile_data > runtime-artifacts/mobile-data-state.txt
@@ -95,6 +109,10 @@ jobs:
           mkdir -p runtime-artifacts
           timeout 20 adb exec-out screencap -p > runtime-artifacts/final-screen.png || true
           timeout 20 adb shell dumpsys webviewupdate > runtime-artifacts/webview-provider-final.txt || true
+          timeout 20 adb shell dumpsys ethernet > runtime-artifacts/ethernet-final.txt || true
+          timeout 20 adb shell dumpsys connectivity > runtime-artifacts/connectivity-final.txt || true
+          timeout 20 adb shell ip route show table all > runtime-artifacts/ipv4-all-route-tables-final.txt || true
+          timeout 20 adb shell ip -6 route show table all > runtime-artifacts/ipv6-all-route-tables-final.txt || true
           timeout 60 adb pull /sdcard/Android/data/com.shikuang.app.preview/files/runtime-smoke runtime-artifacts/ || true
       - name: Require screenshots and JSON from successful runtime tests
         if: success()
