@@ -422,7 +422,7 @@
       for (let i=0;i<assets.length;i++) {
         if(controller.signal.aborted)throw new DOMException('准备已停止','AbortError');
         $('#offlineProgress').textContent=`正在准备资源 ${i+1}/${assets.length}（模型共约 70 MB）…`;
-        const cache = await caches.open(assets[i].includes('/models/') || assets[i].endsWith('.wasm') ? 'shikuang-models-v2-20261010':'shikuang-static-2.0.2-preview.1');
+        const cache = await caches.open(assets[i].includes('/models/') || assets[i].endsWith('.wasm') ? 'shikuang-models-v2-20261010':'shikuang-static-2.0.2-preview.2');
         const request = new Request(new URL(assets[i],location.href),{cache:'reload'}),model=manifest.models.find(m=>'./'+m.path===assets[i]);
         await bounded(async signal=>{
           const cached=model?await cache.match(request):null;
