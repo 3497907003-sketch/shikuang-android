@@ -1,4 +1,4 @@
-const STATIC = 'shikuang-static-2.5.0-preview.1-r2';
+const STATIC = 'shikuang-static-2.5.0-preview.1-r3';
 const MODELS = 'shikuang-models-v2-20261010';
 importScripts('./core.js');
 const ASSETS = ['./', './index.html', './styles.css', './app.js', './native-assets.js', './core.js', './inference.js', './storage.js', './engine-worker.js', './media.js', './history.js', './icon-192.png', './icon-512.png', './icon-maskable.png', './version.json', './data/sources.js', './config.js', './icon.svg', './manifest.webmanifest', './data/classes.js', './data/minerals.js', './data/imagenet.js', './vendor/lucide.min.js', './vendor/ort.min.js', './vendor/ort-wasm-simd-threaded.mjs', './reference-loader.js', './gallery.js', './data/reviewed-photo-assets.json', './data/licenses/reviewed-photos-v25.txt', './data/reference-manifest.json', './data/licenses/ima-cnmnc-2026-09.txt'];

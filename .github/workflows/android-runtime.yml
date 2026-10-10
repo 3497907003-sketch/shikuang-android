@@ -90,9 +90,20 @@ jobs:
           adb shell settings put global window_animation_scale 0
           adb shell settings put global transition_animation_scale 0
           adb shell settings put global animator_duration_scale 0
-          adb root
-          timeout 60 adb wait-for-device
-          test "$(adb shell id -u | tr -d '\r')" = 0
+          # Starting adbd as root may close the first transport while Android
+          # finishes booting. Retry only this finite connection transition;
+          # root UID and every genuine offline/page-size gate remain required.
+          SHIKUANG_ROOT_READY=false
+          for SHIKUANG_ROOT_ATTEMPT in 1 2 3 4 5; do
+            printf 'attempt=%s\n' "$SHIKUANG_ROOT_ATTEMPT" >> runtime-artifacts/adb-root-transition.txt
+            timeout 20 adb root >> runtime-artifacts/adb-root-transition.txt 2>&1 || true
+            timeout 30 adb wait-for-device >> runtime-artifacts/adb-root-transition.txt 2>&1 || true
+            SHIKUANG_ROOT_UID="$(timeout 10 adb shell id -u 2>> runtime-artifacts/adb-root-transition.txt | tr -d '\r' || true)"
+            printf 'uid=%s\n' "$SHIKUANG_ROOT_UID" >> runtime-artifacts/adb-root-transition.txt
+            if [[ "$SHIKUANG_ROOT_UID" = 0 ]]; then SHIKUANG_ROOT_READY=true; break; fi
+            sleep 2
+          done
+          test "$SHIKUANG_ROOT_READY" = true
           # The Google API image carries MOBILE[LTE] on eth0. Wait for SIM setup
           # before disabling its radio, so first-boot telephony cannot restore it.
           if (( ${{ matrix.api }} < 29 )); then
@@ -166,12 +177,16 @@ jobs:
       - name: Run packaged WebView with actual native ONNX inference
         if: ${{ !inputs.network_probe }}
         working-directory: android
-        run: ./gradlew --no-daemon --max-workers=2 -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true -Pandroid.testInstrumentationRunnerArguments.expectedPageSize=${{ matrix.pageSize }} connectedDebugAndroidTest
+        run: ./gradlew --no-daemon --max-workers=2 -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true -Pandroid.testInstrumentationRunnerArguments.expectedPageSize=${{ matrix.pageSize }} -Pandroid.testInstrumentationRunnerArguments.additionalTestOutputDir=/sdcard/Android/data/com.shikuang.app.preview/files/runtime-smoke connectedDebugAndroidTest
       - name: Capture runtime diagnostics
         if: always()
         shell: bash
         run: |
           mkdir -p runtime-artifacts
+          ps -ef > runtime-artifacts/host-processes-final.txt
+          free -m > runtime-artifacts/host-memory-final.txt
+          timeout 15 adb reconnect offline > runtime-artifacts/adb-reconnect-final.txt 2>&1 || true
+          timeout 20 adb wait-for-device >> runtime-artifacts/adb-reconnect-final.txt 2>&1 || true
           timeout 20 adb exec-out screencap -p > runtime-artifacts/final-screen.png || true
           timeout 20 adb shell dumpsys webviewupdate > runtime-artifacts/webview-provider-final.txt || true
           timeout 20 adb shell dumpsys ethernet > runtime-artifacts/ethernet-final.txt || true
@@ -185,6 +200,23 @@ jobs:
           timeout 20 adb shell ps -A > runtime-artifacts/processes-final.txt 2>&1 || true
           timeout 20 adb shell dmesg > runtime-artifacts/kernel-final.txt 2>&1 || true
           timeout 60 adb pull /sdcard/Android/data/com.shikuang.app.preview/files/runtime-smoke runtime-artifacts/ || true
+          # AGP's additionalTestOutputDir collector copies genuine files before
+          # later Gradle tasks finish. Preserve that export if post-test ADB drops.
+          python3 - <<'PYOUTPUT'
+          from pathlib import Path
+          import hashlib, shutil
+          source = Path('android/app/build/outputs/connected_android_test_additional_output')
+          target = Path('runtime-artifacts/runtime-smoke')
+          for file in source.rglob('*') if source.exists() else []:
+              if not file.is_file() or file.suffix not in ('.json', '.png'):
+                  continue
+              target.mkdir(parents=True, exist_ok=True)
+              output = target / file.name
+              if output.exists():
+                  assert output.read_bytes() == file.read_bytes(), f'Device and UTP evidence differ: {file.name}'
+              else:
+                  shutil.copy2(file, output)
+          PYOUTPUT
       - name: Require screenshots and JSON from successful runtime tests
         if: ${{ success() && !inputs.network_probe }}
         shell: bash
@@ -255,7 +287,7 @@ jobs:
           assert report['catalog']['imageReferences'] == len(images['records'])
           assert report['catalog']['localFetches'] == 1 + len(reference['files'])
           assert report['catalog']['online'] is False
-          assert report['initialReferenceRequests'] == []
+          assert report['initialReferenceRequests'] == [] and report['visibleVersion'] == '2.5'
           quartz_sources = [row for row in images['records'] if row['mineral_name'] == 'Quartz' and row.get('local_image_url')]
           assert 0 < len(report['galleryPhotos']) == len(report['galleryReopened']) == min(5, len(quartz_sources))
           assert report['galleryRevokedCount'] == len(report['galleryPhotos'])
@@ -287,4 +319,5 @@ jobs:
             runtime-artifacts/
             android/app/build/reports/androidTests/
             android/app/build/outputs/androidTest-results/
+            android/app/build/outputs/connected_android_test_additional_output/
           if-no-files-found: warn

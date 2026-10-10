@@ -495,7 +495,7 @@ public class MineralEngineInstrumentedTest {
             awaitPage();
             evaluate(script(
                 "window.__shikuangRuntimeSmoke={phase:'started',logs:[],errors:[],origin:location.origin,online:navigator.onLine,userAgent:navigator.userAgent,secureContext:isSecureContext,wasm:typeof WebAssembly,labels:Object.keys(MINERAL_CLASSES).length};",
-                "const smoke=window.__shikuangRuntimeSmoke;",
+                "const smoke=window.__shikuangRuntimeSmoke;smoke.visibleVersion=document.querySelector('.brand .version').textContent;",
                 "smoke.initialReferenceRequests=performance.getEntriesByType('resource').filter(row=>/\\/data\\/(catalog|crystals|image-sources)\\.json(?:[?#]|$)|\\/images\\/reviewed-v25\\//.test(row.name)).map(row=>row.name);",
                 "const log=(kind,value)=>{smoke.logs.push({kind,value:String(value)});if(smoke.logs.length>60)smoke.logs.shift();};",
                 "addEventListener('error',e=>smoke.errors.push({message:e.message,file:e.filename,line:e.lineno,column:e.colno}));",
@@ -516,6 +516,7 @@ public class MineralEngineInstrumentedTest {
             ));
             JSONObject resources = awaitPhase("resources", 60000);
             assertEquals("Startup must not fetch the large reference JSON or specimen photos",0,resources.getJSONArray("initialReferenceRequests").length());
+            assertEquals("2.5",resources.getString("visibleVersion"));
             JSONObject contract = resources.getJSONObject("modelContract");
             assertEquals(bundledJson("model-manifest.json").getJSONArray("labels").length(),resources.getInt("labels"));
             assertEquals(contract.getInt("labels"),resources.getInt("labels"));

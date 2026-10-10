@@ -8,31 +8,31 @@
   <title>识矿 2.5 · 随身矿物识别</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./styles.css?v=20261011-2.5.0-preview.1-r2">
-  <script defer src="./vendor/lucide.min.js?v=20261011-2.5.0-preview.1-r2"></script>
-  <script defer src="./config.js?v=20261011-2.5.0-preview.1-r2"></script>
-  <script defer src="./data/classes.js?v=20261011-2.5.0-preview.1-r2"></script>
-  <script defer src="./data/minerals.js?v=20261011-2.5.0-preview.1-r2"></script>
-  <script defer src="./data/imagenet.js?v=20261011-2.5.0-preview.1-r2"></script>
-  <script defer src="./data/sources.js?v=20261011-2.5.0-preview.1-r2"></script>
-  <script defer src="./history.js?v=20261011-2.5.0-preview.1-r2"></script>
-  <script defer src="./media.js?v=20261011-2.5.0-preview.1-r2"></script>
+  <link rel="stylesheet" href="./styles.css?v=20261011-2.5.0-preview.1-r3">
+  <script defer src="./vendor/lucide.min.js?v=20261011-2.5.0-preview.1-r3"></script>
+  <script defer src="./config.js?v=20261011-2.5.0-preview.1-r3"></script>
+  <script defer src="./data/classes.js?v=20261011-2.5.0-preview.1-r3"></script>
+  <script defer src="./data/minerals.js?v=20261011-2.5.0-preview.1-r3"></script>
+  <script defer src="./data/imagenet.js?v=20261011-2.5.0-preview.1-r3"></script>
+  <script defer src="./data/sources.js?v=20261011-2.5.0-preview.1-r3"></script>
+  <script defer src="./history.js?v=20261011-2.5.0-preview.1-r3"></script>
+  <script defer src="./media.js?v=20261011-2.5.0-preview.1-r3"></script>
   <script defer src="./native-assets.js"></script>
-  <script defer src="./core.js?v=20261011-2.5.0-preview.1-r2"></script>
-  <script defer src="./inference.js?v=20261011-2.5.0-preview.1-r2"></script>
-  <script defer src="./storage.js?v=20261011-2.5.0-preview.1-r2"></script>
-  <script defer src="./gallery.js?v=20261011-2.5.0-preview.1-r2"></script>
-  <script defer src="./reference-loader.js?v=20261011-2.5.0-preview.1-r2"></script>
-  <script defer src="./app.js?v=20261011-2.5.0-preview.1-r2"></script>
+  <script defer src="./core.js?v=20261011-2.5.0-preview.1-r3"></script>
+  <script defer src="./inference.js?v=20261011-2.5.0-preview.1-r3"></script>
+  <script defer src="./storage.js?v=20261011-2.5.0-preview.1-r3"></script>
+  <script defer src="./gallery.js?v=20261011-2.5.0-preview.1-r3"></script>
+  <script defer src="./reference-loader.js?v=20261011-2.5.0-preview.1-r3"></script>
+  <script defer src="./app.js?v=20261011-2.5.0-preview.1-r3"></script>
 </head>
 <body>
   <div id="launchCover" class="launch-cover" aria-label="识矿启动封面">
     <div class="launch-grid" aria-hidden="true"></div><div class="launch-orbit" aria-hidden="true"></div>
-    <div class="launch-content"><p class="launch-eyebrow">SHIKUANG · MINERAL LAB</p><div class="launch-crystal"><img src="./icon.svg" width="148" height="148" alt="识矿晶体图标"></div><h1>识矿<span>2.0</span></h1><p>从细节，认识一块矿物。</p><div class="launch-line" aria-hidden="true"></div><small>正在打开本机标本工作台</small><button id="enterApp" type="button">立即进入 <span aria-hidden="true">→</span></button></div>
+    <div class="launch-content"><p class="launch-eyebrow">SHIKUANG · MINERAL LAB</p><div class="launch-crystal"><img src="./icon.svg" width="148" height="148" alt="识矿晶体图标"></div><h1>识矿<span>2.5</span></h1><p>从细节，认识一块矿物。</p><div class="launch-line" aria-hidden="true"></div><small>正在打开本机标本工作台</small><button id="enterApp" type="button">立即进入 <span aria-hidden="true">→</span></button></div>
   </div>
   <div class="app-shell">
     <header class="app-header">
-      <a class="brand" href="#identify" aria-label="识矿，返回识别"><img src="./icon.svg" width="42" height="42" alt=""><div><strong>识矿<span class="version">2.0</span></strong><small>随身矿物识别</small></div></a>
+      <a class="brand" href="#identify" aria-label="识矿，返回识别"><img src="./icon.svg" width="42" height="42" alt=""><div><strong>识矿<span class="version">2.5</span></strong><small>随身矿物识别</small></div></a>
       <div class="header-tools"><div class="mode-switch" role="group" aria-label="运行模式"><button type="button" data-mode="offline" class="selected" aria-pressed="true">离线</button><button type="button" data-mode="online" aria-pressed="false">联网</button></div><span class="connection"><span class="status-dot"></span><span id="connectionLabel">本机分析</span></span></div>
     </header>
     <main>

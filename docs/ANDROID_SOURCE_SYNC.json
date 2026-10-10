@@ -1,5 +1,5 @@
 {
-  "source_commit": "e42e56d87eec3b7147b08fb51b99415358e2db54",
+  "source_commit": "697be109a20cf5ce2724d68efd670c74949f38b6",
   "source_repository": "https://github.com/3497907003-sketch/shikuang-app",
   "source_method": "git archive at exact commit; clean source check/build; per-source bytes compared before Capacitor sync",
   "applicationVersion": "2.5.0-preview.1",
@@ -10,7 +10,7 @@
     {
       "path": "app.js",
       "bytes": 99604,
-      "sha256": "ca02d4d56e6f282523201d97bfec7c60a52ff191cf952930fb227635b767aefe"
+      "sha256": "4f46db8da64a2ad9bf4d55208837d5d76fe54d60e2a81700d1f27afd94ec45fc"
     },
     {
       "path": "config.js",
@@ -700,7 +700,7 @@
     {
       "path": "index.html",
       "bytes": 27344,
-      "sha256": "780261063fa149c642944b86faa4d5baec5ae99ffe4d789175f4a0d76682f291"
+      "sha256": "18530a4efa8bfcf90ab82fe9a8a97167c96a267fc600f9640cafb25eeb0843a0"
     },
     {
       "path": "inference.js",
@@ -765,7 +765,7 @@
     {
       "path": "sw.js",
       "bytes": 8061,
-      "sha256": "f1a75d9659a5e1dd2133173e9276114a2c24847753b7490c75fdad112df07d90"
+      "sha256": "3f04937d303d1d7c14c969510d8b26cacd7abf77e72d96b545bbc2e657048905"
     },
     {
       "path": "vendor/lucide.min.js",
@@ -795,5 +795,6 @@
   ],
   "assetCount": 157,
   "publishedPhotos": 117,
-  "scope": "Synchronization identity, not field accuracy or a release claim"
+  "scope": "Synchronization identity, not field accuracy or a release claim",
+  "production_web_merge": "95b4b4e4d1d9be561a18ed745c95eb60f0b6ab0f"
 }

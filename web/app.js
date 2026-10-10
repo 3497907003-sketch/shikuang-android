@@ -731,7 +731,7 @@
         if(controller.signal.aborted)throw new DOMException('准备已停止','AbortError');
         $('#offlineProgress').textContent=`正在准备资源 ${i+1}/${assets.length}${sizeHint}…`;
         const model=resources.find(m=>m.url===assets[i]),photo=photoAssets.find(p=>p.url===assets[i]),verified=model||photo;
-        const cache = await caches.open(model || assets[i].endsWith('.wasm') ? 'shikuang-models-v2-20261010':'shikuang-static-2.5.0-preview.1-r2');
+        const cache = await caches.open(model || assets[i].endsWith('.wasm') ? 'shikuang-models-v2-20261010':'shikuang-static-2.5.0-preview.1-r3');
         const request = new Request(new URL(assets[i],location.href),{cache:'reload'});
         await bounded(async signal=>{
           const cached=verified?await cache.match(request):null;
