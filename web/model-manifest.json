@@ -1,5 +1,5 @@
 {
-  "version": "2.0.0-preview",
+  "version": "inherited-2.0-audited",
   "input": {
     "shape": [
       1,
@@ -19,7 +19,12 @@
         0.225
       ]
     },
-    "crop": "user-selected center square"
+    "crop": "user-selected center square",
+    "dtype": "float32",
+    "layout": "NCHW",
+    "colorSpace": "RGB",
+    "pixelScale": 255,
+    "resize": "bilinear"
   },
   "labels": [
     "graphite",
@@ -127,25 +132,64 @@
       "path": "models/mobilenet_int8.onnx",
       "sha256": "e2ff79ed2b2e05773a6ad5e41502c1ea1eea4db24b9c6f0983432c289d7e6b34",
       "output": "logits",
-      "classes": 98
+      "classes": 98,
+      "id": "mobilenet",
+      "title": "MobileNet",
+      "role": "mineral-classifier",
+      "bytes": 4760817,
+      "inputName": "input",
+      "outputName": "logits",
+      "temperature": 1
     },
     {
       "path": "models/efficientnet.onnx",
       "sha256": "dccf5215abfbc212ca41e6423f97dc037f5a8d5190449072b3a9276b090fb0ce",
       "output": "logits",
-      "classes": 98
+      "classes": 98,
+      "id": "efficientnet",
+      "title": "EfficientNet",
+      "role": "mineral-classifier",
+      "bytes": 17005217,
+      "inputName": "input",
+      "outputName": "logits",
+      "temperature": 1
     },
     {
       "path": "models/efficientnet_legacy.onnx",
       "sha256": "6390e8ac0fbbf7b0fd79284fc5f762a6150774a81549aa7529b3f49cd7d5cf24",
       "output": "logits",
-      "classes": 98
+      "classes": 98,
+      "id": "efficientnet-legacy",
+      "title": "EfficientNet 复核",
+      "role": "mineral-classifier",
+      "bytes": 17005217,
+      "inputName": "input",
+      "outputName": "logits",
+      "temperature": 1
     },
     {
       "path": "models/imagenet_gate.onnx",
       "sha256": "941bf9142c8983ad110319811cb2d8149567e1acf1c5cc24212c58b305149eab",
       "output": "logits",
-      "classes": 1000
+      "classes": 1000,
+      "id": "imagenet-gate",
+      "title": "输入筛查",
+      "role": "input-gate",
+      "bytes": 22220723,
+      "inputName": "input",
+      "outputName": "logits",
+      "temperature": 1
     }
-  ]
+  ],
+  "schemaVersion": 1,
+  "modes": {
+    "fast": [
+      "mobilenet"
+    ],
+    "ensemble": [
+      "mobilenet",
+      "efficientnet",
+      "efficientnet-legacy"
+    ]
+  }
 }

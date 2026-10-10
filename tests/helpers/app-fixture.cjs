@@ -1,6 +1,6 @@
 const fs=require('node:fs'),vm=require('node:vm'),Core=require('../../web/core.js');
 
-function fixture({ register, catalog, crystals, images, loader, knowledge, classes } = {}) {
+function fixture({ register, catalog, crystals, images, loader, knowledge, classes, engine } = {}) {
   class Element {
     constructor(id) { this.id=id;this.innerHTML='';this.value='';this.hidden=false;this.disabled=false;this.checked=false;this.listeners={};this.style={};this.dataset={};this.naturalWidth=256;this.naturalHeight=256;this.clientWidth=300;this.clientHeight=300;this.classList={add(){},remove(){},toggle(){}}; }
     addEventListener(type,fn) { (this.listeners[type] ||= []).push(fn); }
@@ -29,7 +29,7 @@ function fixture({ register, catalog, crystals, images, loader, knowledge, class
     MINERAL_KB:{quartz:{name_zh:'石英',name_en:'Quartz',formula:'SiO₂',classification:{class_9:'氧化物/氢氧化物'}}},MINERAL_CLASSES:{quartz:{zh:'石英'}},MINERAL_SOURCES:[],MineralCore:Core,
     MineralEngine:{image:async src=>({src,naturalWidth:256,naturalHeight:256}),analyze:async()=>{if(analysisError)throw analysisError;return result();},models:[]},
     SpecimenStore:{migrate:async()=>{},list:async()=>[...saved.values()],put:async record=>{saved.set(record.id,record);return record;}} };
-  context.window=context;context.window.scrollTo=()=>{};if(catalog)context.MINERAL_CATALOG=catalog;if(crystals)context.MINERAL_CRYSTAL_RECORDS=crystals;if(images)context.MINERAL_IMAGE_SOURCES=images;if(loader)context.MineralReference=loader;if(knowledge)context.MINERAL_KB=knowledge;if(classes)context.MINERAL_CLASSES=classes;
+  context.window=context;context.window.scrollTo=()=>{};if(catalog)context.MINERAL_CATALOG=catalog;if(crystals)context.MINERAL_CRYSTAL_RECORDS=crystals;if(images)context.MINERAL_IMAGE_SOURCES=images;if(loader)context.MineralReference=loader;if(knowledge)context.MINERAL_KB=knowledge;if(classes)context.MINERAL_CLASSES=classes;if(engine)Object.assign(context.MineralEngine,engine);
   node('classScheme').value='class_9';node('precision').checked=true;
   vm.runInNewContext(fs.readFileSync(require.resolve('../../web/history.js'),'utf8'),context,{filename:'history.js'});
   vm.runInNewContext(fs.readFileSync(require.resolve('../../web/app.js'),'utf8'),context,{filename:'app.js'});

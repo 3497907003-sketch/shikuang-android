@@ -68,7 +68,7 @@
               <details id="labObservations"><summary><span><i data-lucide="flask-conical"></i>物性复核</span><i data-lucide="chevron-down"></i></summary><div class="observation-fields"><label>实测摩氏硬度<input id="hardness" type="number" inputmode="decimal" min="1" max="10" step="0.5" placeholder="未测量"></label><label>观察到的光泽<select id="luster"><option value="">未确定</option><option value="metal">金属光泽</option><option value="nonmetal">非金属光泽</option></select></label></div><p class="field-hint">物性用于提示符合或冲突；文字描述不会提高图像模型分数。未测量的项目请留空。</p></details>
               <div id="sampleIdField" class="sample-id" hidden><label class="field-label" for="sampleId">实验室标本编号</label><input id="sampleId" maxlength="100" placeholder="例如：LAB-2026-001"></div>
             </section>
-            <label class="precision-option"><input id="precision" type="checkbox" checked><span><strong>多模型交叉分析</strong><small>综合 3 个模型；首次使用需准备模型资源</small></span><i data-lucide="layers-2"></i></label>
+            <label class="precision-option"><input id="precision" type="checkbox" checked><span><strong>多模型交叉分析</strong><small id="precisionHelp">正在读取本机模型清单</small></span><i data-lucide="layers-2"></i></label>
             <button id="predictBtn" class="primary" type="button" disabled><i data-lucide="scan-line"></i><span id="predictLabel">分析矿物候选</span></button>
             <button id="cancelBtn" class="text-button" type="button" hidden>停止分析</button>
             <button id="cancelInput" class="text-button" type="button" hidden>停止视频取帧</button>
@@ -109,12 +109,12 @@
       </section>
       <section data-guide-title="补充观察，让复核有依据" hidden>
         <p class="guide-lead">在“补充观察”填写颜色、晶形、条痕、磁性、采集信息等。照片是图像分析的输入；文字用于记录与联网辅助说明。</p>
-        <ol class="guide-steps"><li>日常观察可直接使用默认场景；实验室场景会展开物性复核和标本编号。</li><li>已测量的摩氏硬度与观察到的光泽，用于提示候选是否符合或冲突。未测量的项目留空。</li><li>点击“分析矿物候选”。默认综合 3 个模型；取消“多模型交叉分析”可使用单模型快速分析。</li><li>查看资源加载和分析进度。需要时点击“停止分析”；视频取帧也可停止。失败后照片会保留，可点击“重试分析”或“检查识别设置”。</li></ol>
+        <ol class="guide-steps"><li>日常观察可直接使用默认场景；实验室场景会展开物性复核和标本编号。</li><li>已测量的摩氏硬度与观察到的光泽，用于提示候选是否符合或冲突。未测量的项目留空。</li><li id="guideModelMode">点击“分析矿物候选”。多模型与快速模式按当前模型清单运行，实际参与数量在结果中显示。</li><li>查看资源加载和分析进度。需要时点击“停止分析”；视频取帧也可停止。失败后照片会保留，可点击“重试分析”或“检查识别设置”。</li></ol>
         <p class="guide-note">修改照片或物性后应重新分析。填写描述不会提高图像模型分数；不规则、混合或细小标本可增加背景干扰，建议补拍整体和局部细节。</p>
       </section>
       <section data-guide-title="读懂候选，再决定是否确认" hidden>
         <p class="guide-lead">结果会展示首选与其他候选、图像模型分数、多角度及模型一致性，并提示实测物性的符合或冲突。</p>
-        <ol class="guide-steps"><li>先看判断状态和候选差异，再打开“查看资料”核对硬度、光泽、晶形等依据。</li><li>分数代表模型对当前照片的偏好，不等于准确率；分数较高仍可能识别错误。</li><li>分数低、判断不一致或物性冲突时，补拍细节、调整分析区域，必要时用实验室检测确认。</li><li>检测到非矿物时会提示：“这不是矿物，请您放入清晰的矿物照片。” 未覆盖对象仍可能误判，应结合实物复核。</li></ol>
+        <ol class="guide-steps"><li>先看判断状态和候选差异，再打开“查看资料”核对硬度、光泽、晶形等依据。物性默认中文展示，可展开查看来源原文与页码；“原文待翻译”表示尚未完成中文翻译。化学式可复制，上下标按原式保留。</li><li>分数代表模型对当前照片的偏好，不等于准确率；分数较高仍可能识别错误。</li><li>分数低、判断不一致或物性冲突时，补拍细节、调整分析区域，必要时用实验室检测确认。</li><li>检测到非矿物时会提示：“这不是矿物，请您放入清晰的矿物照片。” 未覆盖对象仍可能误判，应结合实物复核。</li></ol>
         <p class="guide-note">目前沿用 98 个图像标签，资料库范围更广；分类目录不代表所有天然矿物都可识别。资料中的产地为典型产地，不能确定这块标本的真实采集地点。</p>
       </section>
       <section data-guide-title="联网与离线，分别怎样使用" hidden>

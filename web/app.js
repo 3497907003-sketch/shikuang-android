@@ -18,6 +18,215 @@
     return nativePlugins.get(name);
   }
   const html = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  // Chemical scripts use ordinary font characters inside semantic tags, so
+  // Android fallback fonts do not need every Unicode sub/superscript glyph.
+  const chemicalSub='₀₁₂₃₄₅₆₇₈₉₊₋₌₍₎ₐₑᵢₒᵣᵤₓ',chemicalSubPlain='0123456789+-=()aeiorux';
+  const chemicalSup='⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾ⁿ',chemicalSupPlain='0123456789+-=()n';
+  function formulaMarkup(value){
+    const text=String(value||'');
+    const convert=(part,from,to)=>Array.from(part).map(char=>to[from.indexOf(char)]).join('');
+    return `<span class="formula" aria-label="${html(text)}">${html(text).replace(/[₀₁₂₃₄₅₆₇₈₉₊₋₌₍₎ₐₑᵢₒᵣᵤₓ]+/g,part=>'<sub>'+convert(part,chemicalSub,chemicalSubPlain)+'</sub>').replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾ⁿ]+/g,part=>'<sup>'+convert(part,chemicalSup,chemicalSupPlain)+'</sup>')}</span>`;
+  }
+  // Exact mineralogical terms and complete reviewed descriptions only. The
+  // English scientific values and verification metadata remain unchanged.
+  const propertyTerms={
+    "hardness": {
+      "1.5–2, varies with direction": "1.5–2，随测量方向变化",
+      "7, variable by direction and form": "7，随方向和晶体形态变化"
+    },
+    "density_measured": {
+      "10.1–11.1(10.5 when pure)": "10.1–11.1（纯净时为 10.5）",
+      "2.63–2.97 increasing with alkali content; 2.7 average": "2.63–2.97，随碱金属含量增高而增加；平均值 2.7",
+      "2.65; 2.59–2.63 when massive": "2.65；块状时为 2.59–2.63",
+      "3.175–3.184;to 3.56 if high in rare-earth elements": "3.175–3.184；稀土元素含量高时可达 3.56",
+      "3.6-4.1, increasing with Fe and Zn content": "3.6–4.1，随铁（Fe）和锌（Zn）含量增高而增加",
+      "4.23(2), increasing with Nb–Ta content": "4.23(2)，随铌（Nb）与钽（Ta）含量增高而增加"
+    },
+    "crystal_system": {
+      "Cubic": "等轴晶系",
+      "Cubic; tetragonal, orthorhombic, or monoclinic, pseudocubic, with degree of ordering": "等轴晶系；随有序化程度变化，也可为四方、斜方或单斜晶系，呈假等轴形态",
+      "Hexagonal": "六方晶系",
+      "Hexagonal or monoclinic": "六方或单斜晶系",
+      "Trigonal": "三方晶系",
+      "Monoclinic": "单斜晶系",
+      "Monoclinic or triclinic": "单斜或三斜晶系",
+      "Monoclinic, pseudo-orthorhombic": "单斜晶系，呈假斜方形态",
+      "Monoclinic, pseudohexagonal": "单斜晶系，呈假六方形态",
+      "Monoclinic; may be metamict": "单斜晶系；可能呈蜕晶质状态",
+      "Orthorhombic": "斜方晶系",
+      "Orthorhombic, pseudocubic": "斜方晶系，呈假等轴形态",
+      "Orthorhombic, pseudohexagonal": "斜方晶系，呈假六方形态",
+      "Orthorhombic, pseudotetragonal": "斜方晶系，呈假四方形态",
+      "Tetragonal": "四方晶系",
+      "Tetragonal or monoclinic": "四方或单斜晶系",
+      "Tetragonal; may be metamict": "四方晶系；可能呈蜕晶质状态",
+      "Triclinic": "三斜晶系"
+    },
+    "luster": {
+      "Adamantine": "金刚光泽",
+      "Adamantine to adamantine metallic, splendent; may be greasy on fractures": "金刚至金刚金属光泽，强光泽；断口可能呈油脂光泽",
+      "Adamantine to resinous": "金刚至树脂光泽",
+      "Adamantine to resinous, dull": "金刚至树脂光泽，也可暗淡",
+      "Adamantine to submetallic": "金刚至半金属光泽",
+      "Adamantine to submetallic, earthy": "金刚至半金属光泽，也可呈土状光泽",
+      "Adamantine to vitreous; pearly on partings": "金刚至玻璃光泽；裂开面呈珍珠光泽",
+      "Adamantine to vitreous; silky if fibrous; dull to earthy if massive": "金刚至玻璃光泽；纤维状时呈丝绢光泽；块状时暗淡至土状光泽",
+      "Adamantine, inclining to metallic when dark; dull in friable material": "金刚光泽，颜色深时趋于金属光泽；松脆物料呈暗淡光泽",
+      "Adamantine, tending toward vitreous, resinous": "金刚光泽，可趋于玻璃或树脂光泽",
+      "Brilliant to dull": "明亮至暗淡光泽",
+      "Imperfect adamantine metallic to dull earthy; silky when fibrous": "不完全的金刚金属光泽至暗淡土状光泽；纤维状时呈丝绢光泽",
+      "Metallic": "金属光泽",
+      "Metallic or submetallic to dull": "金属或半金属光泽至暗淡光泽",
+      "Metallic to submetallic": "金属至半金属光泽",
+      "Metallic to submetallic, may be dull": "金属至半金属光泽，也可暗淡",
+      "Metallic, commonly splendent": "金属光泽，通常呈强光泽",
+      "Metallic, splendent": "金属光泽，强光泽",
+      "Metallic, splendent on cleavage surfaces": "金属光泽，解理面呈强光泽",
+      "Metallic; may be dull, earthy": "金属光泽；也可暗淡或呈土状光泽",
+      "Nearly metallic": "近金属光泽",
+      "Resinous to adamantine": "树脂至金刚光泽",
+      "Resinous to greasy": "树脂至油脂光泽",
+      "Resinous, subadamantine to adamantine": "树脂光泽，弱金刚至金刚光泽",
+      "Silky, subvitreous": "丝绢光泽、弱玻璃光泽",
+      "Subresinous to subadamantine": "弱树脂至弱金刚光泽",
+      "Subvitreous, pearly on {010} cleavages, silky if fibrous": "弱玻璃光泽；{010} 解理面呈珍珠光泽；纤维状时呈丝绢光泽",
+      "Vitreous": "玻璃光泽",
+      "Vitreous or dull": "玻璃或暗淡光泽",
+      "Vitreous to adamantine": "玻璃至金刚光泽",
+      "Vitreous to adamantine; greasy when metamict": "玻璃至金刚光泽；蜕晶质状态时呈油脂光泽",
+      "Vitreous to dull": "玻璃至暗淡光泽",
+      "Vitreous to pearly": "玻璃至珍珠光泽",
+      "Vitreous to pearly or silky": "玻璃至珍珠或丝绢光泽",
+      "Vitreous to resinous": "玻璃至树脂光泽",
+      "Vitreous to resinous, may be pearly": "玻璃至树脂光泽，也可呈珍珠光泽",
+      "Vitreous to slightly resinous": "玻璃至略带树脂光泽",
+      "Vitreous to subadamantine": "玻璃至弱金刚光泽",
+      "Vitreous to subresinous": "玻璃至弱树脂光泽",
+      "Vitreous to subvitreous": "玻璃至弱玻璃光泽",
+      "Vitreous, may be pearly": "玻璃光泽，也可呈珍珠光泽",
+      "Vitreous, may be pearly or silky": "玻璃光泽，也可呈珍珠或丝绢光泽",
+      "Vitreous, pearly in aggregates": "玻璃光泽；集合体中呈珍珠光泽",
+      "Vitreous, pearly on cleavage": "玻璃光泽，解理面呈珍珠光泽",
+      "Vitreous, pearly on cleavages": "玻璃光泽，解理面呈珍珠光泽",
+      "Vitreous, pearly on the cleavage, dull when earthy": "玻璃光泽；解理面呈珍珠光泽，土状时暗淡",
+      "Vitreous, pearly, or greasy": "玻璃、珍珠或油脂光泽",
+      "Vitreous, pearly, somewhat resinous": "玻璃、珍珠光泽，略带树脂光泽",
+      "Vitreous, resinous": "玻璃、树脂光泽",
+      "Vitreous, resinous on fracture surfaces": "玻璃光泽，断口呈树脂光泽",
+      "Vitreous, resinous to dull": "玻璃光泽，树脂至暗淡光泽",
+      "Vitreous, silky": "玻璃、丝绢光泽",
+      "Vitreous, somewhat pearly on cleavages": "玻璃光泽，解理面略呈珍珠光泽",
+      "Vitreous, splendent to dull": "玻璃光泽，强光泽至暗淡光泽",
+      "Vitreous, typically pearly on cleavages": "玻璃光泽，解理面通常呈珍珠光泽",
+      "Vitreous, weak pearly on {001}": "玻璃光泽，{001} 面呈弱珍珠光泽",
+      "Vitreous; dull when massive": "玻璃光泽；块状时暗淡",
+      "Vitreous; greasy to dull on the exterior": "玻璃光泽；外表呈油脂至暗淡光泽",
+      "Vitreous; pearly on cleavages": "玻璃光泽；解理面呈珍珠光泽",
+      "Vitreous; pearly on cleavages and {0001}": "玻璃光泽；解理面与 {0001} 面呈珍珠光泽",
+      "Vitreous; waxy to dull when massive": "玻璃光泽；块状时呈蜡状至暗淡光泽"
+    },
+    "streak": {
+      "Black": "黑色",
+      "Black to brown": "黑色至棕色",
+      "Black to reddish brown": "黑色至红棕色",
+      "Black to steel-gray, shining": "黑色至钢灰色，有光泽",
+      "Bluish gray": "蓝灰色",
+      "Brown": "棕色",
+      "Brownish red, shining": "棕红色，有光泽",
+      "Brownish yellow, yellow-orange,ocher-yellow": "棕黄色、黄橙色、赭黄色",
+      "Cherry-red or reddish brown": "樱桃红色或红棕色",
+      "Dark grayish black": "暗灰黑色",
+      "Gray-green": "灰绿色",
+      "Grayish black": "灰黑色",
+      "Grayish or brownish black": "灰黑色或棕黑色",
+      "Green": "绿色",
+      "Greenish black": "绿黑色",
+      "Greenish black to brownish black": "绿黑色至棕黑色",
+      "Lead-gray": "铅灰色",
+      "Pale blue": "浅蓝色",
+      "Pale brown to pale yellow and white": "浅棕色至浅黄色，以及白色",
+      "Pale brown, yellowish brown; gray, greenish black with high Nb–Ta": "浅棕色、黄棕色；铌（Nb）与钽（Ta）含量高时呈灰色、绿黑色",
+      "Pale green": "浅绿色",
+      "Pale silver": "浅银色",
+      "Pale yellowish gray": "浅黄灰色",
+      "Purplish red": "紫红色",
+      "Scarlet": "猩红色",
+      "Silver-white": "银白色",
+      "Steel-gray to iron-black": "钢灰色至铁黑色",
+      "Tin-white": "锡白色",
+      "Vermilion": "朱红色",
+      "White": "白色",
+      "White to pale red or pale yellow": "白色至浅红色或浅黄色",
+      "White, altering to dark blue, brown": "白色，变化后可呈深蓝色、棕色",
+      "White, gray, gray-green": "白色、灰色、灰绿色",
+      "White, pale brown, pale gray": "白色、浅棕色、浅灰色"
+    },
+    "cleavage": {
+      "001 , perfect; 210 , less perfect; 010 , imperfect": "001 面完全；210 面较不完全；010 面不完全",
+      "010 , imperfect; 100 and 001 , less perfect": "010 面不完全；100 与 001 面较不完全",
+      "100 , perfect": "100 面完全",
+      "100 imperfect, 110 indistinct; partings on 111 { } or 011": "100 面不完全，110 面不明显；沿原文记作 111 { } 或 011 的面可见裂开",
+      "111 , interrupted; 001 , rare": "111 面不连续；001 面少见",
+      "Distinct on 101 ; 010 in traces": "101 面明显；010 面仅见微弱痕迹",
+      "Distinct on 110 , imperfect on 010 , poor on 001": "110 面明显，010 面不完全，001 面较差",
+      "Good on {001}, poor on {110}": "{001} 面良好，{110} 面较差",
+      "Good on {110}, poor on {100}": "{110} 面良好，{100} 面较差",
+      "Good on {110}, with intersections of 56° and 124°; parting on {100}": "{110} 面良好，交角为 56° 与 124°；{100} 面可见裂开",
+      "Good on {110}; parting due to twinning on {221}": "{110} 面良好；{221} 面可因双晶形成裂开",
+      "Imperfect on {0001}": "{0001} 面不完全",
+      "Imperfect on {001}, {110}, {111}; parting on {111}": "{001}、{110}、{111} 面不完全；{111} 面可见裂开",
+      "In traces": "仅见微弱痕迹",
+      "Indistinct on {001}; partings on {011} and {111}, indistinct": "{001} 面不明显；{011} 与 {111} 面的裂开不明显",
+      "Indistinct on {110} and {111}": "{110} 与 {111} 面不明显",
+      "On {001}, perfect; on {210}, good; on {010}, poor": "{001} 面完全，{210} 面良好，{010} 面较差",
+      "On {011}, distinct; on {001}, {013}, indistinct": "{011} 面明显；{001} 与 {013} 面不明显",
+      "On {011}, perfect but interrupted; on {100}, fair; on {110}, poor": "{011} 面完全但不连续；{100} 面一般，{110} 面较差",
+      "On {101}, distinct; on {112}, interrupted; on {001}, indistinct": "{101} 面明显，{112} 面不连续，{001} 面不明显",
+      "Parting may develop along {111}": "沿 {111} 面可能形成裂开",
+      "Parting on {0001}, distinct": "{0001} 面裂开明显",
+      "Parting on {110}": "{110} 面可见裂开",
+      "Parting on {110} rarely observed": "{110} 面裂开很少观察到",
+      "Parting on {111}": "{111} 面可见裂开",
+      "Parting on {111}, very good": "{111} 面裂开很好",
+      "Perfect and easy on 010 ; imperfect on 100 and 110": "010 面完全且易于裂开；100 与 110 面不完全",
+      "Perfect on 001": "001 面完全",
+      "Perfect on {0001}": "{0001} 面完全",
+      "Perfect on {001}, imperfect on {100}": "{001} 面完全，{100} 面不完全",
+      "Perfect on {001}, less perfect on {010}, intersecting at 90°; distinct on {110}": "{001} 面完全，{010} 面较不完全，两者交角为 90°；{110} 面明显",
+      "Perfect on {001}, very good on {010}, imperfect on {110}": "{001} 面完全，{010} 面很好，{110} 面不完全",
+      "Perfect on {001}; parting or cleavage on {111}": "{001} 面完全；{111} 面可见裂开或解理",
+      "Perfect on {010}": "{010} 面完全",
+      "Perfect on {011}": "{011} 面完全",
+      "Perfect on {100} and {001}": "{100} 与 {001} 面完全",
+      "Perfect on {110}, intersecting at 56° and 124°; partings on {010}, {100}": "{110} 面完全，交角为 56° 与 124°；{010}、{100} 面可见裂开",
+      "Poor on {011} and {111}": "{011} 与 {111} 面较差",
+      "Very poor on {100}": "{100} 面很差",
+      "{001} perfect; partings on {110}, {010}": "{001} 面完全；{110}、{010} 面可见裂开",
+      "{001}, perfect": "{001} 面完全",
+      "{010}, distinct; {110} and {011}, imperfect": "{010} 面明显；{110} 与 {011} 面不完全",
+      "{010}, perfect; {100}, distinct; {011}": "{010} 面完全；{100} 面明显；原文另列 {011} 面，未给出程度",
+      "{010}, perfect; {100}, less perfect": "{010} 面完全；{100} 面较不完全",
+      "{101}, rather distinct; {110} in traces": "{101} 面较明显；{110} 面仅见微弱痕迹",
+      "{110} and {021}, good; {010} and {012}, poor": "{110} 与 {021} 面良好；{010} 与 {012} 面较差",
+      "{110}, good; {100}, moderate; {111}, in traces": "{110} 面良好，{100} 面中等，{111} 面仅见微弱痕迹",
+      "{110}, perfect; parting on {010}": "{110} 面完全；{010} 面可见裂开",
+      "{110}, poor; {100} and {001}, very poor": "{110} 面较差；{100} 与 {001} 面很差",
+      "{111}, perfect; on {011}, parting, poor": "{111} 面完全；{011} 面裂开较差"
+    }
+  };
+  function propertyText(value,field){
+    const text=String(value??'');
+    return propertyTerms[field]?.[text]||(!/[a-z]{2}/i.test(text)||/[\u3400-\u9fff]/.test(text)?text:null);
+  }
+  function propertyMarkup(value,field){
+    if(field==='formula')return formulaMarkup(value);
+    const text=propertyText(value,field);
+    return text===null?'<span class="translation-pending">原文待翻译</span>':html(text);
+  }
+  function originalPropertyMarkup(value,raw){
+    const original=String(raw??value??'');
+    return '<details class="property-original"><summary>查看来源原文'+(/[a-z]{2}/i.test(original)?'（英文）':'')+'</summary><p lang="en">原文：'+html(original)+'</p></details>';
+  }
   const pct = v => `${Math.round(Math.min(1, Math.max(0, Number(v) || 0)) * 100)}%`;
   const kb = key => window.MINERAL_KB[key] || {};
   const name = key => kb(key).name_zh || window.MINERAL_CLASSES[key]?.zh || key;
@@ -80,6 +289,15 @@
     return referenceLoading;
   }
   function icons() { window.lucide?.createIcons(); }
+  function updateModelUi(error=false){
+    const ensemble=MineralEngine.getModels?.(true)||MineralEngine.models||[],fast=MineralEngine.getModels?.(false)||ensemble.slice(0,1),count=ensemble.length;
+    $('#precisionHelp').textContent=count?`综合 ${count} 个图像模型；${isNative()?'资源已随安装包内置':'网页版首次离线使用需准备资源'}`:error?'模型清单未就绪；分析时可重试读取':'正在读取本机模型清单';
+    $('#guideModelMode').textContent=count?`点击“分析矿物候选”。多模型模式综合 ${count} 个图像模型；取消勾选后使用 ${fast.length} 个模型快速分析。输入筛查独立运行，实际参与数量在结果中显示。`:'点击“分析矿物候选”。多模型与快速模式按当前模型清单运行，实际参与数量在结果中显示。';
+  }
+  function prepareModelUi(){
+    updateModelUi();
+    if(MineralEngine.prepare)void MineralEngine.prepare().then(()=>updateModelUi()).catch(()=>updateModelUi(true));
+  }
   let toastTimer;
   function toast(message) { $('#toast').textContent = message; $('#toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { $('#toast').hidden = true; }, 4500); }
   function status(message, error = false) { $('#progress').textContent = message; $('#progress').classList.toggle('error', error); }
@@ -240,17 +458,17 @@
     } catch (e) { if (e.name === 'AbortError') status('分析已停止，照片已保留。'); else {status(e.message || '分析失败，请重新拍摄或准备离线资源。',true);$('#analysisRecovery').hidden=false;} }
     finally { state.controller = null; setBusy(false); }
   }
-  function checkMarkup(check) { return `<p class="physical-check ${check.status==='conflict'?'conflict':''}">${check.status==='conflict'?'存在冲突':'物性符合'} · ${html(check.property)}：实测 ${html(check.observed)}，资料 ${html(check.expected)}</p>`; }
+  function checkMarkup(check) { const field=check.property==='光泽'?'luster':check.property==='摩氏硬度'?'hardness':'';return `<p class="physical-check ${check.status==='conflict'?'conflict':''}">${check.status==='conflict'?'存在冲突':'物性符合'} · ${html(check.property)}：实测 ${html(check.observed)}，资料 ${propertyMarkup(check.expected,field)}</p>`; }
   function renderResult(r) {
     const k = kb(r.key); $('#result').hidden = false;
     $('#resultHeading').textContent = name(r.key); $('#resultEnglish').textContent = k.name_en || r.key;
-    $('#resultFormula').textContent = k.formula || ''; $('#resultScore').textContent = pct(r.score);
+    $('#resultFormula').innerHTML = k.formula?formulaMarkup(k.formula):''; $('#resultScore').textContent = pct(r.score);updateModelUi();
     $('#scoreFill').style.width = '0%'; requestAnimationFrame(() => { $('#scoreFill').style.width = pct(r.score); });
     $('#resultStatus').textContent = r.status === 'consistent' ? '线索较一致 · 待复核':'需要更多证据';
     $('#resultStatus').className = `result-state ${r.status==='consistent'?'consistent':''}`;
     $('#verdict').textContent = r.reasons.length ? r.reasons.join('；') + '。建议补拍晶体细节，并对照候选物性。' : '各模型和拍摄角度的线索较一致。请对照物性后记录结论；未覆盖的类别仍可能被分到相似候选。';
     $('#evidenceSummary').innerHTML = `<span>${r.photoCount} 张图像${state.photos.some(p=>p.kind==='video')?'（含视频帧）':''}</span><span>${r.modelCount} 个模型</span><span>模型一致度 ${pct(r.agreement)}</span>`;
-    $('#candidates').innerHTML = r.rankings.map((x,i) => { const item = kb(x.key); return `<div class="candidate-row"><button type="button" data-detail="${html(x.key)}" aria-label="查看${html(name(x.key))}资料"><strong>${i+1}. ${html(name(x.key))}</strong><span class="candidate-score">${pct(x.score)}</span></button><div class="candidate-meta"><span>硬度 ${html(item.hardness ?? '未收录')}</span><span>光泽 ${html(item.luster || '未收录')}</span></div>${(x.checks || []).filter(c => c.status==='conflict').map(checkMarkup).join('')}</div>`; }).join('');
+    $('#candidates').innerHTML = r.rankings.map((x,i) => { const item = kb(x.key); return `<div class="candidate-row"><button type="button" data-detail="${html(x.key)}" aria-label="查看${html(name(x.key))}资料"><strong>${i+1}. ${html(name(x.key))}</strong><span class="candidate-score">${pct(x.score)}</span></button><div class="candidate-meta"><span>硬度 ${propertyMarkup(item.hardness ?? '未收录','hardness')}</span><span>光泽 ${propertyMarkup(item.luster || '未收录','luster')}</span></div>${(x.checks || []).filter(c => c.status==='conflict').map(checkMarkup).join('')}</div>`; }).join('');
     $('#physicalChecks').innerHTML = (r.checks || []).filter(c => c.status==='match').map(checkMarkup).join('');
     $('#saveBtn').innerHTML = state.recordId?'<i data-lucide="bookmark-check"></i>更新标本':'<i data-lucide="bookmark-plus"></i>保存标本'; icons();
   }
@@ -286,11 +504,13 @@
     return `<dl class="detail-properties">${values.map(([label,legacy,field])=>{
       const fact=facts[field],value=fact?.value,usable=fact?.status!=='unavailable'&&value!==undefined&&value!==null&&String(value).trim()!==''&&!/^(?:n\.?\s*d\.?|not determined|unknown)$/i.test(String(value).trim());
       let text,provenance='';
-      if(usable){const url=safeLink(fact.source_url),page=Number(fact.source_page);text=html(value)+(fact.unit&&fact.unit!=='Mohs'?' '+html(fact.unit):'');if(fact.raw&&String(fact.raw)!==String(value))text+=`<small class="property-raw">原文：${html(fact.raw)}</small>`;provenance=url?`<a class="property-source" href="${html(url.replace(/#.*$/,'')+(Number.isInteger(page)&&page>0?'#page='+page:''))}" target="_blank" rel="noopener noreferrer">MSA 矿物手册${Number.isInteger(page)&&page>0?' · 第 '+page+' 页':''}</a>`:'<small class="property-source">已收录来源字段</small>';if(fact.status!=='verified')provenance+=`<small class="property-source">${fact.status==='source_inferred'?'据来源推定 · ':''}待复核</small>`;}
-      else if(field==='formula'&&(reference?.formula||k.formula_source)){const source=reference?{url:reference.source_url,page:reference.source_page}:k.formula_source,url=safeLink(source.url),page=Number(source.page);text=html(reference?.formula||k.formula);provenance=url?`<a class="property-source" href="${html(url.replace(/#.*$/,'')+(Number.isInteger(page)&&page>0?'#page='+page:''))}" target="_blank" rel="noopener noreferrer">IMA 官方清单${Number.isInteger(page)&&page>0?' · 第 '+page+' 页':''}</a>`:'<small class="property-source">IMA 官方清单</small>';}
-      else if(fact){const url=safeLink(fact.source_url),page=Number(fact.source_page),review=fact.status==='needs_review';text=review?'待复核':'未收录';provenance=`<small class="property-source">${review?'提取内容待复核，暂不作为有效物性':fact.status==='source_inferred'?'来源推测尚无可核验值':'原文未给出可用值'}${review&&fact.note?'；'+html(fact.note):''}</small>`+(url?`<a class="property-source" href="${html(url.replace(/#.*$/,'')+(Number.isInteger(page)&&page>0?'#page='+page:''))}" target="_blank" rel="noopener noreferrer">查看原始物性页</a>`:'');}
-      else{const present=legacy!==undefined&&legacy!==null&&legacy!=='';text=html(present?legacy:'未收录');if(present)provenance='<small class="property-source">原项目资料 · 待复核</small>';}
-      return `<div><dt>${label}</dt><dd>${text}${provenance}</dd></div>`;
+      if(usable){const url=safeLink(fact.source_url),page=Number(fact.source_page);text=propertyMarkup(value,field)+(fact.unit&&fact.unit!=='Mohs'?' '+html(fact.unit):'')+originalPropertyMarkup(value,fact.raw);provenance=url?`<a class="property-source" href="${html(url.replace(/#.*$/,'')+(Number.isInteger(page)&&page>0?'#page='+page:''))}" target="_blank" rel="noopener noreferrer">MSA 矿物手册${Number.isInteger(page)&&page>0?' · 第 '+page+' 页':''}</a>`:'<small class="property-source">已收录来源字段</small>';if(fact.status!=='verified')provenance+=`<small class="property-source">${fact.status==='source_inferred'?'据来源推定 · ':''}待复核</small>`;}
+      else if(field==='formula'&&(reference?.formula||k.formula_source)){const source=reference?{url:reference.source_url,page:reference.source_page}:k.formula_source,url=safeLink(source.url),page=Number(source.page);text=formulaMarkup(reference?.formula||k.formula);provenance=url?`<a class="property-source" href="${html(url.replace(/#.*$/,'')+(Number.isInteger(page)&&page>0?'#page='+page:''))}" target="_blank" rel="noopener noreferrer">IMA 官方清单${Number.isInteger(page)&&page>0?' · 第 '+page+' 页':''}</a>`:'<small class="property-source">IMA 官方清单</small>';}
+      else if(fact){const url=safeLink(fact.source_url),page=Number(fact.source_page),review=fact.status==='needs_review';text=review?'待复核':'未收录';const reviewNote=fact.note&&/[\u3400-\u9fff]/.test(fact.note)?fact.note:'原始符号或晶面指数提取不完整，需对照资料复核';provenance=`<small class="property-source">${review?'提取内容待复核，暂不作为有效物性':fact.status==='source_inferred'?'来源推测尚无可核验值':'原文未给出可用值'}${review&&fact.note?'；'+html(reviewNote):''}</small>`+(url?`<a class="property-source" href="${html(url.replace(/#.*$/,'')+(Number.isInteger(page)&&page>0?'#page='+page:''))}" target="_blank" rel="noopener noreferrer">查看原始物性页</a>`:'');}
+      else{const present=legacy!==undefined&&legacy!==null&&legacy!=='';text=propertyMarkup(present?legacy:'未收录',field);if(present){provenance='<small class="property-source">原项目资料 · 待复核</small>';if(/[a-z]{2}/i.test(String(legacy))&&field!=='formula')text+=originalPropertyMarkup(legacy);}}
+      if(field==='formula'&&(reference?.formula||k.formula))text+=`<button type="button" class="copy-formula" data-copy-formula="${html(reference?.formula||k.formula)}">复制化学式</button><small class="property-raw">上下标按资料原式保留；下标多表示原子比例，上标用于标注价态或电荷。</small>`;
+      if(field==='hardness'&&/[∥⊥]/.test(String(value||legacy||'')))text+='<small class="property-raw">∥ 为平行，⊥ 为垂直；[001] 等表示晶向。硬度可随方向变化。</small>';
+      return `<div class="${field==='formula'?'formula-property':''}"><dt>${label}</dt><dd><div class="property-value">${text}</div>${provenance}</dd></div>`;
     }).join('')}</dl>`;
   }
   function showDetail(key) {
@@ -306,6 +526,15 @@
     selectedImages=imagesByName.get(normalizeSearch(reference?.name_en||k.name_en))||[];imagesShown=0;
     if(selectedImages.length){$('#detailBody').insertAdjacentHTML('beforeend',imageSectionMarkup());appendImageRecords();}
     openDialog('#detailDialog'); icons();
+  }
+  async function copyFormula(text){
+    const original=String(text||'');if(!original)return;
+    if(navigator.clipboard?.writeText){try{await navigator.clipboard.writeText(original);toast('已复制原始化学式，含上下标');return;}catch(_){}}
+    const input=document.createElement('textarea');input.value=original;input.setAttribute('readonly','');input.style.position='fixed';input.style.left='-9999px';
+    const active=document.activeElement;
+    try{($('#detailDialog').open?$('#detailDialog'):document.body).appendChild(input);input.select();if(!document.execCommand('copy'))throw new Error('Copy unavailable');toast('已复制原始化学式，含上下标');}
+    catch(_){toast('当前环境无法复制，可长按化学式选择文字');}
+    finally{input.remove();active?.focus({preventScroll:true});}
   }
   function imageSectionMarkup(){
     return `<details class="detail-section image-section"><summary>标本图库与鉴定出处（联网） · ${selectedImages.length} 条</summary><p class="field-hint">这里只列在线图片出处，未下载图片或把这些照片加入识别训练。公开许可不等于标签正确；共生标本需专家标注目标矿物。鉴定水平来自来源记录，本项目尚未独立核验。</p><div id="imageRecords" class="image-records"></div><p id="imageStatus" class="field-hint" role="status" aria-live="polite"></p><button type="button" class="secondary" id="moreImages" data-more-images>查看更多图库出处</button></details>`;
@@ -337,7 +566,7 @@
     $('#moreCrystals').hidden=crystalsShown>=selectedCrystals.length;
     $('#moreCrystals').textContent=`查看更多 ${Math.min(5,selectedCrystals.length-crystalsShown)} 条记录`;
   }
-  function libraryCard(item){const detail=item.detail||{},kind=item.model?'模型候选':item.expanded?'扩展资料':'基础目录';return `<button type="button" class="mineral-card" data-detail="${html(item.key)}"><span class="mineral-symbol" aria-hidden="true">${html((item.formula || '◇').slice(0,4))}</span><strong>${html(item.title)}</strong>${item.title!==item.english?`<small>${html(item.english)}</small>`:''}<span class="card-formula formula">${html(item.formula || '化学式未收录')}</span><span class="category">${html(types[item.key] || (detail.classification?category(detail,$('#classScheme').value):'分类未收录'))} · ${kind}</span></button>`;}
+  function libraryCard(item){const detail=item.detail||{},kind=item.model?'模型候选':item.expanded?'扩展资料':'基础目录';return `<button type="button" class="mineral-card" data-detail="${html(item.key)}"><span class="mineral-symbol" aria-hidden="true">${html((item.formula || '◇').slice(0,4))}</span><strong>${html(item.title)}</strong>${item.title!==item.english?`<small>${html(item.english)}</small>`:''}<span class="card-formula">${item.formula?formulaMarkup(item.formula):'化学式未收录'}</span><span class="category">${html(types[item.key] || (detail.classification?category(detail,$('#classScheme').value):'分类未收录'))} · ${kind}</span></button>`;}
   function updateLibraryPageStatus(){
     $('#libraryStatus').textContent=`已展示 ${libraryShown} / ${libraryMatches.length} 项${libraryMatches.length?' · 每次加载 80 项':''}`;
     $('#libraryMore').hidden=libraryShown>=libraryMatches.length;
@@ -414,14 +643,18 @@
     if(state.offlineController)return;
     const controller=new AbortController();state.offlineController=controller;
     $('#offlineBtn').disabled=true;$('#cancelOffline').hidden=false;
-    const assets = ['./','./index.html','./styles.css','./app.js','./core.js','./inference.js','./engine-worker.js','./history.js','./media.js','./storage.js','./reference-loader.js','./config.js','./manifest.webmanifest','./model-manifest.json','./icon.svg','./icon-192.png','./icon-512.png','./icon-maskable.png','./version.json','./data/classes.js','./data/minerals.js','./data/sources.js','./data/imagenet.js','./data/catalog.json','./data/crystals.json','./data/image-sources.json','./data/reference-manifest.json','./data/licenses/ima-cnmnc-2026-09.txt','./vendor/lucide.min.js','./vendor/ort.min.js','./vendor/ort-wasm-simd-threaded.mjs','./vendor/ort-wasm-simd-threaded.wasm', ...MineralEngine.models.map(m=>'./models/'+m.file),'./models/imagenet_gate.onnx'];
+    const assets = ['./','./index.html','./styles.css','./app.js','./core.js','./inference.js','./engine-worker.js','./history.js','./media.js','./storage.js','./reference-loader.js','./config.js','./manifest.webmanifest','./model-manifest.json','./icon.svg','./icon-192.png','./icon-512.png','./icon-maskable.png','./version.json','./data/classes.js','./data/minerals.js','./data/sources.js','./data/imagenet.js','./data/catalog.json','./data/crystals.json','./data/image-sources.json','./data/reference-manifest.json','./data/licenses/ima-cnmnc-2026-09.txt','./vendor/lucide.min.js','./vendor/ort.min.js','./vendor/ort-wasm-simd-threaded.mjs','./vendor/ort-wasm-simd-threaded.wasm'];
     try {
       await bounded(()=>navigator.serviceWorker.register('./sw.js'),15000,'离线服务启动超时',controller.signal);
-      const manifest=await bounded(async signal=>{const response=await fetch('./model-manifest.json',{signal,cache:'reload'});if(!response.ok)throw new Error(`模型目录下载失败 (${response.status})`);return response.json();},30000,'模型目录读取超时',controller.signal);
+      const manifest=await bounded(async signal=>{if(MineralEngine.prepare)return MineralEngine.prepare({signal});const response=await fetch('./model-manifest.json',{signal,cache:'reload'});if(!response.ok)throw new Error(`模型目录下载失败 (${response.status})`);return response.json();},30000,'模型目录读取超时',controller.signal);
       if(!Array.isArray(manifest.models))throw new Error('模型目录不完整，请重试');
+      if(manifest.models.some(model=>!/^models\/[a-z\d_.-]+\.onnx$/i.test(model.path||'')))throw new Error('模型资源路径无效，请重新准备');
+      assets.push(...new Set(manifest.models.map(model=>'./'+model.path)));
+      const modelBytes=manifest.models.reduce((sum,model)=>sum+(Number(model.bytes)||0),0),sizeHint=modelBytes>0?`（模型合计约 ${Math.ceil(modelBytes/1048576)} MB）`:'';
+      updateModelUi();
       for (let i=0;i<assets.length;i++) {
         if(controller.signal.aborted)throw new DOMException('准备已停止','AbortError');
-        $('#offlineProgress').textContent=`正在准备资源 ${i+1}/${assets.length}（模型共约 70 MB）…`;
+        $('#offlineProgress').textContent=`正在准备资源 ${i+1}/${assets.length}${sizeHint}…`;
         const cache = await caches.open(assets[i].includes('/models/') || assets[i].endsWith('.wasm') ? 'shikuang-models-v2-20261010':'shikuang-static-2.0.2-preview.2');
         const request = new Request(new URL(assets[i],location.href),{cache:'reload'}),model=manifest.models.find(m=>'./'+m.path===assets[i]);
         await bounded(async signal=>{
@@ -486,6 +719,7 @@
     if(detail)showDetail(detail.dataset.detail);
     if(e.target.closest('[data-more-crystals]'))appendCrystalRecords();
     if(e.target.closest('[data-more-images]'))appendImageRecords();
+    const formula=e.target.closest('[data-copy-formula]');if(formula)void copyFormula(formula.dataset.copyFormula);
     if(record)showRecord(record.dataset.record);
     const history=e.target.closest('[data-history]');if(history){const item=SearchHistory.read()[Number(history.dataset.history)];if(item){$(item.kind==='library'?'#librarySearch':'#recordSearch').value=item.query;location.hash=item.kind;route();}}
     if(e.target.closest('[data-clear-history]')&&confirm('清空这台设备上图鉴与标本的全部搜索历史？')){SearchHistory.clear();renderSearchHistory();}
@@ -519,7 +753,7 @@
   $('#offlineBtn').addEventListener('click',()=>void prepareOffline());$('#assistBtn').addEventListener('click',()=>void assist());
   addEventListener('hashchange',route);
   async function init() {
-    icons();
+    icons();prepareModelUi();
     try { $('#guideWelcome').hidden = localStorage.getItem('shikuang-guide-complete-v2') === '1'; } catch (_) {}
     initializeCatalogUi();updateClassFilter();renderSearchHistory();
     try{setMode(localStorage.getItem('shikuang-mode-v2'));}catch(_){setMode('offline');}

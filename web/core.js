@@ -27,6 +27,86 @@
     return a.every(x => x >= 0 && x <= 1) && Math.abs(sum - 1) < 0.001 ? a : softmax(a);
   }
   const NON_MINERAL = '这不是矿物，请您放入清晰的矿物照片。';
+  const MODEL_MAX_BYTES = 80000000;
+  const MODEL_PATHS = ['models/mobilenet_int8.onnx','models/efficientnet.onnx','models/efficientnet_legacy.onnx','models/imagenet_gate.onnx'];
+  /** The manifest selects weights and modes; this bounded contract selects supported runtime formats. */
+  function validateManifest(value, expectedLabels) {
+    const invalid = () => { throw new Error('模型清单或输入契约不匹配，请更新 App 或离线资源'); };
+    if (!value || value.schemaVersion !== 1 || typeof value.version !== 'string' || !/^[A-Za-z0-9._-]{1,80}$/.test(value.version)) invalid();
+    const input = value.input;
+    if (!input || input.dtype !== 'float32' || input.layout !== 'NCHW' || input.colorSpace !== 'RGB' || input.pixelScale !== 255 || input.resize !== 'bilinear' || input.crop !== 'user-selected center square' || JSON.stringify(input.shape) !== '[1,3,224,224]') invalid();
+    if (JSON.stringify(input.normalization?.mean) !== '[0.485,0.456,0.406]' || JSON.stringify(input.normalization?.std) !== '[0.229,0.224,0.225]') invalid();
+    const labels = value.labels;
+    if (!Array.isArray(labels) || labels.length < 2 || labels.length > 256 || new Set(labels).size !== labels.length || labels.some(k => typeof k !== 'string' || !/^[a-z][a-z0-9_]{0,60}$/.test(k))) invalid();
+    if (expectedLabels && JSON.stringify(labels) !== JSON.stringify(expectedLabels)) throw new Error('模型标签类序不匹配，请更新 App');
+    if (!Array.isArray(value.models) || value.models.length < 3 || value.models.length > 4) invalid();
+    const ids = new Set(), paths = new Set();
+    const models = value.models.map(row => {
+      if (!row || typeof row.id !== 'string' || !/^[a-z][a-z0-9-]{0,39}$/.test(row.id) || ids.has(row.id) || paths.has(row.path) || !MODEL_PATHS.includes(row.path)) invalid();
+      ids.add(row.id); paths.add(row.path);
+      if (!['input-gate','mineral-classifier'].includes(row.role) || row.classes !== (row.role === 'input-gate' ? 1000 : labels.length) || (row.path === 'models/imagenet_gate.onnx') !== (row.role === 'input-gate')) invalid();
+      if (!Number.isInteger(row.bytes) || row.bytes < 1 || row.bytes > MODEL_MAX_BYTES || !/^[a-f0-9]{64}$/.test(row.sha256) || row.output !== 'logits') invalid();
+      if (![row.inputName,row.outputName].every(x => typeof x === 'string' && /^[A-Za-z0-9_.:/-]{1,120}$/.test(x))) invalid();
+      const temperature = row.temperature === undefined ? 1 : row.temperature;
+      if (!Number.isFinite(temperature) || temperature < 0.05 || temperature > 10 || (row.role === 'input-gate' && temperature !== 1)) invalid();
+      return Object.freeze({id:row.id,role:row.role,path:row.path,file:row.path.slice(7),title:typeof row.title === 'string' ? row.title.slice(0,40) : row.id,bytes:row.bytes,sha256:row.sha256,classes:row.classes,output:'logits',inputName:row.inputName,outputName:row.outputName,temperature});
+    });
+    if (models.filter(m => m.role === 'input-gate').length !== 1) invalid();
+    const classifiers = models.filter(m => m.role === 'mineral-classifier');
+    const fast = value.modes?.fast, ensemble = value.modes?.ensemble;
+    if (!Array.isArray(fast) || fast.length !== 1 || !Array.isArray(ensemble) || ensemble.length < 2 || ensemble.length > 3 || new Set(ensemble).size !== ensemble.length || ensemble.length !== classifiers.length || !ensemble.includes(fast[0]) || ensemble.some(id => !classifiers.some(m => m.id === id))) invalid();
+    return Object.freeze({schemaVersion:1,version:value.version,input:Object.freeze({...input,shape:Object.freeze([...input.shape]),normalization:Object.freeze({mean:Object.freeze([...input.normalization.mean]),std:Object.freeze([...input.normalization.std])})}),labels:Object.freeze([...labels]),models:Object.freeze(models),modes:Object.freeze({fast:Object.freeze([...fast]),ensemble:Object.freeze([...ensemble])})});
+  }
+  function selectedModels(manifest, precision = true) {
+    return manifest.modes[precision ? 'ensemble' : 'fast'].map(id => manifest.models.find(m => m.id === id));
+  }
+  async function readResource(response, maximum, expectedBytes, progress = () => {}) {
+    if (!response.ok) throw new Error(`识别资源读取失败 (${response.status})，请更新或准备离线资源`);
+    if ((response.headers?.get('content-type') || '').includes('text/html')) throw new Error('识别资源地址返回了网页，请更新 App 资源');
+    let reader, size = 0;
+    try {
+      if (response.body?.getReader) {
+        reader = response.body.getReader();
+        // ONNX size comes from the validated manifest: one allocation instead of chunks + joined bytes.
+        const bytes = expectedBytes ? new Uint8Array(expectedBytes) : null, chunks = [];
+        for (;;) {
+          const part = await reader.read(); if (part.done) break;
+          if (size + part.value.length > maximum || (bytes && size + part.value.length > bytes.length)) throw new Error('识别资源大小不匹配，请更新 App 或离线资源');
+          if (bytes) bytes.set(part.value,size); else chunks.push(part.value);
+          size += part.value.length; progress(size);
+        }
+        if (expectedBytes && size !== expectedBytes) throw new Error('识别资源大小不匹配，请更新 App 或离线资源');
+        if (bytes) return bytes;
+        const joined = new Uint8Array(size); let offset = 0;
+        for (const part of chunks) { joined.set(part,offset); offset += part.length; }
+        return joined;
+      }
+      const bytes = new Uint8Array(await response.arrayBuffer());
+      if (bytes.length > maximum || (expectedBytes && bytes.length !== expectedBytes)) throw new Error('识别资源大小不匹配，请更新 App 或离线资源');
+      return bytes;
+    } catch (error) { if (reader) await reader.cancel().catch(()=>{}); throw error; }
+    finally { reader?.releaseLock(); }
+  }
+  function pixelsToInput(rgba, input) {
+    if (!rgba || rgba.length !== 224 * 224 * 4) throw new Error('图像张量大小不正确');
+    const tensor = new Float32Array(3 * 224 * 224);
+    const {mean,std} = input.normalization;
+    for (let c=0;c<3;c++) for (let i=0;i<224*224;i++) tensor[c*224*224+i]=(rgba[i*4+c]/input.pixelScale-mean[c])/std[c];
+    return tensor;
+  }
+  function validateAnalysis(raw, photoCount, models, manifest, manifestHash) {
+    if (!raw || !Array.isArray(raw.runs) || !Array.isArray(raw.screening) || !Array.isArray(raw.warnings) || raw.manifestSha256 !== manifestHash || raw.modelVersion !== manifest.version) throw new Error('识别组件与模型清单版本不匹配，请更新后重试');
+    if (raw.rejected) return;
+    if (raw.screening.length !== photoCount || new Set(raw.screening.map(r => r?.photo)).size !== photoCount || raw.screening.some(r => !r || !Number.isInteger(r.photo) || r.photo < 0 || r.photo >= photoCount || !Array.isArray(r.values) || r.values.length !== 1000 || r.values.some(x => !Number.isFinite(x)))) throw new Error('输入筛查未完成，请重试；本次不生成矿物候选');
+    if (raw.runs.length !== models.length * photoCount) throw new Error('所选模型分析未完成，本次不生成矿物候选；请重试或主动选择快速模式');
+    const seen = new Set();
+    for (const run of raw.runs) {
+      if (!run) throw new Error('模型输出与所选模型或标签清单不匹配');
+      const model = models.find(m => m.id === run.model), key = `${run.photo}:${run.model}`;
+      if (!model || !Number.isInteger(run.photo) || run.photo < 0 || run.photo >= photoCount || seen.has(key) || !Array.isArray(run.values) || run.values.length !== manifest.labels.length || run.values.some(x => !Number.isFinite(x))) throw new Error('模型输出与所选模型或标签清单不匹配');
+      seen.add(key);
+    }
+  }
   function screen(values, blocked = []) {
     const p=softmax(values); if(p.length!==1000)throw new Error('筛查模型类别数量不匹配');
     const top=argmax(p), living=top<=397 || [981,982,983].includes(top);
@@ -68,7 +148,11 @@
   }
   function summarize(runs, keys, knowledge = {}, observation = {}) {
     if (!runs.length || !keys.length) throw new Error('缺少分析结果');
-    const converted = runs.map(r => ({ ...r, p: probabilities(r.values) }));
+    const converted = runs.map(r => {
+      const temperature = r.temperature === undefined ? 1 : r.temperature;
+      if (!Number.isFinite(temperature) || temperature < 0.05 || temperature > 10) throw new Error('模型校准温度无效');
+      return {...r,p:r.output === 'logits' || temperature !== 1 ? softmax(Array.from(r.values,x=>x/temperature)) : probabilities(r.values)};
+    });
     if (converted.some(r => r.p.length !== keys.length)) throw new Error('模型类别与标签表不匹配');
     // Equal weight per photo first; adding more outputs for one photo cannot dominate.
     const photoIds = [...new Set(converted.map(r => r.photo))];
@@ -134,6 +218,8 @@
       agreement: score(input.agreement), viewAgreement: score(input.viewAgreement),
       photoCount: Math.max(0, Math.min(3, Number(input.photoCount) || 0)),
       modelCount: Math.max(0, Math.min(3, Number(input.modelCount) || 0)),
+      modelVersion: typeof input.modelVersion === 'string' && /^[A-Za-z0-9._-]{1,80}$/.test(input.modelVersion) ? input.modelVersion : '',
+      manifestSha256: typeof input.manifestSha256 === 'string' && /^[a-f0-9]{64}$/.test(input.manifestSha256) ? input.manifestSha256 : '',
       sampleId: str(input.sampleId, 100), notes: str(input.notes, 2000), scene: input.scene === 'lab' ? 'lab' : 'daily',
       observation: { hardness: str(String(input.observation?.hardness ?? ''), 10),
         luster: ['metal', 'nonmetal'].includes(input.observation?.luster) ? input.observation.luster : '' },
@@ -150,5 +236,5 @@
     if (new Set(records.map(r => r.id)).size !== records.length) throw new Error('导入文件包含重复记录编号');
     return records;
   }
-  return { POLICY, NON_MINERAL, BACKUP_LIMIT_BYTES, checkBackupSize, screen, softmax, probabilities, average, argmax, hardnessRange, evidenceFor, summarize, quality, qualityWarnings, sanitizeRecord, parseImport };
+  return { POLICY, NON_MINERAL, BACKUP_LIMIT_BYTES, MODEL_MAX_BYTES, validateManifest, selectedModels, readResource, pixelsToInput, validateAnalysis, checkBackupSize, screen, softmax, probabilities, average, argmax, hardnessRange, evidenceFor, summarize, quality, qualityWarnings, sanitizeRecord, parseImport };
 });

@@ -8,11 +8,14 @@ const context = { window: {} };
 for (const file of ['classes','minerals','imagenet']) vm.runInNewContext(fs.readFileSync(path.join(root,`data/${file}.js`),'utf8'),context);
 const keys = Object.keys(context.window.MINERAL_CLASSES);
 const manifest = JSON.parse(fs.readFileSync(path.join(root,'model-manifest.json'),'utf8'));
+require(path.join(root,'core.js')).validateManifest(manifest,keys);
 if (JSON.stringify(keys) !== JSON.stringify(manifest.labels)) throw new Error('Label order changed: model retraining/remapping is required');
 if (keys.some(key => !context.window.MINERAL_KB[key])) throw new Error('A model label has no knowledge entry');
 for (const model of manifest.models) {
   const bytes = fs.readFileSync(path.join(root,model.path));
+  if (bytes.length !== model.bytes) throw new Error(`${model.path} size does not match manifest`);
   if (crypto.createHash('sha256').update(bytes).digest('hex') !== model.sha256) throw new Error(`${model.path} checksum does not match manifest`);
+  require('./onnx-contract.cjs').validate(bytes,model);
 }
 const index = fs.readFileSync(path.join(root,'index.html'),'utf8');
 for (const match of index.matchAll(/(?:src|href)="\.\/([^"#]+)"/g)) if (!fs.existsSync(path.join(root,match[1].split('?')[0]))) throw new Error(`Missing asset: ${match[1]}`);
@@ -42,4 +45,4 @@ const images=JSON.parse(fs.readFileSync(path.join(root,'data/image-sources.json'
 if(images.records.length!==images.stats.image_references||new Set(images.records.map(x=>x.id)).size!==images.records.length)throw new Error('Image count/ID mismatch');
 for(const row of images.records)if(row.training_ready!==false||!row.image_page_url?.startsWith('https://')||!row.original_image_url?.startsWith('https://')||!row.permission_status||!row.identification_evidence)throw new Error('Invalid image provenance: '+row.id);
 if(images.stats.training_ready!==0)throw new Error('Image training review has not been completed');
-console.log(`Syntax, assets, ${keys.length} ordered labels, ${manifest.models.length} model checksums, ${catalog.count} reference species and ${recordCount} crystal records verified.`);
+console.log(`Syntax, bounded model contract, ${keys.length} ordered labels, ${manifest.models.length} model sizes/checksums/graph metadata, ${catalog.count} reference species and ${recordCount} crystal records verified. Runtime compatibility and accuracy require separate execution tests.`);

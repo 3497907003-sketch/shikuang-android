@@ -1,0 +1,3 @@
+pdfplumber==0.11.9
+# pdfplumber 0.11.9 requires this PDF text parser; retain the reviewed version.
+pdfminer.six==20251230

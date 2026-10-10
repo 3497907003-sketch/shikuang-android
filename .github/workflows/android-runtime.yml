@@ -167,13 +167,29 @@ jobs:
               content = (folder / filename).read_bytes()
               assert content.startswith(b'\x89PNG\r\n\x1a\n') and len(content) > 1024, filename
           report = json.loads((folder / 'runtime-report.json').read_text())
+          manifest = json.loads(Path('web/model-manifest.json').read_text())
+          reference = json.loads(Path('web/data/reference-manifest.json').read_text())
+          images = json.loads(Path('web/data/image-sources.json').read_text())
           assert report['phase'] == 'passed', report.get('phase')
           assert report['quartz']['engine'] == 'onnx-native-android'
-          assert report['catalog']['imaSpecies'] == 6239
-          assert report['catalog']['crystalSpecies'] == 3430
-          assert report['catalog']['imageReferences'] == 780
-          assert report['catalog']['localFetches'] == 4
+          assert report['quartz']['modelCount'] == len(manifest['modes']['ensemble'])
+          assert report['quartz']['modelVersion'] == manifest['version']
+          assert report['fast']['modelCount'] == 1
+          assert report['fast']['engine'] == 'onnx-native-android'
+          assert report['fast']['diagnostics']['residentSessionCount'] <= 2
+          assert report['fast']['manifestSha256'] == report['quartz']['manifestSha256']
+          assert report['catalog']['imaSpecies'] == reference['counts']['ima_species']
+          assert report['catalog']['crystalSpecies'] == reference['counts']['species_with_records']
+          assert report['catalog']['imageReferences'] == len(images['records'])
+          assert report['catalog']['localFetches'] == 1 + len(reference['files'])
           assert report['catalog']['online'] is False
+          for field in ('network', 'networkAfterCatalog'):
+              assert report[field]['native']['activeNetwork'] is None
+              assert report[field]['native']['connected'] is False
+          assert report['photoGeometry']['exifOrientation'] == 6
+          assert len(report['photoGeometry']['crops']) == 3
+          assert len(report['screenshots']) == 6
+          assert all(row['visualStateSynchronized'] for row in report['screenshots'])
           print('Preserved native inference, offline catalog JSON and six genuine app screenshots.')
           PY
       - uses: actions/upload-artifact@v4
