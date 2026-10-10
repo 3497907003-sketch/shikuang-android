@@ -62,8 +62,8 @@
     "crystal_system": {
       "Cubic": "等轴晶系",
       "Cubic; tetragonal, orthorhombic, or monoclinic, pseudocubic, with degree of ordering": "等轴晶系；随有序化程度变化，也可为四方、斜方或单斜晶系，呈假等轴形态",
-      "Hexagonal": "六方晶系",
-      "Hexagonal or monoclinic": "六方或单斜晶系",
+      "Hexagonal": "原表六方分类（七晶系待复核）",
+      "Hexagonal or monoclinic": "原表六方或单斜分类（七晶系待复核）",
       "Trigonal": "三方晶系",
       "Monoclinic": "单斜晶系",
       "Monoclinic or triclinic": "单斜或三斜晶系",
@@ -530,6 +530,14 @@
       if(state.specimenEpoch===snapshot.specimenEpoch){state.recordId = id;if(state.revision===snapshot.revision)state.draftDirty=false; $('#saveBtn').innerHTML = '<i data-lucide="bookmark-check"></i>更新标本';icons();} toast('标本已保存在这台设备');
     } catch (e) { toast(e.message); } finally { state.saving=false;$('#saveBtn').disabled = state.busy; }
   }
+  function crystalSystemAnnotation(fact){
+    if(fact?.status!=='verified')return null;
+    return window.MINERAL_CRYSTAL_SYSTEM_ANNOTATIONS?.records?.find(row=>row.source_url===fact.source_url&&row.source_original_value===fact.value&&/^[a-f0-9]{64}$/.test(row.source_pdf_sha256||'')&&Array.isArray(row.point_groups)&&row.point_groups.length&&row.display_zh)||null;
+  }
+  function crystalSystemExplanation(annotation){
+    const sources=window.MINERAL_CRYSTAL_SYSTEM_ANNOTATIONS?.classification_sources||[];
+    return `<details class="crystal-system-note"><summary>点群与七晶系依据</summary>${annotation.note_zh?`<p>${html(annotation.note_zh)}</p>`:''}<p>中文晶系按源页点群与 IUCr 七晶系归类，属于资料归类说明。三方与六方是两个晶系，同属六方晶族；原手册的分类口径与原文均保留。不能从照片确定当前标本的结构、多型或晶相。</p>${sources.map(source=>{const url=safeLink(source.url);return url?`<p><a href="${html(url)}" target="_blank" rel="noopener noreferrer">${html(source.title)}</a></p>`:'';}).join('')}<small class="property-raw">原 PDF SHA-256：${html(annotation.source_pdf_sha256)}</small></details>`;
+  }
   function properties(k,reference) {
     const facts=reference?.physical_properties||k.verified_properties||{},values=[['化学式',reference?.formula||k.formula,'formula'],['摩氏硬度',k.hardness,'hardness'],['实测密度',null,'density_measured'],['晶系',k.crystal_system,'crystal_system'],['解理',k.cleavage,'cleavage'],['光泽',k.luster,'luster'],['条痕',k.streak,'streak'],['颜色',k.color,'color'],['晶体习性',k.habit,'habit'],['分类',k.classification?.class_9,'classification']];
     return `<dl class="detail-properties">${values.map(([label,legacy,field])=>{
@@ -539,6 +547,8 @@
       else if(field==='formula'&&(reference?.formula||k.formula_source)){const source=reference?{url:reference.source_url,page:reference.source_page}:k.formula_source,url=safeLink(source.url),page=Number(source.page);text=formulaMarkup(reference?.formula||k.formula);provenance=url?`<a class="property-source" href="${html(url.replace(/#.*$/,'')+(Number.isInteger(page)&&page>0?'#page='+page:''))}" target="_blank" rel="noopener noreferrer">IMA 官方清单${Number.isInteger(page)&&page>0?' · 第 '+page+' 页':''}</a>`:'<small class="property-source">IMA 官方清单</small>';}
       else if(fact){const url=safeLink(fact.source_url),page=Number(fact.source_page),review=fact.status==='needs_review';text=review?'待复核':'未收录';const reviewNote=fact.note&&/[\u3400-\u9fff]/.test(fact.note)?fact.note:'原始符号或晶面指数提取不完整，需对照资料复核';provenance=`<small class="property-source">${review?'提取内容待复核，暂不作为有效物性':fact.status==='source_inferred'?'来源推测尚无可核验值':'原文未给出可用值'}${review&&fact.note?'；'+html(reviewNote):''}</small>`+(url?`<a class="property-source" href="${html(url.replace(/#.*$/,'')+(Number.isInteger(page)&&page>0?'#page='+page:''))}" target="_blank" rel="noopener noreferrer">查看原始物性页</a>`:'');}
       else{const present=legacy!==undefined&&legacy!==null&&legacy!=='';text=propertyMarkup(present?legacy:'未收录',field);if(present){provenance='<small class="property-source">原项目资料 · 待复核</small>';if(/[a-z]{2}/i.test(String(legacy))&&field!=='formula')text+=originalPropertyMarkup(legacy);}}
+      const system=field==='crystal_system'?crystalSystemAnnotation(fact):null;
+      if(system){label='晶系（七晶系）';text=html(system.display_zh)+originalPropertyMarkup(value,fact.raw)+crystalSystemExplanation(system);}
       if(field==='formula'&&(reference?.formula||k.formula))text+=`<button type="button" class="copy-formula" data-copy-formula="${html(reference?.formula||k.formula)}">复制化学式</button><small class="property-raw">上下标按资料原式保留；下标多表示原子比例，上标用于标注价态或电荷。</small>`;
       if(field==='hardness'&&/[∥⊥]/.test(String(value||legacy||'')))text+='<small class="property-raw">∥ 为平行，⊥ 为垂直；[001] 等表示晶向。硬度可随方向变化。</small>';
       return `<div class="${field==='formula'?'formula-property':''}"><dt>${label}</dt><dd><div class="property-value">${text}</div>${provenance}</dd></div>`;
@@ -674,7 +684,7 @@
     if(state.offlineController)return;
     const controller=new AbortController();state.offlineController=controller;
     $('#offlineBtn').disabled=true;$('#cancelOffline').hidden=false;
-    const assets = ['./','./index.html','./styles.css','./app.js','./core.js','./inference.js','./engine-worker.js','./history.js','./media.js','./storage.js','./reference-loader.js','./config.js','./manifest.webmanifest','./model-manifest.json','./icon.svg','./icon-192.png','./icon-512.png','./icon-maskable.png','./version.json','./data/classes.js','./data/minerals.js','./data/sources.js','./data/imagenet.js','./data/catalog.json','./data/crystals.json','./data/image-sources.json','./data/reference-manifest.json','./data/licenses/ima-cnmnc-2026-09.txt','./vendor/lucide.min.js','./vendor/ort.min.js','./vendor/ort-wasm-simd-threaded.mjs','./vendor/ort-wasm-simd-threaded.wasm'];
+    const assets = ['./','./index.html','./styles.css','./app.js','./native-assets.js','./core.js','./inference.js','./engine-worker.js','./history.js','./media.js','./storage.js','./reference-loader.js','./config.js','./manifest.webmanifest','./model-manifest.json','./icon.svg','./icon-192.png','./icon-512.png','./icon-maskable.png','./version.json','./data/classes.js','./data/minerals.js','./data/sources.js','./data/imagenet.js','./data/catalog.json','./data/crystals.json','./data/image-sources.json','./data/reference-manifest.json','./data/licenses/ima-cnmnc-2026-09.txt','./vendor/lucide.min.js','./vendor/ort.min.js','./vendor/ort-wasm-simd-threaded.mjs','./vendor/ort-wasm-simd-threaded.wasm'];
     try {
       await bounded(()=>navigator.serviceWorker.register('./sw.js'),15000,'离线服务启动超时',controller.signal);
       const manifest=await bounded(async signal=>{if(MineralEngine.prepare)return MineralEngine.prepare({signal});const response=await fetch('./model-manifest.json',{signal,cache:'reload'});if(!response.ok)throw new Error(`模型目录下载失败 (${response.status})`);return response.json();},30000,'模型目录读取超时',controller.signal);

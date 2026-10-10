@@ -76,7 +76,14 @@ jobs:
           timeout 180 adb wait-for-device
           timeout 180 bash -c 'until [[ "$(adb shell getprop sys.boot_completed | tr -d "\r")" == "1" ]]; do sleep 2; done'
           # Check the actual kernel/libc page size. No property override simulates this gate.
-          adb shell getconf PAGE_SIZE > runtime-artifacts/device-page-size.txt
+          if (( ${{ matrix.api }} < 26 )); then
+            # Android 7 has no getconf binary. Read an actual mapped kernel page;
+            # the instrumented Java Os.sysconf check independently confirms it.
+            adb shell cat /proc/self/smaps > runtime-artifacts/device-page-mappings.txt
+            awk '/^KernelPageSize:/ {print $2 * 1024; found=1; exit} END {if (!found) exit 1}' runtime-artifacts/device-page-mappings.txt > runtime-artifacts/device-page-size.txt
+          else
+            adb shell getconf PAGE_SIZE > runtime-artifacts/device-page-size.txt
+          fi
           test "$(tr -d '\r\n' < runtime-artifacts/device-page-size.txt)" = "${{ matrix.pageSize }}"
           printf '%s\n' "system-images;android-${{ matrix.api }};${{ matrix.tag }};x86_64" > runtime-artifacts/system-image.txt
           adb shell input keyevent 82
@@ -171,6 +178,12 @@ jobs:
           timeout 20 adb shell dumpsys connectivity > runtime-artifacts/connectivity-final.txt || true
           timeout 20 adb shell ip route show table all > runtime-artifacts/ipv4-all-route-tables-final.txt || true
           timeout 20 adb shell ip -6 route show table all > runtime-artifacts/ipv6-all-route-tables-final.txt || true
+          # A live streaming adb log may disconnect when the test driver resets
+          # its connection. Preserve final buffers and process exit reasons too.
+          timeout 30 adb logcat -b all -d -v threadtime > runtime-artifacts/logcat-final.txt || true
+          timeout 20 adb shell dumpsys activity exit-info com.shikuang.app.preview > runtime-artifacts/app-exit-info.txt 2>&1 || true
+          timeout 20 adb shell ps -A > runtime-artifacts/processes-final.txt 2>&1 || true
+          timeout 20 adb shell dmesg > runtime-artifacts/kernel-final.txt 2>&1 || true
           timeout 60 adb pull /sdcard/Android/data/com.shikuang.app.preview/files/runtime-smoke runtime-artifacts/ || true
       - name: Require screenshots and JSON from successful runtime tests
         if: ${{ success() && !inputs.network_probe }}
@@ -201,6 +214,12 @@ jobs:
           migration = json.loads((folder / 'asset-migration-report.json').read_text())
           assert migration['phase'] == 'migration-passed' and migration['historyPreserved'] is True
           assert migration['controller'] is False and migration['registrationCount'] == 0 and migration['poisonedPage'] is False
+          assert migration['cacheSeeded'] is True
+          if migration['registration_supported']:
+              assert migration['controllerSeeded'] is True
+          else:
+              assert migration['controllerSeeded'] is False and migration['registration_error']
+              print('Native service-worker registration unavailable: verified real CacheStorage and IndexedDB migration; no controlled-page migration claim.')
           for filename in ['quartz-result.png', 'dog-rejection.png', 'library-offline-overview.png', 'quartz-reference-details.png', 'quartz-image-references.png', 'abellaite-reference-details.png']:
               content = (folder / filename).read_bytes()
               assert content.startswith(b'\x89PNG\r\n\x1a\n') and len(content) > 1024, filename

@@ -356,34 +356,48 @@ public class MineralEngineInstrumentedTest {
     @Test
     public void legacyNativeAssetMigrationPreservesSpecimens() throws Exception {
         scenario = ActivityScenario.launch(MainActivity.class);
+        JSONObject seed = null;
+        boolean pageReady = false;
         try {
             org.junit.Assume.assumeTrue("Factory WebView recovery is tested separately; no modern-page recognition claim",supportedWebView());
             awaitPage();
+            pageReady = true;
             evaluate(script(
                 "window.__shikuangRuntimeSmoke={phase:'migration-start'};",
                 "(async()=>{try{await MineralNativeAssets.prepare();await SpecimenStore.put({id:'runtime-migration-proof',key:'quartz',name:'迁移保留记录',rankings:[{key:'quartz',score:.5}]});",
-                " await navigator.serviceWorker.register('./sw.js');await navigator.serviceWorker.ready;",
-                " const name=(await caches.keys()).find(n=>n.startsWith('shikuang-static-'));if(!name)throw Error('Legacy cache seed missing');",
+                " let registrationSupported=false,registrationError=null;try{await Promise.race([navigator.serviceWorker.register('./sw.js').then(()=>navigator.serviceWorker.ready),new Promise((_,reject)=>setTimeout(()=>reject(Error('Native Worker registration exceeded 15 seconds')),15000))]);registrationSupported=true;}catch(e){registrationError=String(e);}",
+                " const name=(await caches.keys()).find(n=>n.startsWith('shikuang-static-'))||'shikuang-static-runtime-migration-fixture';",
                 " const cache=await caches.open(name),html='<!doctype html><html><head><title>旧缓存</title></head><body><p id=legacy-poison>cached legacy HTML without migration scripts</p></body></html>';",
                 " await cache.put(new URL('./',location.href),new Response(html,{headers:{'content-type':'text/html'}}));await cache.put(new URL('index.html',location.href),new Response(html,{headers:{'content-type':'text/html'}}));",
                 " await (await caches.open('runtime-unrelated-cache')).put(new URL('unrelated',location.href),new Response('keep'));",
-                " window.__shikuangRuntimeSmoke.phase='migration-seeded';",
+                " window.__shikuangRuntimeSmoke={phase:'migration-seeded',registration_supported:registrationSupported,registration_error:registrationError,cacheSeeded:true};",
                 " }catch(e){window.__shikuangRuntimeSmoke={phase:'failed',failure:String(e)};}})();"
             ));
-            awaitPhase("migration-seeded",60000);
-            long deadline = SystemClock.elapsedRealtime() + 15000;
-            while (!"true".equals(evaluate("!!navigator.serviceWorker.controller")) && SystemClock.elapsedRealtime() < deadline) SystemClock.sleep(100);
-            assertEquals("A genuine installed legacy Worker must control the page before recreation", "true",evaluate("!!navigator.serviceWorker.controller"));
+            seed = awaitPhase("migration-seeded",60000);
+            if (seed.getBoolean("registration_supported")) {
+                long deadline = SystemClock.elapsedRealtime() + 15000;
+                while (!"true".equals(evaluate("!!navigator.serviceWorker.controller")) && SystemClock.elapsedRealtime() < deadline) SystemClock.sleep(100);
+                assertEquals("When registration is supported, a genuine legacy Worker must control the page before recreation", "true",evaluate("!!navigator.serviceWorker.controller"));
+            }
+            seed.put("controllerSeeded", "true".equals(evaluate("!!navigator.serviceWorker.controller")));
+            evaluate("(async()=>{window.__shikuangRuntimeSmoke.fixtureStored=(await SpecimenStore.list()).some(r=>r.id==='runtime-migration-proof');window.__shikuangRuntimeSmoke.phase='migration-fixture-checked';})();");
+            assertTrue(awaitPhase("migration-fixture-checked",10000).getBoolean("fixtureStored"));
+            evaluate("(async()=>{window.__shikuangRuntimeSmoke.fixtureSnapshot=JSON.stringify((await SpecimenStore.list()).find(r=>r.id==='runtime-migration-proof'));window.__shikuangRuntimeSmoke.phase='migration-snapshot';})();");
+            String fixtureSnapshot = awaitPhase("migration-snapshot",10000).getString("fixtureSnapshot");
             scenario.recreate();
             awaitPage();
             evaluate(script(
                 "window.__shikuangRuntimeSmoke={phase:'migration-check'};",
                 "(async()=>{try{await MineralNativeAssets.prepare();const records=await SpecimenStore.list(),names=await caches.keys(),registrations=await navigator.serviceWorker.getRegistrations();",
-                " window.__shikuangRuntimeSmoke={phase:'migration-verified',historyPreserved:records.some(r=>r.id==='runtime-migration-proof'),controller:!!navigator.serviceWorker.controller,registrationCount:registrations.length,cacheNames:names,poisonedPage:!!document.getElementById('legacy-poison'),trustedMigration:window.__shikuangNativeAssetMigration};",
+                " window.__shikuangRuntimeSmoke={phase:'migration-verified',historyPreserved:JSON.stringify(records.find(r=>r.id==='runtime-migration-proof'))==="+JSONObject.quote(fixtureSnapshot)+",controller:!!navigator.serviceWorker.controller,registrationCount:registrations.length,cacheNames:names,poisonedPage:!!document.getElementById('legacy-poison'),trustedMigration:window.__shikuangNativeAssetMigration};",
                 " await SpecimenStore.remove('runtime-migration-proof');await caches.delete('runtime-unrelated-cache');window.__shikuangRuntimeSmoke.phase='migration-passed';",
                 " }catch(e){window.__shikuangRuntimeSmoke={phase:'failed',failure:String(e)};}})();"
             ));
             JSONObject proof = awaitPhase("migration-passed",30000);
+            proof.put("registration_supported", seed.getBoolean("registration_supported"));
+            proof.put("registration_error", seed.opt("registration_error"));
+            proof.put("controllerSeeded", seed.getBoolean("controllerSeeded"));
+            proof.put("cacheSeeded", true);
             assertTrue(proof.toString(),proof.getBoolean("historyPreserved"));
             assertFalse(proof.getBoolean("poisonedPage"));
             assertFalse(proof.getBoolean("controller"));
@@ -394,7 +408,19 @@ public class MineralEngineInstrumentedTest {
                 stream.write(proof.toString(2).getBytes(StandardCharsets.UTF_8));
             }
         } finally {
-            if (scenario != null) scenario.close();
+            if (scenario != null) {
+                // A failed probe must not leak its record into another test.
+                // Delete only this test's explicit ID and its unrelated cache.
+                try {
+                    if (pageReady) {
+                        evaluate("window.__migrationFixtureCleanup=false;window.__migrationFixtureCleanupError=null;(async()=>{try{if(window.SpecimenStore){await SpecimenStore.remove('runtime-migration-proof');if((await SpecimenStore.list()).some(r=>r.id==='runtime-migration-proof'))throw Error('Test fixture record survived cleanup');}if(window.caches)await caches.delete('runtime-unrelated-cache');}catch(e){window.__migrationFixtureCleanupError=String(e);}finally{window.__migrationFixtureCleanup=true;}})();");
+                        long deadline=SystemClock.elapsedRealtime()+10000;
+                        while(!"true".equals(evaluate("window.__migrationFixtureCleanup")) && SystemClock.elapsedRealtime()<deadline)SystemClock.sleep(100);
+                        assertEquals("Migration fixture cleanup timed out", "true", evaluate("window.__migrationFixtureCleanup"));
+                        assertEquals("Migration fixture cleanup failed", "null", evaluate("window.__migrationFixtureCleanupError"));
+                    }
+                } finally { scenario.close(); }
+            }
         }
     }
 

@@ -73,6 +73,11 @@ dialog{max-height:86vh;max-height:86dvh}
 .property-original summary{font-size:10px;color:var(--accent);padding-top:7px;justify-content:flex-start}
 .property-original summary:after{content:'＋';margin-left:5px}.property-original[open] summary:after{content:'－'}
 .property-original p{margin-top:7px;font-size:11px;line-height:1.8}
+.crystal-system-note{margin-top:9px;color:var(--muted);font-size:11px;line-height:1.8}
+.crystal-system-note summary{color:var(--accent);font-size:11px;justify-content:flex-start}
+.crystal-system-note p{font-size:11px;margin-top:8px}
+.crystal-system-note a{text-decoration:underline;overflow-wrap:break-word;word-break:break-word}
+.crystal-system-note .property-raw{word-break:break-all}
 .translation-pending{color:var(--muted)}
 @media(max-width:720px){
   .stage{padding-bottom:88.4956%}

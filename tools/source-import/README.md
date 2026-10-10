@@ -1,6 +1,6 @@
 # 官方资料提取与复核
 
-这些脚本读取使用者指定的原始资料，输出到使用者指定的工作目录，不修改 App 数据或模型。Python 3.10+、`curl` 和 Node.js 用于此次已验证的环境；Python 依赖单独安装：
+采集与审计脚本读取使用者指定的原始资料，输出到使用者指定的工作目录，不修改模型。七晶系注释脚本只有显式使用 `--publish` 才更新独立 App 注释变量。Python 3.10+、`curl` 和 Node.js 用于此次已验证的环境；Python 依赖单独安装：
 
 ```sh
 python3 -m pip install -r tools/source-import/requirements.txt
@@ -48,6 +48,22 @@ python3 tools/source-import/finalize_physical_properties.py \
 ```
 
 此次输出应为 89 个标签、88 个唯一官方 PDF、477 个 verified 字段；32 个不确定解理值与 25 个未刊载字段的 `value` 保持 null。原 PDF 内容变化后应重新渲染逐页核验，并记录新的决定，禁止只替换旧决定中的哈希。不要使用 Python 的 `-O` 关闭提取/复核断言。
+
+### 七晶系与旧 Hexagonal 分类
+
+旧手册的 `Hexagonal` 不直接作为七晶系中的“六方晶系”翻译。按 [IUCr 七晶系与点群表](https://it.iucr.org/Ac/ch1o3v0001/table1o3o4o3.pdf) 归类，三方和六方是两个晶系，同属 [六方晶族](https://dictionary.iucr.org/Crystal_family)。不能把晶族、晶系与晶格系统混为一项，也不能凭晶胞角度或照片选择多型。
+
+`crystal-system-reviewed.json` 保留 23 份官方 PDF（24 个原标签，含 Elbaite 的两个旧键）逐页渲染检查的点群、矢量上划线、原值、PDF SHA-256 和渲染证据哈希。17 份单一三方、3 份单一六方；石墨、辉钼矿和氟磷灰石保留多型/结构条件，不任选一类。石英仅归类该页点群32和低于573°C的结构；不从照片推断当前晶相。Proustite 原页点群 `−3 2/m` 与同页空间群 `R3c` 不一致，均落在三方晶系，但具体点群仍待复核并向用户显示此差异。`pseudohexagonal` 保留原斜方或单斜归类。
+
+```sh
+python3 tools/source-import/annotate_crystal_systems.py \
+  --minerals data/minerals.js \
+  --pdf-dir /path/to/private/physical-source-pdfs \
+  --output /path/to/output/crystal-system-annotations.json --publish
+python3 -m unittest discover -s tools/source-import -p 'test_crystal_systems.py'
+```
+
+脚本只在源哈希、原字段与已渲染核对的点群匹配时生成 `window.MINERAL_CRYSTAL_SYSTEM_ANNOTATIONS`，追加到现有 `data/minerals.js`；不改原 KB、`verified_properties`、目录公式或原始晶系字段。未知点群、丢上划线或源文件变化会中止，不能靠改哈希绕过新的实际页面复核。IUCr 表本次通过官方网页读取；本机原 PDF 下载返回403，没有为其编造字节哈希。归类注释属于有出处的推导，不能证明照片中矿物身份或样品结构。
 
 ## 独立核验正式数据
 

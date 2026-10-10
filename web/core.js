@@ -142,16 +142,24 @@
     return [Math.min(...numbers), Math.max(...numbers)];
   }
   function evidenceFor(knowledge, observation = {}) {
+    // Displayable legacy text is not sufficient evidence for a physical check.
+    // Only source-reviewed facts can support a match or conflict conclusion.
+    const fact = field => {
+      const item = knowledge?.verified_properties?.[field];
+      return item?.status === 'verified' && typeof item.source_url === 'string' &&
+        /^https:\/\/[^\s]+$/i.test(item.source_url) && item.value !== null && item.value !== undefined && item.value !== '' ? item.value : null;
+    };
+    const hardness = fact('hardness'), sourceLuster = fact('luster');
     const checks = [], observed = Number(observation.hardness);
-    const range = hardnessRange(knowledge?.hardness);
-    if (observation.hardness !== '' && observation.hardness !== undefined && range && Number.isFinite(observed)) {
-      checks.push({ property: '摩氏硬度', expected: String(knowledge.hardness), observed: String(observed),
+    const range = hardnessRange(hardness);
+    if (observation.hardness !== '' && observation.hardness !== undefined && observation.hardness !== null && range && Number.isFinite(observed) && observed >= 1 && observed <= 10) {
+      checks.push({ property: '摩氏硬度', expected: String(hardness), observed: String(observed),
         status: observed >= range[0] - 0.5 && observed <= range[1] + 0.5 ? 'match' : 'conflict' });
     }
     const luster = observation.luster;
-    if (luster && knowledge?.luster) {
+    if (['metal','nonmetal'].includes(luster) && sourceLuster !== null) {
       // Non-metallic and metallic are the only mutually exclusive comparison here.
-      const text = knowledge.luster;
+      const text = String(sourceLuster);
       const hasMetal = /金属|metallic/i.test(text.replace(/非金属|non[-\s]?metallic/gi,'')), hasNonMetal = /非金属|玻璃|丝绢|珍珠|油脂|树脂|蜡|土状|non[-\s]?metallic|vitreous|silky|pearly|greasy|resinous|waxy|earthy|adamantine/i.test(text);
       const compatible = luster === 'metal' ? hasMetal : hasNonMetal;
       const known = hasMetal || hasNonMetal;

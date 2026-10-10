@@ -1,6 +1,6 @@
 const fs=require('node:fs'),vm=require('node:vm'),Core=require('../../web/core.js');
 
-function fixture({ register, catalog, crystals, images, loader, knowledge, classes, engine, native, timers } = {}) {
+function fixture({ register, catalog, crystals, images, crystalSystems, loader, knowledge, classes, engine, native, timers } = {}) {
   class Element {
     constructor(id) { this.id=id;this.innerHTML='';this.value='';this.hidden=false;this.disabled=false;this.checked=false;this.listeners={};this.style={};this.dataset={};this.naturalWidth=256;this.naturalHeight=256;this.clientWidth=300;this.clientHeight=300;this.classList={add(){},remove(){},toggle(){}}; }
     addEventListener(type,fn) { (this.listeners[type] ||= []).push(fn); }
@@ -29,7 +29,7 @@ function fixture({ register, catalog, crystals, images, loader, knowledge, class
     MINERAL_KB:{quartz:{name_zh:'石英',name_en:'Quartz',formula:'SiO₂',classification:{class_9:'氧化物/氢氧化物'}}},MINERAL_CLASSES:{quartz:{zh:'石英'}},MINERAL_SOURCES:[],MineralCore:Core,
     MineralEngine:{image:async src=>({src,naturalWidth:256,naturalHeight:256}),analyze:async()=>{if(analysisError)throw analysisError;return result();},models:[],modelResources:manifest=>manifest.models.map(model=>({...model,url:new URL(model.path,'http://127.0.0.1/test/').href+'?fixture-model-sha='+model.sha256}))},
     SpecimenStore:{migrate:async()=>{},list:async()=>[...saved.values()],put:async record=>{saved.set(record.id,record);return record;}} };
-  context.window=context;context.window.scrollTo=()=>{};if(catalog)context.MINERAL_CATALOG=catalog;if(crystals)context.MINERAL_CRYSTAL_RECORDS=crystals;if(images)context.MINERAL_IMAGE_SOURCES=images;if(loader)context.MineralReference=loader;if(knowledge)context.MINERAL_KB=knowledge;if(classes)context.MINERAL_CLASSES=classes;if(engine)Object.assign(context.MineralEngine,engine);if(native)context.Capacitor={isNativePlatform:()=>true,registerPlugin:name=>native[name]};
+  context.window=context;context.window.scrollTo=()=>{};if(catalog)context.MINERAL_CATALOG=catalog;if(crystals)context.MINERAL_CRYSTAL_RECORDS=crystals;if(images)context.MINERAL_IMAGE_SOURCES=images;if(crystalSystems)context.MINERAL_CRYSTAL_SYSTEM_ANNOTATIONS=crystalSystems;if(loader)context.MineralReference=loader;if(knowledge)context.MINERAL_KB=knowledge;if(classes)context.MINERAL_CLASSES=classes;if(engine)Object.assign(context.MineralEngine,engine);if(native)context.Capacitor={isNativePlatform:()=>true,registerPlugin:name=>native[name]};
   node('classScheme').value='class_9';node('precision').checked=true;
   for(const id of ['preview','cropFrame','result','analysisRecovery','inputSummary'])node(id).hidden=true;
   vm.runInNewContext(fs.readFileSync(require.resolve('../../web/history.js'),'utf8'),context,{filename:'history.js'});

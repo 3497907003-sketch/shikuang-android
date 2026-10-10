@@ -17,6 +17,7 @@ import subprocess
 import unicodedata
 from urllib.parse import urlsplit
 import zipfile
+from annotate_crystal_systems import compile_annotations
 
 
 SUB = str.maketrans('0123456789+-=()aeiorux', '₀₁₂₃₄₅₆₇₈₉₊₋₌₍₎ₐₑᵢₒᵣᵤₓ')
@@ -82,8 +83,9 @@ def main():
     originals = {row['id']: row for row in original['minerals']}
     species = {row['id']: row for row in catalog['minerals']}
     by_name = {normal(row['name_en']): row for row in species.values()}
-    expression = "const fs=require('node:fs'),vm=require('node:vm');const c={window:{}};vm.runInNewContext(fs.readFileSync(process.argv[1],'utf8'),c);process.stdout.write(JSON.stringify(c.window.MINERAL_KB));"
-    kb = json.loads(subprocess.run([args.node, '-e', expression, str(repo / 'data/minerals.js')], check=True, capture_output=True, text=True).stdout)
+    expression = "const fs=require('node:fs'),vm=require('node:vm');const c={window:{}};vm.runInNewContext(fs.readFileSync(process.argv[1],'utf8'),c);process.stdout.write(JSON.stringify({knowledge:c.window.MINERAL_KB,crystal_systems:c.window.MINERAL_CRYSTAL_SYSTEM_ANNOTATIONS}));"
+    extracted = json.loads(subprocess.run([args.node, '-e', expression, str(repo / 'data/minerals.js')], check=True, capture_output=True, text=True).stdout)
+    kb = extracted['knowledge']
     check('official_catalog_count_and_unique_ids', [] if catalog['count'] == len(catalog['minerals']) == len(species) == len(originals) == 6239 else ['count or unique ID mismatch'])
     check('official_names_unique', [] if len({r['name_en'] for r in species.values()}) == 6239 else ['duplicate name'])
     check('official_fields_preserved', [row['id'] + ':' + field for row in species.values() for field in ORIGINAL_FIELDS if row.get(field) != originals.get(row['id'], {}).get(field)])
@@ -120,6 +122,13 @@ def main():
     check('physical_status_and_null_semantics', [r['key'] + ':' + key for r in physical['records'] for key, prop in r['properties'].items() if prop['status'] not in {'verified', 'needs_review', 'source_inferred', 'unavailable'} or (prop['status'] != 'verified' and prop['value'] is not None) or (prop['status'] == 'verified' and (not prop['value'] or not prop.get('verification'))) or prop['source_url'] != r['source_url'] or prop['source_page'] != 1])
     check('physical_original_pdf_hashes', [r['key'] for r in physical['records'] if sha(source / 'physical-source-pdfs' / (r['key'] + '.pdf')) != r['source_pdf_sha256']])
     check('physical_no_calculated_density_substitution', [r['key'] for r in physical['records'] if r['properties']['density_measured'].get('unit') != 'g/cm³' or re.search(r'calc|calculated', r['properties']['density_measured']['raw'] or '', re.I)])
+    try:
+        annotations = compile_annotations(read(repo / 'tools/source-import/crystal-system-reviewed.json'), kb, source / 'physical-source-pdfs')
+        check('crystal_system_separate_annotation_exact_and_pdf_bound', [] if extracted.get('crystal_systems') == annotations else ['published annotation differs from reviewed source-bound inference'])
+    except (ValueError, KeyError, OSError) as error:
+        annotations = {}
+        check('crystal_system_separate_annotation_exact_and_pdf_bound', [str(error)])
+    report['crystal_system_annotations'] = annotations.get('counts', {})
 
     crystal_rows = [r for rows in crystals['by_species'].values() for r in rows]
     check('crystal_counts_unique_ids', [] if len(crystal_rows) == crystals['stats']['matched_records'] == len({r['id'] for r in crystal_rows}) == 9895 and len(crystals['by_species']) == crystals['stats']['species_with_records'] == 3430 else ['crystal counts or IDs differ'])
