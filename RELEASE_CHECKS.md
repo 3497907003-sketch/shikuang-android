@@ -39,3 +39,9 @@
 - https://github.com/ai-forever/mineral-recognition
 - https://github.com/zengxiang68/Mineral-Identification
 - LobeHub testing skill（行为回归原则，项目未迁移到其 Vitest 框架）：https://github.com/lobehub/lobehub/blob/canary/.agents/skills/testing/SKILL.md
+
+## 新用户指南补充验证（2026-10-10）
+
+六步指南覆盖功能总览、三种输入、观察与物性、候选解释、联网/离线、搜索和备份。在 320 × 780 浏览器视口中验证无横向溢出，逐步前进及返回正确，完成后首页提示隐藏且刷新保持；设置可重新打开。指南不会阻止直接使用识别功能。更新静态缓存至 preview.3 和资源查询版本，模型缓存保留。
+
+Android 第二次 lint 指出 windowLightNavigationBar 资源属性要求 API 27，已将限定目录改为 values-v27，旧系统继续使用深色导航栏。保留 lint 检查。

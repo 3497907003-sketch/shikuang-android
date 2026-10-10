@@ -28,6 +28,29 @@
   function status(message, error = false) { $('#progress').textContent = message; $('#progress').classList.toggle('error', error); }
   function openDialog(id) { $(id).showModal(); document.body.classList.add('dialog-open'); }
   function closeDialog(id) { $(id).close(); if (!document.querySelector('dialog[open]')) document.body.classList.remove('dialog-open'); }
+  let guidePage = 0;
+  const guidePages = [...document.querySelectorAll('[data-guide-title]')];
+  function renderGuide(focus = false) {
+    guidePages.forEach((page, i) => { page.hidden = i !== guidePage; });
+    $('#guideTitle').textContent = guidePages[guidePage].dataset.guideTitle;
+    $('#guideCounter').textContent = `第 ${guidePage + 1} / ${guidePages.length} 步`;
+    $('#guideDots').innerHTML = guidePages.map((_, i) => `<span class="${i === guidePage ? 'active' : ''}"></span>`).join('');
+    $('#guidePrev').disabled = guidePage === 0;
+    $('#guideNext').textContent = guidePage === guidePages.length - 1 ? '开始识别' : '下一步 →';
+    $('#guideDialog').scrollTop = 0;
+    if (focus) $('#guideTitle').focus({ preventScroll:true });
+  }
+  function showGuide() { guidePage = 0; renderGuide(); openDialog('#guideDialog'); $('#guideTitle').focus({ preventScroll:true }); }
+  $('#quickGuide').addEventListener('click', showGuide);
+  $('#settingsGuide').addEventListener('click', showGuide);
+  $('#closeGuide').addEventListener('click', () => closeDialog('#guideDialog'));
+  $('#guidePrev').addEventListener('click', () => { if (guidePage > 0) { guidePage--; renderGuide(true); } });
+  $('#guideNext').addEventListener('click', () => {
+    if (guidePage < guidePages.length - 1) { guidePage++; renderGuide(true); return; }
+    try { localStorage.setItem('shikuang-guide-complete-v2', '1'); } catch (_) {}
+    closeDialog('#guideDialog'); $('#guideWelcome').hidden = true; location.hash = 'identify'; route();
+    (state.photos.length ? $('#predictBtn') : $('#cameraBtn')).focus({ preventScroll:true });
+  });
   function invalidate() {
     if (state.result) status('照片或物性已改变，请重新分析。');
     state.result = null; state.recordId = null; $('#result').hidden = true;
@@ -272,7 +295,7 @@
       await navigator.serviceWorker.register('./sw.js');
       for (let i=0;i<assets.length;i++) {
         $('#offlineProgress').textContent=`正在准备资源 ${i+1}/${assets.length}（模型共约 70 MB）…`;
-        const cache = await caches.open(assets[i].includes('/models/') || assets[i].endsWith('.wasm') ? 'shikuang-models-v2-20261010':'shikuang-static-2.0.0-preview.2');
+        const cache = await caches.open(assets[i].includes('/models/') || assets[i].endsWith('.wasm') ? 'shikuang-models-v2-20261010':'shikuang-static-2.0.0-preview.3');
         const request = new Request(new URL(assets[i],location.href));
         if (!await cache.match(request)) { const response=await fetch(request); if (!response.ok) throw new Error(`资源下载失败 (${response.status})`); await cache.put(request,response); }
       }
@@ -346,6 +369,7 @@
   addEventListener('hashchange',route);
   async function init() {
     icons();
+    try { $('#guideWelcome').hidden = localStorage.getItem('shikuang-guide-complete-v2') === '1'; } catch (_) {}
     updateClassFilter();renderSearchHistory();
     try{setMode(localStorage.getItem('shikuang-mode-v2'));}catch(_){setMode('offline');}
     $('#sourceList').innerHTML=MINERAL_SOURCES.map(s=>`<a href="${html(s.url)}" target="_blank" rel="noopener noreferrer"><strong>${html(s.title)}</strong><span>${html(s.status)}</span><small>${html(s.use)}</small></a>`).join('');

@@ -56,3 +56,7 @@ node tools/evaluate.cjs /path/to/raw.json > /path/to/report.json
 ## 资料与 API
 
 原知识库及模型来自所提供项目。手机拍照使用 [Capacitor 6 Camera](https://capacitorjs.com/docs/v6/apis/camera)，文字补充使用 [DeepSeek 官方 Chat Completions API](https://api-docs.deepseek.com/api/create-chat-completion/)。版本与模型文件信息见 `model-manifest.json`。
+
+### 新用户使用指南
+
+首页的“快速上手”及设置中的“打开使用指南”提供六步引导：了解识别/图鉴/标本/设置 → 提交标本 → 补充观察 → 阅读和复核候选 → 准备离线或联网辅助 → 保存与备份。
