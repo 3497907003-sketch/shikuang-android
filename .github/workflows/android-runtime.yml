@@ -26,6 +26,11 @@ on:
         required: false
         type: boolean
         default: false
+      image_comparison:
+        description: 'Once-built identical APKs on official API35 r05 / API36 r07 full 16KB images; test only'
+        required: false
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -33,6 +38,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   runtime:
+    if: ${{ !inputs.image_comparison }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
@@ -45,7 +51,7 @@ jobs:
       - name: Validate isolated test scope
         run: |
           SHIKUANG_DIAGNOSTIC_COUNT=0
-          for SHIKUANG_DIAGNOSTIC_FLAG in "${{ inputs.lifecycle_stress }}" "${{ inputs.lifecycle_comparison }}" "${{ inputs.network_probe }}"; do
+          for SHIKUANG_DIAGNOSTIC_FLAG in "${{ inputs.lifecycle_stress }}" "${{ inputs.lifecycle_comparison }}" "${{ inputs.network_probe }}" "${{ inputs.image_comparison }}"; do
             if [[ "$SHIKUANG_DIAGNOSTIC_FLAG" = true ]]; then SHIKUANG_DIAGNOSTIC_COUNT=$((SHIKUANG_DIAGNOSTIC_COUNT + 1)); fi
           done
           test "$SHIKUANG_DIAGNOSTIC_COUNT" -le 1
@@ -469,3 +475,447 @@ jobs:
             android16k-control/build/outputs/connected_android_test_additional_output/
             android16k-control/build/intermediates/merged_manifests/
           if-no-files-found: warn
+
+  frozen-image-apks:
+    if: ${{ inputs.image_comparison }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      manifest_sha: ${{ steps.freeze.outputs.manifest_sha }}
+    steps:
+    - name: Require only the authorized image comparison mode
+      run: |
+        test "${{ inputs.image_comparison }}" = true
+        for SHIKUANG_OTHER_FLAG in "${{ inputs.network_probe }}" "${{ inputs.lifecycle_stress }}" "${{ inputs.lifecycle_comparison }}"; do test "$SHIKUANG_OTHER_FLAG" != true; done
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 22
+        cache: npm
+    - uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: 17
+        cache: gradle
+    - run: npm ci
+    - run: npm run sync
+    - id: freeze
+      name: Build and freeze one identical set of four experiment APKs and helper
+      run: |-
+        ./android/gradlew -p android --no-daemon --max-workers=2 :app:assembleDebug :app:assembleDebugAndroidTest
+        ./android/gradlew -p android16k-control --no-daemon --max-workers=2 assembleDebug assembleDebugAndroidTest
+        mkdir -p frozen-apks
+        curl --fail --location --max-time 60 --silent --show-error https://dl.google.com/dl/android/maven2/androidx/test/services/test-services/1.4.2/test-services-1.4.2.apk --output frozen-apks/test-services-1.4.2.apk
+        python3 - <<'PYFREEZE'
+        from pathlib import Path
+        import os,json,hashlib,shutil,subprocess
+        out=Path('frozen-apks')
+        for root,name in [('android/app','app'),('android16k-control','control')]:
+            for part,suffix in [('debug',''),('androidTest/debug','-test')]:
+                files=list((Path(root)/'build/outputs/apk'/part).glob('*.apk'))
+                assert len(files)==1,(root,part,files)
+                shutil.copy2(files[0],out/(name+suffix+'.apk'))
+        sources=['android/app/src/androidTest/java/com/shikuang/app/InputLifecycle16kStressInstrumentedTest.java','android16k-control/src/androidTest/java/com/shikuang/control16k/WebViewControl16kInstrumentedTest.java','.github/workflows/android-runtime.yml']
+        frozen=[]
+        for source in sources:
+            data=Path(source).read_bytes(); target=out/'source'/source;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(data)
+            frozen.append({'path':source,'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest()})
+        apks=[{'name':p.name,'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for p in sorted(out.glob('*.apk'))]
+        assert len(apks)==5
+        manifest={'sourceSha':os.environ['GITHUB_SHA'],'fourExperimentApks':['app.apk','app-test.apk','control.apk','control-test.apk'],'testStorageHelper':'test-services-1.4.2.apk','apks':apks,'sourceFiles':frozen,'scope':'Same byte-identical APKs on two official complete system images; multi-component image condition, not provider-only A/B'}
+        (out/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n')
+        print(json.dumps(manifest,ensure_ascii=False))
+        with open(os.environ['GITHUB_OUTPUT'],'a') as f:f.write('manifest_sha='+hashlib.sha256((out/'manifest.json').read_bytes()).hexdigest()+'\n')
+        PYFREEZE
+    - uses: actions/upload-artifact@v4
+      with:
+        name: shikuang-image-comparison-frozen-apks
+        path: frozen-apks/
+        if-no-files-found: error
+  official-image-runtime:
+    if: ${{ inputs.image_comparison }}
+    needs: frozen-image-apks
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      ANDROID_AVD_HOME: /tmp/shikuang-image-comparison-avd
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - api: 35
+          id: 35-r05
+          tag: google_apis_ps16k
+          pageSize: 16384
+          revision: 5
+          archive: x86_64-ps16k-35_r05.zip
+          bytes: 1696342085
+          sha1: d709cf26b375abecfbbf5803afd20749ddfa2865
+        - api: 36
+          id: 36-r07
+          tag: google_apis_ps16k
+          pageSize: 16384
+          revision: 7
+          archive: x86_64-ps16k-36_r07.zip
+          bytes: 1849428145
+          sha1: dd783282e84bf475a02eba6777c79fc5695e1583
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: 17
+    - uses: actions/download-artifact@v5
+      with:
+        name: shikuang-image-comparison-frozen-apks
+        path: frozen-apks
+    - name: Verify official archive and exact installed system image
+      run: |-
+        set -euo pipefail
+        mkdir -p runtime-artifacts
+        SHIKUANG_ANDROID_SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+        curl --fail --location --max-time 45 --silent --show-error https://dl.google.com/android/repository/sys-img/google_apis/sys-img2-4.xml --output runtime-artifacts/official-sdk-catalog.xml
+        curl --fail --location --max-time 600 --silent --show-error "https://dl.google.com/android/repository/sys-img/google_apis/${{ matrix.archive }}" --output official-image.zip
+        python3 - <<'PYIMAGE'
+        from pathlib import Path
+        import xml.etree.ElementTree as E,hashlib,json,os
+        raw=Path('runtime-artifacts/official-sdk-catalog.xml').read_bytes();tree=E.fromstring(raw)
+        def tag(e):return e.tag.split('}')[-1]
+        pkg=next(p for p in tree.iter() if tag(p)=='remotePackage' and p.get('path')=='system-images;android-${{ matrix.api }};google_apis_ps16k;x86_64')
+        assert next(e.text for e in pkg.iter() if tag(e)=='major')=='${{ matrix.revision }}'
+        assert next(e.get('ref') for e in pkg if tag(e)=='channelRef')=='channel-0'
+        assert next(e.text for e in pkg.iter() if tag(e)=='url')=='${{ matrix.archive }}'
+        assert next(e.text for e in pkg.iter() if tag(e)=='checksum')=='${{ matrix.sha1 }}'
+        size=int(next(e.text for e in pkg.iter() if tag(e)=='size'));assert size==int('${{ matrix.bytes }}')==Path('official-image.zip').stat().st_size
+        s1=hashlib.sha1();s256=hashlib.sha256()
+        with open('official-image.zip','rb') as f:
+            for chunk in iter(lambda:f.read(1024*1024),b''):s1.update(chunk);s256.update(chunk)
+        assert s1.hexdigest()=='${{ matrix.sha1 }}'
+        Path('runtime-artifacts/official-image-verification.json').write_text(json.dumps({'catalog_sha256':hashlib.sha256(raw).hexdigest(),'package':pkg.get('path'),'revision':'${{ matrix.revision }}','url':'https://dl.google.com/android/repository/sys-img/google_apis/${{ matrix.archive }}','bytes':size,'sha1':s1.hexdigest(),'sha256':s256.hexdigest(),'scope':'Complete image condition; ART/framework/provider may all change'},indent=2)+'\n')
+        PYIMAGE
+        "$SHIKUANG_ANDROID_SDK/cmdline-tools/latest/bin/sdkmanager" "platform-tools" "emulator" "system-images;android-${{ matrix.api }};google_apis_ps16k;x86_64"
+        "$SHIKUANG_ANDROID_SDK/emulator/emulator" -version > runtime-artifacts/emulator-version.txt
+        grep -q 16428233 runtime-artifacts/emulator-version.txt
+        python3 - <<'PYINSTALLED'
+        from pathlib import Path
+        import os,zipfile,hashlib,json
+        root=Path(os.environ.get('ANDROID_SDK_ROOT') or os.environ['ANDROID_HOME'])/'system-images/android-${{ matrix.api }}/google_apis_ps16k/x86_64'
+        rows=[]
+        with zipfile.ZipFile('official-image.zip') as z:
+            for member in z.infolist():
+                if member.is_dir():continue
+                parts=Path(member.filename).parts;assert parts[0]=='x86_64' and '..' not in parts
+                installed=root.joinpath(*parts[1:]);assert installed.is_file(),str(installed)
+                a=hashlib.sha256();b=hashlib.sha256()
+                with z.open(member) as f:
+                    for chunk in iter(lambda:f.read(1024*1024),b''):a.update(chunk)
+                with installed.open('rb') as f:
+                    for chunk in iter(lambda:f.read(1024*1024),b''):b.update(chunk)
+                assert a.digest()==b.digest(),member.filename
+                rows.append({'file':member.filename,'bytes':member.file_size,'sha256':a.hexdigest()})
+        Path('runtime-artifacts/installed-image-file-hashes.json').write_text(json.dumps(rows,indent=2)+'\n')
+        Path('runtime-artifacts/installed-image-package.xml').write_bytes((root/'package.xml').read_bytes())
+        PYINSTALLED
+        rm official-image.zip
+        printf '%s\n' "$SHIKUANG_ANDROID_SDK/platform-tools" >> "$GITHUB_PATH"
+        mkdir -p "$ANDROID_AVD_HOME"
+        printf 'no\n' | "$SHIKUANG_ANDROID_SDK/cmdline-tools/latest/bin/avdmanager" create avd --name "shikuang-api${{ matrix.id }}" --package "system-images;android-${{ matrix.api }};google_apis_ps16k;x86_64" --device pixel_2 --path "$ANDROID_AVD_HOME/shikuang-api${{ matrix.id }}.avd" --force
+        sudo chmod 666 /dev/kvm
+    - name: Boot emulator and disconnect device networking
+      shell: bash
+      run: |
+        mkdir -p runtime-artifacts
+        SHIKUANG_ANDROID_SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+        nohup "$SHIKUANG_ANDROID_SDK/emulator/emulator" \
+          -avd "shikuang-api${{ matrix.id }}" -no-window -no-audio \
+          -no-boot-anim -no-snapshot -gpu swiftshader_indirect \
+          -camera-back none -camera-front none -memory 3072 -cores 2 -accel on \
+          > runtime-artifacts/emulator.log 2>&1 &
+        timeout 180 adb wait-for-device
+        timeout 180 bash -c 'until [[ "$(adb shell getprop sys.boot_completed | tr -d "\r")" == "1" ]]; do sleep 2; done'
+        # Check the actual kernel/libc page size. No property override simulates this gate.
+        if (( ${{ matrix.api }} < 26 )); then
+          # Android 7 has no getconf binary. Read an actual mapped kernel page;
+          # the instrumented Java Os.sysconf check independently confirms it.
+          adb shell cat /proc/self/smaps > runtime-artifacts/device-page-mappings.txt
+          awk '/^KernelPageSize:/ {print $2 * 1024; found=1; exit} END {if (!found) exit 1}' runtime-artifacts/device-page-mappings.txt > runtime-artifacts/device-page-size.txt
+        else
+          adb shell getconf PAGE_SIZE > runtime-artifacts/device-page-size.txt
+        fi
+        test "$(tr -d '\r\n' < runtime-artifacts/device-page-size.txt)" = "${{ matrix.pageSize }}"
+        printf '%s\n' "system-images;android-${{ matrix.api }};${{ matrix.tag }};x86_64" > runtime-artifacts/system-image.txt
+        adb shell input keyevent 82
+        adb shell settings put global window_animation_scale 0
+        adb shell settings put global transition_animation_scale 0
+        adb shell settings put global animator_duration_scale 0
+        # Starting adbd as root may close the first transport while Android
+        # finishes booting. Retry only this finite connection transition;
+        # root UID and every genuine offline/page-size gate remain required.
+        SHIKUANG_ROOT_READY=false
+        for SHIKUANG_ROOT_ATTEMPT in 1 2 3 4 5; do
+          printf 'attempt=%s\n' "$SHIKUANG_ROOT_ATTEMPT" >> runtime-artifacts/adb-root-transition.txt
+          timeout 20 adb root >> runtime-artifacts/adb-root-transition.txt 2>&1 || true
+          timeout 30 adb wait-for-device >> runtime-artifacts/adb-root-transition.txt 2>&1 || true
+          SHIKUANG_ROOT_UID="$(timeout 10 adb shell id -u 2>> runtime-artifacts/adb-root-transition.txt | tr -d '\r' || true)"
+          printf 'uid=%s\n' "$SHIKUANG_ROOT_UID" >> runtime-artifacts/adb-root-transition.txt
+          if [[ "$SHIKUANG_ROOT_UID" = 0 ]]; then SHIKUANG_ROOT_READY=true; break; fi
+          sleep 2
+        done
+        test "$SHIKUANG_ROOT_READY" = true
+        # The Google API image carries MOBILE[LTE] on eth0. Wait for SIM setup
+        # before disabling its radio, so first-boot telephony cannot restore it.
+        if (( ${{ matrix.api }} < 29 )); then
+          timeout 90 bash -c 'until [[ "$(adb shell getprop gsm.sim.state)" =~ (LOADED|READY) ]]; do sleep 2; done'
+          sleep 10
+        else
+          timeout 90 bash -c 'until [[ "$(adb shell getprop gsm.sim.state)" == *LOADED* ]]; do sleep 2; done'
+        fi
+        adb shell getprop gsm.sim.state > runtime-artifacts/sim-state.txt
+        adb shell cmd connectivity help > runtime-artifacts/connectivity-shell-help.txt 2>&1 || true
+        # Official ConnectivityService shell API writes the persistent mode and broadcasts it.
+        # https://android.googlesource.com/platform/packages/modules/Connectivity/+/refs/heads/android15-release/service/src/com/android/server/ConnectivityService.java
+        if (( ${{ matrix.api }} < 29 )); then
+          # Android 7's official Settings uses this same setting + protected broadcast.
+          # https://android.googlesource.com/platform/packages/apps/Settings/+/android-7.0.0_r1/src/com/android/settings/AirplaneModeEnabler.java
+          adb shell settings put global airplane_mode_on 1
+          adb shell am broadcast -a android.intent.action.AIRPLANE_MODE --ez state true
+          test "$(adb shell settings get global airplane_mode_on | tr -d '\r')" = 1
+        else
+          adb shell cmd connectivity airplane-mode enable
+          test "$(adb shell cmd connectivity airplane-mode | tr -d '\r')" = enabled
+        fi
+        adb shell svc wifi disable
+        adb shell svc data disable
+        adb shell 'for device in eth0 eth1 wlan0; do if ip link show "$device" >/dev/null 2>&1; then ip link set "$device" down; fi; done'
+        test "$(timeout 20 adb get-state | tr -d '\r')" = device
+        timeout 60 bash -c 'until [[ "$(adb shell dumpsys connectivity)" == *"Active default network: none"* ]]; do sleep 2; done'
+        adb shell ip route show > runtime-artifacts/ipv4-routes.txt
+        adb shell ip -6 route show > runtime-artifacts/ipv6-routes.txt
+        adb shell ip route show table all > runtime-artifacts/ipv4-all-route-tables.txt
+        adb shell ip -6 route show table all > runtime-artifacts/ipv6-all-route-tables.txt
+        adb shell dumpsys ethernet > runtime-artifacts/ethernet.txt 2>&1 || true
+        adb shell dumpsys connectivity > runtime-artifacts/connectivity.txt
+        adb shell service check ethernet > runtime-artifacts/ethernet-service-availability.txt 2>&1 || true
+        adb shell settings get global airplane_mode_on > runtime-artifacts/airplane-mode.txt
+        adb shell dumpsys telephony.registry > runtime-artifacts/telephony.txt
+        adb shell getprop ro.product.cpu.abi > runtime-artifacts/device-abi.txt
+        adb shell getprop ro.product.cpu.abilist > runtime-artifacts/device-supported-abis.txt
+        adb shell dumpsys webviewupdate > runtime-artifacts/webview-provider.txt
+        adb shell settings get global wifi_on > runtime-artifacts/wifi-state.txt
+        adb shell settings get global mobile_data > runtime-artifacts/mobile-data-state.txt
+        adb logcat -c
+        nohup adb logcat -v threadtime > runtime-artifacts/logcat.txt 2>&1 &
+    - name: Verify and install byte-identical frozen APKs
+      env:
+        EXPECTED_MANIFEST_SHA: ${{ needs.frozen-image-apks.outputs.manifest_sha }}
+      run: |-
+        python3 - <<'PYAPKCHECK'
+        from pathlib import Path
+        import json,hashlib,os
+        folder=Path('frozen-apks');raw=(folder/'manifest.json').read_bytes();assert hashlib.sha256(raw).hexdigest()==os.environ['EXPECTED_MANIFEST_SHA']
+        m=json.loads(raw);assert m['sourceSha']==os.environ['GITHUB_SHA'];assert len(m['apks'])==5
+        for row in m['apks']:
+            p=folder/row['name'];assert p.stat().st_size==row['bytes'] and hashlib.sha256(p.read_bytes()).hexdigest()==row['sha256']
+        Path('runtime-artifacts/frozen-apk-manifest.json').write_bytes(raw)
+        PYAPKCHECK
+        for SHIKUANG_APK in frozen-apks/test-services-1.4.2.apk frozen-apks/control.apk frozen-apks/control-test.apk frozen-apks/app.apk frozen-apks/app-test.apk; do timeout 90 adb install -r -g "$SHIKUANG_APK"; done
+        adb shell appops set androidx.test.services MANAGE_EXTERNAL_STORAGE allow
+        adb shell pm list instrumentation > runtime-artifacts/instrumentation-components.txt
+        adb shell pm list packages --show-versioncode > runtime-artifacts/installed-package-versions.txt
+    - name: Capture actual signed provider and ART binary hashes BuildIds and ELF layout
+      run: |-
+        mkdir -p system-binary-verification runtime-artifacts/system-binary-metadata
+        adb shell dumpsys webviewupdate > runtime-artifacts/system-binary-metadata/webview-provider.txt
+        adb shell pm list packages --apex-only --show-versioncode > runtime-artifacts/system-binary-metadata/apex-versions.txt
+        adb shell pm list packages > runtime-artifacts/system-binary-metadata/package-list.txt
+        python3 - <<'PYPROVIDER'
+        from pathlib import Path
+        import subprocess,json,hashlib,os,zipfile
+        out=Path('runtime-artifacts/system-binary-metadata');temp=Path('system-binary-verification')
+        sdk=Path(os.environ.get('ANDROID_SDK_ROOT') or os.environ['ANDROID_HOME'])
+        signers=sorted(sdk.glob('build-tools/*/apksigner'));assert signers
+        packages=[s.split(':',1)[1] for s in (out/'package-list.txt').read_text().splitlines() if any(v in s for v in ['com.google.android.webview','com.android.webview','com.google.android.trichromelibrary'])]
+        rows=[]
+        for package in packages:
+            paths=subprocess.check_output(['adb','shell','pm','path',package],text=True).strip().splitlines()
+            subprocess.run(['adb','shell','dumpsys','package',package],stdout=open(out/(package+'-package.txt'),'wb'),check=True)
+            for i,path in enumerate(paths):
+                remote=path.removeprefix('package:').strip();local=temp/(package+'-'+str(i)+'.apk')
+                subprocess.run(['adb','pull',remote,str(local)],check=True,timeout=90)
+                cert=subprocess.run([str(signers[-1]),'verify','--print-certs',str(local)],capture_output=True,text=True,check=True)
+                (out/(local.stem+'-certificates.txt')).write_text(cert.stdout)
+                row={'package':package,'remote':remote,'bytes':local.stat().st_size,'sha256':hashlib.sha256(local.read_bytes()).hexdigest(),'elfs':[]}
+                with zipfile.ZipFile(local) as z:
+                    for name in z.namelist():
+                        if not name.startswith('lib/x86_64/') or not name.endswith('.so'):continue
+                        data=z.read(name);elf=temp/(local.stem+'-'+Path(name).name);elf.write_bytes(data)
+                        meta=subprocess.check_output(['readelf','-W','-l','-n',str(elf)],text=True)
+                        target=out/(elf.name+'-readelf.txt');target.write_text(meta)
+                        row['elfs'].append({'name':name,'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest(),'readelf':target.name})
+                rows.append(row)
+        art=temp/'libart.so';subprocess.run(['adb','pull','/apex/com.android.art/lib64/libart.so',str(art)],check=True,timeout=60)
+        meta=subprocess.check_output(['readelf','-W','-l','-n',str(art)],text=True);(out/'libart-readelf.txt').write_text(meta)
+        rows.append({'remote':'/apex/com.android.art/lib64/libart.so','bytes':art.stat().st_size,'sha256':hashlib.sha256(art.read_bytes()).hexdigest(),'readelf':'libart-readelf.txt'})
+        (out/'verified-binary-hashes.json').write_text(json.dumps(rows,indent=2)+'\n')
+        PYPROVIDER
+    - name: Allow and record visible soft keyboard for isolated input stress
+      shell: bash
+      run: |
+        adb shell settings get secure show_ime_with_hard_keyboard > runtime-artifacts/ime-with-hard-keyboard-before.txt
+        adb shell settings put secure show_ime_with_hard_keyboard 1
+        adb shell settings get secure show_ime_with_hard_keyboard > runtime-artifacts/ime-with-hard-keyboard-after.txt
+        test "$(tr -d '\r\n' < runtime-artifacts/ime-with-hard-keyboard-after.txt)" = 1
+        adb shell settings get secure default_input_method > runtime-artifacts/default-input-method-before-stress.txt
+        adb shell dumpsys input_method > runtime-artifacts/input-method-before-stress.txt
+        adb shell dumpsys window > runtime-artifacts/window-before-stress.txt
+    - name: Run independent native WebView control once
+      id: control16k
+      continue-on-error: true
+      run: |-
+        set -euo pipefail
+        timeout 960 adb shell am instrument -w -r -e useTestStorageService true -e expectedSdk ${{ matrix.api }} -e class com.shikuang.control16k.WebViewControl16kInstrumentedTest com.shikuang.control16k.test/androidx.test.runner.AndroidJUnitRunner > runtime-artifacts/com.shikuang.control16k-instrumentation.txt 2>&1
+        cat runtime-artifacts/com.shikuang.control16k-instrumentation.txt
+        python3 - <<'PYRESULT'
+        from pathlib import Path
+        text=Path('runtime-artifacts/com.shikuang.control16k-instrumentation.txt').read_text()
+        assert 'OK (1 test)' in text and 'INSTRUMENTATION_CODE: -1' in text,text[-6000:]
+        assert 'Process crashed' not in text and 'FAILURES!!!' not in text and 'INSTRUMENTATION_FAILED' not in text
+        PYRESULT
+    - name: Preserve control experiment before original app
+      if: ${{ always() }}
+      run: |
+        mkdir -p runtime-artifacts/control16k
+        timeout 30 adb logcat -b all -d -v threadtime > runtime-artifacts/control16k/logcat-after-control.txt || true
+        timeout 20 adb shell dumpsys activity exit-info com.shikuang.control16k > runtime-artifacts/control16k/exit-info.txt || true
+        timeout 20 adb exec-out screencap -p > runtime-artifacts/control16k/final-screen.png || true
+        timeout 20 adb shell dumpsys input_method > runtime-artifacts/control16k/input-method.txt || true
+        timeout 20 adb shell dumpsys window > runtime-artifacts/control16k/window.txt || true
+        timeout 20 adb shell dumpsys webviewupdate > runtime-artifacts/control16k/webview-provider.txt || true
+        timeout 20 adb shell pm path com.shikuang.control16k > runtime-artifacts/control16k/package-path.txt || true
+    - name: Run unchanged product native input lifecycle once
+      if: ${{ always() && steps.control16k.outcome != 'skipped' }}
+      id: app16k
+      continue-on-error: true
+      run: |-
+        set -euo pipefail
+        timeout 960 adb shell am instrument -w -r -e useTestStorageService true -e expectedSdk ${{ matrix.api }} -e class com.shikuang.app.InputLifecycle16kStressInstrumentedTest com.shikuang.app.preview.test/androidx.test.runner.AndroidJUnitRunner > runtime-artifacts/com.shikuang.app.preview-instrumentation.txt 2>&1
+        cat runtime-artifacts/com.shikuang.app.preview-instrumentation.txt
+        python3 - <<'PYRESULT'
+        from pathlib import Path
+        text=Path('runtime-artifacts/com.shikuang.app.preview-instrumentation.txt').read_text()
+        assert 'OK (1 test)' in text and 'INSTRUMENTATION_CODE: -1' in text,text[-6000:]
+        assert 'Process crashed' not in text and 'FAILURES!!!' not in text and 'INSTRUMENTATION_FAILED' not in text
+        PYRESULT
+    - name: Capture runtime diagnostics
+      if: always()
+      shell: bash
+      run: |
+        mkdir -p runtime-artifacts
+        ps -ef > runtime-artifacts/host-processes-final.txt
+        free -m > runtime-artifacts/host-memory-final.txt
+        timeout 15 adb reconnect offline > runtime-artifacts/adb-reconnect-final.txt 2>&1 || true
+        timeout 20 adb wait-for-device >> runtime-artifacts/adb-reconnect-final.txt 2>&1 || true
+        timeout 20 adb exec-out screencap -p > runtime-artifacts/final-screen.png || true
+        timeout 20 adb shell dumpsys webviewupdate > runtime-artifacts/webview-provider-final.txt || true
+        timeout 20 adb shell dumpsys ethernet > runtime-artifacts/ethernet-final.txt || true
+        timeout 20 adb shell dumpsys connectivity > runtime-artifacts/connectivity-final.txt || true
+        timeout 20 adb shell ip route show table all > runtime-artifacts/ipv4-all-route-tables-final.txt || true
+        timeout 20 adb shell ip -6 route show table all > runtime-artifacts/ipv6-all-route-tables-final.txt || true
+        # A live streaming adb log may disconnect when the test driver resets
+        # its connection. Preserve final buffers and process exit reasons too.
+        timeout 30 adb logcat -b all -d -v threadtime > runtime-artifacts/logcat-final.txt || true
+        timeout 20 adb shell dumpsys activity exit-info com.shikuang.app.preview > runtime-artifacts/app-exit-info.txt 2>&1 || true
+        timeout 20 adb shell ps -A > runtime-artifacts/processes-final.txt 2>&1 || true
+        timeout 20 adb shell dmesg > runtime-artifacts/kernel-final.txt 2>&1 || true
+        timeout 20 adb shell getprop ro.build.fingerprint > runtime-artifacts/device-build-fingerprint.txt 2>&1 || true
+        timeout 20 adb shell settings get secure default_input_method > runtime-artifacts/default-input-method.txt 2>&1 || true
+        timeout 20 adb shell dumpsys input_method > runtime-artifacts/input-method-final.txt 2>&1 || true
+        timeout 20 adb shell dumpsys window > runtime-artifacts/window-final.txt 2>&1 || true
+        timeout 20 adb shell settings get secure show_ime_with_hard_keyboard > runtime-artifacts/ime-with-hard-keyboard-final.txt 2>&1 || true
+        timeout 20 adb shell pm list packages --apex-only --show-versioncode > runtime-artifacts/apex-versions.txt 2>&1 || true
+        mkdir -p runtime-artifacts/tombstones
+        timeout 30 adb pull /data/tombstones/. runtime-artifacts/tombstones/ > runtime-artifacts/tombstone-collection.txt 2>&1 || true
+        mkdir -p runtime-artifacts/runtime-smoke
+        timeout 60 adb pull /sdcard/googletest/test_outputfiles/. runtime-artifacts/runtime-smoke/ || true
+        # The official AndroidX test storage provider owns this directory.
+        # AGP's UTP collector copies genuine files before
+        # later Gradle tasks finish. Preserve that export if post-test ADB drops.
+        python3 - <<'PYOUTPUT'
+        from pathlib import Path
+        import hashlib, shutil
+        sources = [Path('android/app/build/outputs/connected_android_test_additional_output'), Path('android16k-control/build/outputs/connected_android_test_additional_output')]
+        target = Path('runtime-artifacts/runtime-smoke')
+        for source in sources:
+            for file in source.rglob('*') if source.exists() else []:
+                if not file.is_file() or file.suffix not in ('.json', '.png', '.txt'):
+                    continue
+                target.mkdir(parents=True, exist_ok=True)
+                output = target / file.name
+                if output.exists():
+                    assert output.read_bytes() == file.read_bytes(), f'Device and UTP evidence differ: {file.name}'
+                else:
+                    shutil.copy2(file, output)
+        PYOUTPUT
+    - name: Strict lifecycle gate and separate observed input visibility result
+      if: ${{ always() }}
+      env:
+        SHIKUANG_CONTROL_OUTCOME: ${{ steps.control16k.outcome }}
+        SHIKUANG_APP_OUTCOME: ${{ steps.app16k.outcome }}
+        EXPECTED_SDK: ${{ matrix.api }}
+      run: |
+        python3 - <<'PYCOMPARE'
+        import json, os
+        from pathlib import Path
+        folder=Path('runtime-artifacts/runtime-smoke')
+        summary={'control_step':os.environ['SHIKUANG_CONTROL_OUTCOME'],'original_app_step':os.environ['SHIKUANG_APP_OUTCOME'],'protocols':{},'root_cause_fixed':False}
+        for prefix, package in [('control16k-input-lifecycle','com.shikuang.control16k'),('input-lifecycle','com.shikuang.app.preview')]:
+            filename=folder / (prefix+'-report.json')
+            summary['protocols'][package]={'report_present':filename.exists()}
+            if filename.exists():
+                report=json.loads(filename.read_text())
+                summary['protocols'][package].update(phase=report.get('phase'),completed_cycles=len(report.get('cycles',[])),native_cycles=sum(r.get('nativeComposingAndVisibleImeVerified',False) for r in report.get('cycles',[])))
+        Path('runtime-artifacts/comparison-step-outcomes.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2)+'\n')
+        visibility={}
+        for prefix in ['control16k-input-lifecycle','input-lifecycle']:
+            visibility[prefix]={}
+            for view in ['identify','library','records']:
+                path=folder / f'{prefix}-{view}-composing.json'
+                if path.exists():
+                    d=json.loads(path.read_text());visibility[prefix][view]={'actual_draw_observed':d.get('visualFrameObserved',False),'input_fully_unobscured':d['dom'].get('inputFullyUnobscured',False),'ime_visible':d['imeVisible'],'bounds':d['dom'],'scope':'DOM value and actual PNG reviewed separately; visibility does not silently abort lifecycle observation'}
+        Path('runtime-artifacts/observed-input-visibility.json').write_text(json.dumps(visibility,ensure_ascii=False,indent=2)+'\n')
+        assert summary['control_step']=='success' and summary['original_app_step']=='success',summary
+        for prefix, package in [('control16k-input-lifecycle','com.shikuang.control16k'),('input-lifecycle','com.shikuang.app.preview')]:
+            report=json.loads((folder / (prefix+'-report.json')).read_text())
+            assert report['phase']=='passed' and report['sdk']==int(os.environ['EXPECTED_SDK']) and report['pageSize']==16384 and report['deviceAbi']=='x86_64'
+            assert report['packageName']==package and report['activeNetworkBefore'] is None and report['activeNetworkAfter'] is None
+            assert len(report['cycles'])==12 and len({r['cycle'] for r in report['cycles']})==12
+            assert sum(r['nativeComposingAndVisibleImeVerified'] for r in report['cycles'])==9
+            for suffix in ['/native-touch-after','/ime-visible','/chinese-dom-verified']:
+                assert sum(event['action'].endswith(suffix) for event in report['events'])==27
+            assert all(r['backgroundForegroundVerified'] and r['recreateVerified'] and r['storedRecordPreserved'] and r['closedWithoutObservedCrash'] for r in report['cycles'])
+            assert report['sentinelRemoved'] and not report['productionAccuracyClaim']
+            for cycle in range(12):
+                if cycle % 4 == 0: continue
+                for phase in ['compose-before-background','compose-before-recreate','compose-before-close']:
+                    connection=json.loads((folder / f'{prefix}-connection-result-{cycle}-{phase}.json').read_text())
+                    assert connection['nativeCompositionReturned'] and 'failure' not in connection
+                    assert connection['actualCallThreadId']==connection['handlerThreadId'] and connection['actualCallThreadName']==connection['handlerThreadName']
+            for view,selector,cycle in [('identify','#notes',1),('library','#librarySearch',2),('records','#recordSearch',3)]:
+                stem=f'{prefix}-{view}-composing'
+                evidence=json.loads((folder / (stem+'.json')).read_text())
+                assert evidence['visualFrameObserved']
+                assert evidence['selector']==selector and evidence['imeVisible'] and evidence['windowFocus'] and evidence['nativeViewFocus']
+                assert evidence['dom']['active'] and evidence['dom']['value']==f'quartz-实验室-{cycle}'
+                assert (folder / (stem+'.png')).read_bytes().startswith(b'\x89PNG\r\n\x1a\n')
+                ime_stem=f'{prefix}-{view}-ime-visible'
+                ime=json.loads((folder / (ime_stem+'.json')).read_text())
+                assert ime['imeVisible'] and ime['windowFocus'] and ime['nativeViewFocus'] and ime['dom']['active']
+                assert (folder / (ime_stem+'.png')).read_bytes().startswith(b'\x89PNG\r\n\x1a\n')
+        print('Both bounded protocols fully observed. Root cause remains open; no production fix or release claim.')
+        PYCOMPARE
+    - uses: actions/upload-artifact@v4
+      if: ${{ always() }}
+      with:
+        name: shikuang-official-image-comparison-${{ matrix.id }}
+        path: runtime-artifacts/
+        if-no-files-found: error

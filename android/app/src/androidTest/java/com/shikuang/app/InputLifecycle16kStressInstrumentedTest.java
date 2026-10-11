@@ -109,15 +109,45 @@ public class InputLifecycle16kStressInstrumentedTest {
         }
     }
 
+    private boolean waitForRenderedFrame() throws Exception {
+        CountDownLatch drawn = new CountDownLatch(1);
+        AtomicReference<Throwable> drawFailure = new AtomicReference<>();
+        scenario.onActivity(a -> {
+            WebView web = a.getBridge().getWebView();
+            web.postVisualStateCallback(SystemClock.uptimeMillis(), new WebView.VisualStateCallback() {
+                @Override public void onComplete(long requestId) {
+                    try {
+                        assertTrue("Visible attached WebView required for actual draw", web.isAttachedToWindow() && web.getVisibility() == android.view.View.VISIBLE);
+                        final android.view.ViewTreeObserver.OnDrawListener[] listener = new android.view.ViewTreeObserver.OnDrawListener[1];
+                        listener[0] = () -> web.post(() -> {
+                            if (web.getViewTreeObserver().isAlive()) web.getViewTreeObserver().removeOnDrawListener(listener[0]);
+                            // A callback is readiness, not displayed pixels: observe draw,
+                            // then two actual animation callbacks before Surface screenshot.
+                            web.postOnAnimation(() -> web.postOnAnimation(drawn::countDown));
+                        });
+                        web.getViewTreeObserver().addOnDrawListener(listener[0]);
+                        web.invalidate();
+                    } catch (Throwable error) { drawFailure.set(error); drawn.countDown(); }
+                }
+            });
+        });
+        boolean observed = drawn.await(10, TimeUnit.SECONDS);
+        if (drawFailure.get() != null) throw new AssertionError("Actual WebView draw failed", drawFailure.get());
+        return observed;
+    }
+
     private void inputEvidence(String stem, String selector) throws Exception {
+        boolean visualFrameObserved = waitForRenderedFrame();
         JSONObject evidence = new JSONObject().put("phase", phase).put("selector", selector)
-            .put("dom", new JSONObject(evaluate("JSON.stringify((()=>{const f=document.querySelector(" + JSONObject.quote(selector) + ");const r=f.getBoundingClientRect();return {active:document.activeElement===f,value:f.value,left:r.left,top:r.top,width:r.width,height:r.height,viewportWidth:innerWidth,viewportHeight:innerHeight,devicePixelRatio:devicePixelRatio};})())")));
+            .put("dom", new JSONObject(evaluate("JSON.stringify((()=>{const f=document.querySelector(" + JSONObject.quote(selector) + ");const r=f.getBoundingClientRect();const n=document.querySelector('.bottom-nav');const b=n&&getComputedStyle(n).display!=='none'?n.getBoundingClientRect():null;const overlap=b?Math.max(0,Math.min(r.right,b.right)-Math.max(r.left,b.left))*Math.max(0,Math.min(r.bottom,b.bottom)-Math.max(r.top,b.top)):0;return {active:document.activeElement===f,value:f.value,left:r.left,top:r.top,right:r.right,bottom:r.bottom,width:r.width,height:r.height,viewportWidth:innerWidth,viewportHeight:innerHeight,devicePixelRatio:devicePixelRatio,bottomNav:b?{left:b.left,top:b.top,right:b.right,bottom:b.bottom,width:b.width,height:b.height}:null,bottomNavOverlapCssPixels:overlap,inputFullyUnobscured:r.left>=0&&r.top>=0&&r.right<=innerWidth&&r.bottom<=innerHeight&&overlap===0,visualViewport:window.visualViewport?{height:visualViewport.height,width:visualViewport.width,offsetTop:visualViewport.offsetTop,offsetLeft:visualViewport.offsetLeft}:null};})())")));
         scenario.onActivity(a -> {
             WebView web = a.getBridge().getWebView();
             WindowInsets insets = web.getRootWindowInsets();
             try {
                 evidence.put("windowFocus", web.hasWindowFocus()).put("nativeViewFocus", web.hasFocus())
-                    .put("imeVisible", insets != null && insets.isVisible(WindowInsets.Type.ime()));
+                    .put("imeVisible", insets != null && insets.isVisible(WindowInsets.Type.ime()))
+                    .put("visualFrameObserved", visualFrameObserved).put("nativeWebWidth", web.getWidth()).put("nativeWebHeight", web.getHeight())
+                    .put("imeBottomInsetPixels", insets == null ? -1 : insets.getInsets(WindowInsets.Type.ime()).bottom);
             } catch (Exception e) { throw new AssertionError(e); }
         });
         try (OutputStream out = RuntimeTestOutput.open(stem + ".json")) {
@@ -127,6 +157,7 @@ public class InputLifecycle16kStressInstrumentedTest {
         shellSnapshot("dumpsys input_method", stem + "-input-method.txt");
         shellSnapshot("dumpsys window", stem + "-window.txt");
         shellSnapshot("settings get secure show_ime_with_hard_keyboard", stem + "-hard-keyboard-setting.txt");
+        assertTrue("WebView DOM was not observed in a real drawn frame; raw PNG/JSON retained", visualFrameObserved);
     }
 
     private void focusAndCompose(int cycle, String selector, String view, String text) throws Exception {
@@ -259,7 +290,9 @@ public class InputLifecycle16kStressInstrumentedTest {
     @Test(timeout = 900000)
     public void boundedNativeImeLifecycleOnGenuine16k() throws Exception {
         deadline = SystemClock.elapsedRealtime() + 720000;
-        assertEquals(35, Build.VERSION.SDK_INT);
+        int expectedSdk = Integer.parseInt(InstrumentationRegistry.getArguments().getString("expectedSdk", "35"));
+        assertTrue("Only the two authorized official image SDKs are allowed", expectedSdk == 35 || expectedSdk == 36);
+        assertEquals("Actual SDK must match the selected official image", expectedSdk, Build.VERSION.SDK_INT);
         assertEquals(16384, Os.sysconf(OsConstants._SC_PAGESIZE));
         assertEquals("x86_64", Build.SUPPORTED_ABIS[0]);
         final String[] selectors = {null, "#notes", "#librarySearch", "#recordSearch"};
