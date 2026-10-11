@@ -744,10 +744,27 @@ jobs:
             p=folder/row['name'];assert p.stat().st_size==row['bytes'] and hashlib.sha256(p.read_bytes()).hexdigest()==row['sha256']
         Path('runtime-artifacts/frozen-apk-manifest.json').write_bytes(raw)
         Path('runtime-artifacts/executed-test-workflow.yml').write_bytes(Path('.github/workflows/android-runtime.yml').read_bytes())
-        Path('runtime-artifacts/reused-apk-protocol.json').write_text(json.dumps({'executedWorkflowSha':os.environ['GITHUB_SHA'],'frozenApkSourceSha':m['sourceSha'],'frozenApkRunId':38104162907,'scope':'Repair CI host libpulse dependency; same original APK bytes, not App fix'},indent=2)+'\n')
+        Path('runtime-artifacts/reused-apk-protocol.json').write_text(json.dumps({'executedWorkflowSha':os.environ['GITHUB_SHA'],'frozenApkSourceSha':m['sourceSha'],'frozenApkRunId':38104162907,'scope':'Test-only helper force-queryable initialization and bounded exact binary-transfer audit; same original APK bytes, not App fix'},indent=2)+'\n')
         PYAPKCHECK
-        for SHIKUANG_APK in frozen-apks/test-services-1.4.2.apk frozen-apks/control.apk frozen-apks/control-test.apk frozen-apks/app.apk frozen-apks/app-test.apk; do timeout 90 adb install -r -g "$SHIKUANG_APK"; done
+        # Same helper bytes; AndroidX maintainer's package-visibility initialization.
+        # https://github.com/android/android-test/issues/1141#issuecomment-930758099
+        timeout 90 adb install -r -g --force-queryable frozen-apks/test-services-1.4.2.apk > runtime-artifacts/helper-install-stdout.txt 2> runtime-artifacts/helper-install-stderr.txt
+        cat runtime-artifacts/helper-install-stdout.txt runtime-artifacts/helper-install-stderr.txt
+        for SHIKUANG_APK in frozen-apks/control.apk frozen-apks/control-test.apk frozen-apks/app.apk frozen-apks/app-test.apk; do timeout 90 adb install -r -g "$SHIKUANG_APK"; done
         adb shell appops set androidx.test.services MANAGE_EXTERNAL_STORAGE allow
+        adb shell dumpsys package androidx.test.services > runtime-artifacts/helper-package-visibility.txt
+        adb shell dumpsys package queries > runtime-artifacts/helper-package-queries.txt
+        adb shell appops get androidx.test.services MANAGE_EXTERNAL_STORAGE > runtime-artifacts/helper-storage-appops.txt
+        python3 - <<'PYHELPER'
+        from pathlib import Path
+        import re
+        base=Path('runtime-artifacts')
+        assert re.search(r'(?m)^Success\s*$',(base/'helper-install-stdout.txt').read_text()),'Helper installation did not report Success'
+        actual=(base/'helper-package-visibility.txt').read_text()
+        assert re.search(r'forceQueryable\s*=\s*true\b',actual),'Same-byte helper was not made force-queryable'
+        assert 'androidx.test.services.storage.outputfiles' in actual,'Actual test-output provider authority is missing'
+        assert re.search(r'MANAGE_EXTERNAL_STORAGE:.*\ballow\b',(base/'helper-storage-appops.txt').read_text()),'Test helper storage appop is not allowed'
+        PYHELPER
         adb shell pm list instrumentation > runtime-artifacts/instrumentation-components.txt
         adb shell pm list packages --show-versioncode > runtime-artifacts/installed-package-versions.txt
     - name: Capture actual signed provider and ART binary hashes BuildIds and ELF layout
@@ -780,6 +797,59 @@ jobs:
                     resolved.append(value)
             assert len(resolved)==1,'Expected one actual resolved Trichrome APK in this frozen two-image protocol'
             return [('com.google.android.trichromelibrary',resolved[0],declared[0])]
+        def pull_checked(remote,local,timeout):
+            # One pull per actual binary: no transfer retry or substituted image.
+            # Raw stdout/stderr and terminal status are persisted even on timeout.
+            import time,datetime
+            logdir=out/'transfers'/local.stem;logdir.mkdir(parents=True,exist_ok=False)
+            record={'remote':remote,'local':str(local),'scope':'Actual device transfer, not archive substitute','commands':[],'status':'started'}
+            def persist():
+                (logdir/'transfer.json').write_text(json.dumps(record,indent=2)+'\n')
+            def command(label,args,seconds,required=True):
+                started=time.monotonic();entry={'label':label,'argv':args,'timeoutSeconds':seconds,'startedAt':datetime.datetime.now(datetime.timezone.utc).isoformat()}
+                try:
+                    result=subprocess.run(args,capture_output=True,timeout=seconds)
+                    stdout,stderr=result.stdout,result.stderr;entry.update(returnCode=result.returncode,timedOut=False)
+                except subprocess.TimeoutExpired as error:
+                    stdout,stderr=error.stdout or b'',error.stderr or b'';entry.update(returnCode=None,timedOut=True,error=str(error))
+                except OSError as error:
+                    stdout,stderr=b'',str(error).encode();entry.update(returnCode=None,timedOut=False,error=str(error))
+                entry['elapsedSeconds']=time.monotonic()-started
+                for stream,data in [('stdout',stdout),('stderr',stderr)]:
+                    name=label+'-'+stream+'.bin';(logdir/name).write_bytes(data)
+                    entry[stream]={'file':name,'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest()}
+                    (logdir/(label+'-'+stream+'.txt')).write_text(data.decode('utf-8',errors='backslashreplace'))
+                record['commands'].append(entry);persist()
+                if required and (entry['timedOut'] or entry['returnCode']!=0):
+                    print(label+' stdout:',stdout.decode('utf-8',errors='backslashreplace'),flush=True)
+                    print(label+' stderr:',stderr.decode('utf-8',errors='backslashreplace'),flush=True)
+                    raise RuntimeError('Actual binary command failed: '+label+' '+json.dumps(entry))
+                return stdout.decode('utf-8',errors='backslashreplace') if required else None
+            def metadata(label):
+                size=command(label+'-size',['adb','shell','stat','-c','%s',remote],20).strip()
+                digest=command(label+'-sha256',['adb','shell','sha256sum',remote],45).strip().split()
+                assert size.isdigit() and int(size)>0,'Invalid actual remote binary size'
+                assert len(digest)==2 and re.fullmatch('[a-f0-9]{64}',digest[0]) and digest[1]==remote,'Invalid actual remote binary SHA binding'
+                return {'bytes':int(size),'sha256':digest[0]}
+            try:
+                assert remote.startswith(('/data/app/','/product/app/','/system/app/','/system_ext/app/','/apex/')) and '..' not in Path(remote).parts
+                command('device-before',['adb','devices','-l'],15,required=False)
+                assert command('state-before',['adb','get-state'],15).strip()=='device','ADB device is not connected'
+                record['remoteBefore']=metadata('before');persist()
+                command('pull',['adb','pull',remote,str(local)],timeout)
+                assert local.is_file(),'Successful adb exit without actual local binary'
+                record['localResult']={'bytes':local.stat().st_size,'sha256':hashlib.sha256(local.read_bytes()).hexdigest()};persist()
+                record['remoteAfter']=metadata('after');persist()
+                assert record['remoteBefore']==record['remoteAfter']==record['localResult'],'Actual binary changed or transfer bytes/hash do not match'
+                record['status']='verified'
+            except BaseException as error:
+                record['status']='failed';record['failure']=repr(error)
+                if local.is_file():record['partialLocal']={'bytes':local.stat().st_size,'sha256':hashlib.sha256(local.read_bytes()).hexdigest()}
+                raise
+            finally:
+                command('device-after',['adb','devices','-l'],15,required=False)
+                command('state-after',['adb','get-state'],15,required=False)
+                persist()
         rows=[]
         for package in packages:
             paths=subprocess.check_output(['adb','shell','pm','path',package],text=True).strip().splitlines()
@@ -789,7 +859,7 @@ jobs:
             targets.extend(resolved_trichrome_dependency(package_dump))
             for i,(binary_package,remote,static_version) in enumerate(targets):
                 local=temp/(package+'-'+str(i)+'.apk')
-                subprocess.run(['adb','pull',remote,str(local)],check=True,timeout=90)
+                pull_checked(remote,local,90)
                 cert=subprocess.run([str(signers[-1]),'verify','--print-certs',str(local)],capture_output=True,text=True,check=True)
                 (out/(local.stem+'-certificates.txt')).write_text(cert.stdout)
                 row={'package':binary_package,'resolved_via_provider':package,'version_from_actual_provider_static_dependency':static_version,'role':'resolved-static-library' if static_version else 'provider-package','remote':remote,'bytes':local.stat().st_size,'sha256':hashlib.sha256(local.read_bytes()).hexdigest(),'elfs':[]}
@@ -810,7 +880,7 @@ jobs:
                         row['elfs'].append({'name':name,'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest(),'readelf':target.name})
                 rows.append(row)
         assert any(row['elfs'] for row in rows),'No actual x86_64 provider ELF libraries were audited'
-        art=temp/'libart.so';subprocess.run(['adb','pull','/apex/com.android.art/lib64/libart.so',str(art)],check=True,timeout=60)
+        art=temp/'libart.so';pull_checked('/apex/com.android.art/lib64/libart.so',art,60)
         meta=subprocess.check_output(['readelf','-W','-l','-n',str(art)],text=True);(out/'libart-readelf.txt').write_text(meta)
         rows.append({'remote':'/apex/com.android.art/lib64/libart.so','bytes':art.stat().st_size,'sha256':hashlib.sha256(art.read_bytes()).hexdigest(),'readelf':'libart-readelf.txt'})
         (out/'verified-binary-hashes.json').write_text(json.dumps(rows,indent=2)+'\n')
