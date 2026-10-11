@@ -16,6 +16,11 @@ on:
         required: false
         type: boolean
         default: false
+      lifecycle_stress:
+        description: 'Test-only bounded native IME/lifecycle regression on genuine API35 x86_64 16KB; no release'
+        required: false
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -30,8 +35,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJSON(inputs.network_probe && '[{"api":35,"id":"35","tag":"google_apis","pageSize":4096}]' || '[{"api":24,"id":"24","tag":"google_apis","pageSize":4096},{"api":30,"id":"30","tag":"google_apis","pageSize":4096},{"api":35,"id":"35","tag":"google_apis","pageSize":4096},{"api":35,"id":"35-16k","tag":"google_apis_ps16k","pageSize":16384}]') }}
+        include: ${{ fromJSON(inputs.lifecycle_stress && '[{"api":35,"id":"35-16k","tag":"google_apis_ps16k","pageSize":16384}]' || inputs.network_probe && '[{"api":35,"id":"35","tag":"google_apis","pageSize":4096}]' || '[{"api":24,"id":"24","tag":"google_apis","pageSize":4096},{"api":30,"id":"30","tag":"google_apis","pageSize":4096},{"api":35,"id":"35","tag":"google_apis","pageSize":4096},{"api":35,"id":"35-16k","tag":"google_apis_ps16k","pageSize":16384}]') }}
     steps:
+      - name: Validate isolated test scope
+        run: test "${{ inputs.lifecycle_stress && inputs.network_probe }}" != "true"
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         if: ${{ !inputs.network_probe }}
@@ -175,9 +182,13 @@ jobs:
           test "$(timeout 15 adb get-state | tr -d '\r')" = device
           SHIKUANG_PROBE
       - name: Run packaged WebView with actual native ONNX inference
-        if: ${{ !inputs.network_probe }}
+        if: ${{ !inputs.network_probe && !inputs.lifecycle_stress }}
         working-directory: android
-        run: ./gradlew --no-daemon --max-workers=2 -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true -Pandroid.testInstrumentationRunnerArguments.expectedPageSize=${{ matrix.pageSize }} connectedDebugAndroidTest
+        run: ./gradlew --no-daemon --max-workers=2 -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true -Pandroid.testInstrumentationRunnerArguments.expectedPageSize=${{ matrix.pageSize }} -Pandroid.testInstrumentationRunnerArguments.notClass=com.shikuang.app.InputLifecycle16kStressInstrumentedTest connectedDebugAndroidTest
+      - name: Run bounded genuine 16KB input and lifecycle stress
+        if: ${{ inputs.lifecycle_stress && !inputs.network_probe }}
+        working-directory: android
+        run: ./gradlew --no-daemon --max-workers=2 -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true -Pandroid.testInstrumentationRunnerArguments.expectedPageSize=16384 '-Pandroid.testInstrumentationRunnerArguments.class=com.shikuang.app.MineralEngineInstrumentedTest#legacyNativeAssetMigrationPreservesSpecimens,com.shikuang.app.InputLifecycle16kStressInstrumentedTest' connectedDebugAndroidTest
       - name: Capture runtime diagnostics
         if: always()
         shell: bash
@@ -199,6 +210,12 @@ jobs:
           timeout 20 adb shell dumpsys activity exit-info com.shikuang.app.preview > runtime-artifacts/app-exit-info.txt 2>&1 || true
           timeout 20 adb shell ps -A > runtime-artifacts/processes-final.txt 2>&1 || true
           timeout 20 adb shell dmesg > runtime-artifacts/kernel-final.txt 2>&1 || true
+          timeout 20 adb shell getprop ro.build.fingerprint > runtime-artifacts/device-build-fingerprint.txt 2>&1 || true
+          timeout 20 adb shell settings get secure default_input_method > runtime-artifacts/default-input-method.txt 2>&1 || true
+          timeout 20 adb shell dumpsys input_method > runtime-artifacts/input-method-final.txt 2>&1 || true
+          timeout 20 adb shell pm list packages --apex-only --show-versioncode > runtime-artifacts/apex-versions.txt 2>&1 || true
+          mkdir -p runtime-artifacts/tombstones
+          timeout 30 adb pull /data/tombstones/. runtime-artifacts/tombstones/ > runtime-artifacts/tombstone-collection.txt 2>&1 || true
           mkdir -p runtime-artifacts/runtime-smoke
           timeout 60 adb pull /sdcard/googletest/test_outputfiles/. runtime-artifacts/runtime-smoke/ || true
           # The official AndroidX test storage provider owns this directory.
@@ -220,7 +237,7 @@ jobs:
                   shutil.copy2(file, output)
           PYOUTPUT
       - name: Require screenshots and JSON from successful runtime tests
-        if: ${{ success() && !inputs.network_probe }}
+        if: ${{ success() && !inputs.network_probe && !inputs.lifecycle_stress }}
         shell: bash
         run: |
           python3 - <<'PY'
@@ -313,10 +330,31 @@ jobs:
           assert all(row['visualStateSynchronized'] for row in report['screenshots'])
           print('Preserved native inference, offline catalog JSON and six genuine app screenshots.')
           PY
+      - name: Require observed 16KB stress evidence
+        if: ${{ success() && inputs.lifecycle_stress && !inputs.network_probe }}
+        shell: bash
+        run: |
+          python3 - <<'PYSTRESS'
+          import json
+          from pathlib import Path
+          report=json.loads(Path('runtime-artifacts/runtime-smoke/input-lifecycle-report.json').read_text())
+          migration=json.loads(Path('runtime-artifacts/runtime-smoke/asset-migration-report.json').read_text())
+          assert report['phase']=='passed' and report['sdk']==35 and report['pageSize']==16384 and report['deviceAbi']=='x86_64'
+          assert report['packageName']=='com.shikuang.app.preview' and report['versionCode']==25001
+          assert report['activeNetworkBefore'] is None and report['activeNetworkAfter'] is None
+          assert report['nativeInputCycles']==9 and report['fallbackNoEditCycles']==3
+          assert len(report['cycles'])==12 and len({r['cycle'] for r in report['cycles']})==12
+          assert all(r['backgroundForegroundVerified'] and r['recreateVerified'] and r['storedRecordPreserved'] and r['closedWithoutObservedCrash'] for r in report['cycles'])
+          assert sum(r['nativeComposingAndVisibleImeVerified'] for r in report['cycles'])==9
+          assert report['sentinelRemoved'] and report['productionAccuracyClaim'] is False
+          assert migration['phase']=='migration-passed' and migration['historyPreserved'] and not migration['poisonedPage']
+          assert Path('runtime-artifacts/runtime-smoke/input-lifecycle-final.png').read_bytes().startswith(b'\x89PNG\r\n\x1a\n')
+          print('Observed 12 bounded lifecycle cycles, 9 native composing/visible-IME cycles and 3 no-edit controls; not root-cause closure.')
+          PYSTRESS
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ${{ inputs.network_probe && 'shikuang-network-probe-api35' || format('shikuang-runtime-api-{0}', matrix.id) }}
+          name: ${{ inputs.lifecycle_stress && 'shikuang-16kb-input-lifecycle-stress' || inputs.network_probe && 'shikuang-network-probe-api35' || format('shikuang-runtime-api-{0}', matrix.id) }}
           path: |
             runtime-artifacts/
             android/app/build/reports/androidTests/
