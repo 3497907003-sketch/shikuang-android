@@ -10,7 +10,7 @@ final class RuntimeTestOutput {
     private RuntimeTestOutput() {}
 
     static OutputStream open(String name) throws IOException {
-        if (!name.matches("[a-z0-9-]+\\.(json|png)")) {
+        if (!name.matches("[a-z0-9-]+\\.(json|png|txt)")) {
             throw new IOException("Unsafe runtime evidence filename: " + name);
         }
         if (!"true".equals(InstrumentationRegistry.getArguments().getString("useTestStorageService"))) {

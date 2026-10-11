@@ -21,6 +21,11 @@ on:
         required: false
         type: boolean
         default: false
+      lifecycle_comparison:
+        description: 'One bounded detailed original-app versus separate native WebView control on the same genuine 16KB image'
+        required: false
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -35,10 +40,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJSON(inputs.lifecycle_stress && '[{"api":35,"id":"35-16k","tag":"google_apis_ps16k","pageSize":16384}]' || inputs.network_probe && '[{"api":35,"id":"35","tag":"google_apis","pageSize":4096}]' || '[{"api":24,"id":"24","tag":"google_apis","pageSize":4096},{"api":30,"id":"30","tag":"google_apis","pageSize":4096},{"api":35,"id":"35","tag":"google_apis","pageSize":4096},{"api":35,"id":"35-16k","tag":"google_apis_ps16k","pageSize":16384}]') }}
+        include: ${{ fromJSON((inputs.lifecycle_stress || inputs.lifecycle_comparison) && '[{"api":35,"id":"35-16k","tag":"google_apis_ps16k","pageSize":16384}]' || inputs.network_probe && '[{"api":35,"id":"35","tag":"google_apis","pageSize":4096}]' || '[{"api":24,"id":"24","tag":"google_apis","pageSize":4096},{"api":30,"id":"30","tag":"google_apis","pageSize":4096},{"api":35,"id":"35","tag":"google_apis","pageSize":4096},{"api":35,"id":"35-16k","tag":"google_apis_ps16k","pageSize":16384}]') }}
     steps:
       - name: Validate isolated test scope
-        run: test "${{ inputs.lifecycle_stress && inputs.network_probe }}" != "true"
+        run: |
+          SHIKUANG_DIAGNOSTIC_COUNT=0
+          for SHIKUANG_DIAGNOSTIC_FLAG in "${{ inputs.lifecycle_stress }}" "${{ inputs.lifecycle_comparison }}" "${{ inputs.network_probe }}"; do
+            if [[ "$SHIKUANG_DIAGNOSTIC_FLAG" = true ]]; then SHIKUANG_DIAGNOSTIC_COUNT=$((SHIKUANG_DIAGNOSTIC_COUNT + 1)); fi
+          done
+          test "$SHIKUANG_DIAGNOSTIC_COUNT" -le 1
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         if: ${{ !inputs.network_probe }}
@@ -54,6 +64,9 @@ jobs:
         if: ${{ !inputs.network_probe }}
       - run: npm run sync
         if: ${{ !inputs.network_probe }}
+      - name: Build independent control application and instrumentation before emulator experiment
+        if: ${{ inputs.lifecycle_comparison }}
+        run: ./android/gradlew -p android16k-control --no-daemon --max-workers=2 assembleDebug assembleDebugAndroidTest
       - name: Install official Android emulator image
         shell: bash
         run: |
@@ -182,11 +195,11 @@ jobs:
           test "$(timeout 15 adb get-state | tr -d '\r')" = device
           SHIKUANG_PROBE
       - name: Run packaged WebView with actual native ONNX inference
-        if: ${{ !inputs.network_probe && !inputs.lifecycle_stress }}
+        if: ${{ !inputs.network_probe && !inputs.lifecycle_stress && !inputs.lifecycle_comparison }}
         working-directory: android
         run: ./gradlew --no-daemon --max-workers=2 -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true -Pandroid.testInstrumentationRunnerArguments.expectedPageSize=${{ matrix.pageSize }} -Pandroid.testInstrumentationRunnerArguments.notClass=com.shikuang.app.InputLifecycle16kStressInstrumentedTest connectedDebugAndroidTest
       - name: Allow and record visible soft keyboard for isolated input stress
-        if: ${{ inputs.lifecycle_stress && !inputs.network_probe }}
+        if: ${{ (inputs.lifecycle_stress || inputs.lifecycle_comparison) && !inputs.network_probe }}
         shell: bash
         run: |
           adb shell settings get secure show_ime_with_hard_keyboard > runtime-artifacts/ime-with-hard-keyboard-before.txt
@@ -196,6 +209,28 @@ jobs:
           adb shell settings get secure default_input_method > runtime-artifacts/default-input-method-before-stress.txt
           adb shell dumpsys input_method > runtime-artifacts/input-method-before-stress.txt
           adb shell dumpsys window > runtime-artifacts/window-before-stress.txt
+      - name: Run independent native WebView control once
+        if: ${{ inputs.lifecycle_comparison }}
+        id: control16k
+        continue-on-error: true
+        run: ./android/gradlew -p android16k-control --no-daemon --max-workers=2 -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true -Pandroid.testInstrumentationRunnerArguments.class=com.shikuang.control16k.WebViewControl16kInstrumentedTest connectedDebugAndroidTest
+      - name: Preserve control experiment before original app
+        if: ${{ always() && inputs.lifecycle_comparison }}
+        run: |
+          mkdir -p runtime-artifacts/control16k
+          timeout 30 adb logcat -b all -d -v threadtime > runtime-artifacts/control16k/logcat-after-control.txt || true
+          timeout 20 adb shell dumpsys activity exit-info com.shikuang.control16k > runtime-artifacts/control16k/exit-info.txt || true
+          timeout 20 adb exec-out screencap -p > runtime-artifacts/control16k/final-screen.png || true
+          timeout 20 adb shell dumpsys input_method > runtime-artifacts/control16k/input-method.txt || true
+          timeout 20 adb shell dumpsys window > runtime-artifacts/control16k/window.txt || true
+          timeout 20 adb shell dumpsys webviewupdate > runtime-artifacts/control16k/webview-provider.txt || true
+          timeout 20 adb shell pm path com.shikuang.control16k > runtime-artifacts/control16k/package-path.txt || true
+      - name: Run detailed original application protocol once
+        if: ${{ always() && inputs.lifecycle_comparison && steps.control16k.outcome != 'skipped' }}
+        id: app16k
+        continue-on-error: true
+        working-directory: android
+        run: ./gradlew --no-daemon --max-workers=2 -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true -Pandroid.testInstrumentationRunnerArguments.class=com.shikuang.app.InputLifecycle16kStressInstrumentedTest connectedDebugAndroidTest
       - name: Run bounded genuine 16KB input and lifecycle stress
         if: ${{ inputs.lifecycle_stress && !inputs.network_probe }}
         working-directory: android
@@ -237,20 +272,21 @@ jobs:
           python3 - <<'PYOUTPUT'
           from pathlib import Path
           import hashlib, shutil
-          source = Path('android/app/build/outputs/connected_android_test_additional_output')
+          sources = [Path('android/app/build/outputs/connected_android_test_additional_output'), Path('android16k-control/build/outputs/connected_android_test_additional_output')]
           target = Path('runtime-artifacts/runtime-smoke')
-          for file in source.rglob('*') if source.exists() else []:
-              if not file.is_file() or file.suffix not in ('.json', '.png', '.txt'):
-                  continue
-              target.mkdir(parents=True, exist_ok=True)
-              output = target / file.name
-              if output.exists():
-                  assert output.read_bytes() == file.read_bytes(), f'Device and UTP evidence differ: {file.name}'
-              else:
-                  shutil.copy2(file, output)
+          for source in sources:
+              for file in source.rglob('*') if source.exists() else []:
+                  if not file.is_file() or file.suffix not in ('.json', '.png', '.txt'):
+                      continue
+                  target.mkdir(parents=True, exist_ok=True)
+                  output = target / file.name
+                  if output.exists():
+                      assert output.read_bytes() == file.read_bytes(), f'Device and UTP evidence differ: {file.name}'
+                  else:
+                      shutil.copy2(file, output)
           PYOUTPUT
       - name: Require screenshots and JSON from successful runtime tests
-        if: ${{ success() && !inputs.network_probe && !inputs.lifecycle_stress }}
+        if: ${{ success() && !inputs.network_probe && !inputs.lifecycle_stress && !inputs.lifecycle_comparison }}
         shell: bash
         run: |
           python3 - <<'PY'
@@ -372,13 +408,52 @@ jobs:
           assert (folder / 'input-lifecycle-final.png').read_bytes().startswith(b'\x89PNG\r\n\x1a\n')
           print('Observed 12 bounded lifecycle cycles, 9 native composing/visible-IME cycles and 3 no-edit controls; not root-cause closure.')
           PYSTRESS
+      - name: Require both complete actual 16KB comparison protocols
+        if: ${{ always() && inputs.lifecycle_comparison }}
+        env:
+          SHIKUANG_CONTROL_OUTCOME: ${{ steps.control16k.outcome }}
+          SHIKUANG_APP_OUTCOME: ${{ steps.app16k.outcome }}
+        run: |
+          python3 - <<'PYCOMPARE'
+          import json, os
+          from pathlib import Path
+          folder=Path('runtime-artifacts/runtime-smoke')
+          summary={'control_step':os.environ['SHIKUANG_CONTROL_OUTCOME'],'original_app_step':os.environ['SHIKUANG_APP_OUTCOME'],'protocols':{},'root_cause_fixed':False}
+          for prefix, package in [('control16k-input-lifecycle','com.shikuang.control16k'),('input-lifecycle','com.shikuang.app.preview')]:
+              filename=folder / (prefix+'-report.json')
+              summary['protocols'][package]={'report_present':filename.exists()}
+              if filename.exists():
+                  report=json.loads(filename.read_text())
+                  summary['protocols'][package].update(phase=report.get('phase'),completed_cycles=len(report.get('cycles',[])),native_cycles=sum(r.get('nativeComposingAndVisibleImeVerified',False) for r in report.get('cycles',[])))
+          Path('runtime-artifacts/comparison-step-outcomes.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2)+'\n')
+          assert summary['control_step']=='success' and summary['original_app_step']=='success',summary
+          for prefix, package in [('control16k-input-lifecycle','com.shikuang.control16k'),('input-lifecycle','com.shikuang.app.preview')]:
+              report=json.loads((folder / (prefix+'-report.json')).read_text())
+              assert report['phase']=='passed' and report['sdk']==35 and report['pageSize']==16384 and report['deviceAbi']=='x86_64'
+              assert report['packageName']==package and report['activeNetworkBefore'] is None and report['activeNetworkAfter'] is None
+              assert len(report['cycles'])==12 and len({r['cycle'] for r in report['cycles']})==12
+              assert sum(r['nativeComposingAndVisibleImeVerified'] for r in report['cycles'])==9
+              assert all(r['backgroundForegroundVerified'] and r['recreateVerified'] and r['storedRecordPreserved'] and r['closedWithoutObservedCrash'] for r in report['cycles'])
+              assert report['sentinelRemoved'] and not report['productionAccuracyClaim']
+              for view,selector,cycle in [('identify','#notes',1),('library','#librarySearch',2),('records','#recordSearch',3)]:
+                  stem=f'{prefix}-{view}-composing'
+                  evidence=json.loads((folder / (stem+'.json')).read_text())
+                  assert evidence['selector']==selector and evidence['imeVisible'] and evidence['windowFocus'] and evidence['nativeViewFocus']
+                  assert evidence['dom']['active'] and evidence['dom']['value']==f'quartz-实验室-{cycle}'
+                  assert (folder / (stem+'.png')).read_bytes().startswith(b'\x89PNG\r\n\x1a\n')
+          print('Both bounded protocols fully observed. Root cause remains open; no production fix or release claim.')
+          PYCOMPARE
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ${{ inputs.lifecycle_stress && 'shikuang-16kb-input-lifecycle-stress' || inputs.network_probe && 'shikuang-network-probe-api35' || format('shikuang-runtime-api-{0}', matrix.id) }}
+          name: ${{ inputs.lifecycle_comparison && 'shikuang-16kb-native-webview-comparison' || inputs.lifecycle_stress && 'shikuang-16kb-input-lifecycle-stress' || inputs.network_probe && 'shikuang-network-probe-api35' || format('shikuang-runtime-api-{0}', matrix.id) }}
           path: |
             runtime-artifacts/
             android/app/build/reports/androidTests/
             android/app/build/outputs/androidTest-results/
             android/app/build/outputs/connected_android_test_additional_output/
+            android16k-control/build/reports/androidTests/
+            android16k-control/build/outputs/androidTest-results/
+            android16k-control/build/outputs/connected_android_test_additional_output/
+            android16k-control/build/intermediates/merged_manifests/
           if-no-files-found: warn

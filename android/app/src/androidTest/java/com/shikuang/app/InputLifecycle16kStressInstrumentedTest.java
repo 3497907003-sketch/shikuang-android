@@ -129,9 +129,13 @@ public class InputLifecycle16kStressInstrumentedTest {
     }
 
     private void focusAndCompose(int cycle, String selector, String view, String text) throws Exception {
+        final String composePhase = phase;
         // Real touch is essential: script focus alone is not a user gesture in WebView.
+        checkpoint(cycle, composePhase + "/view-switch-before");
         evaluate("(()=>{document.querySelector('[data-view=" + view + "]').click();const f=document.querySelector(" + JSONObject.quote(selector) + ");f.scrollIntoView({block:'center'});return true;})()");
+        checkpoint(cycle, composePhase + "/view-switch-after");
         await("(()=>{const r=document.querySelector(" + JSONObject.quote(selector) + ").getBoundingClientRect();return r.width>0&&r.height>0&&r.top>=0&&r.bottom<=innerHeight;})()", "visible input bounds", 10000);
+        checkpoint(cycle, composePhase + "/bounds-visible");
         JSONObject bounds = new JSONObject(evaluate("JSON.stringify((()=>{const r=document.querySelector(" + JSONObject.quote(selector) + ").getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2,w:innerWidth,h:innerHeight};})())"));
         final float[] point = new float[2];
         scenario.onActivity(a -> {
@@ -144,13 +148,18 @@ public class InputLifecycle16kStressInstrumentedTest {
         long downAt = SystemClock.uptimeMillis();
         MotionEvent down = MotionEvent.obtain(downAt, downAt, MotionEvent.ACTION_DOWN, point[0], point[1], 0);
         MotionEvent up = MotionEvent.obtain(downAt, downAt + 80, MotionEvent.ACTION_UP, point[0], point[1], 0);
+        checkpoint(cycle, composePhase + "/native-touch-before");
         try {
             InstrumentationRegistry.getInstrumentation().sendPointerSync(down);
             SystemClock.sleep(80);
             InstrumentationRegistry.getInstrumentation().sendPointerSync(up);
         } finally {down.recycle();up.recycle();}
+        checkpoint(cycle, composePhase + "/native-touch-after");
+        if (cycle <= 3 && composePhase.equals("compose-before-background")) inputEvidence("input-lifecycle-" + view + "-after-touch", selector);
         await("document.activeElement===document.querySelector(" + JSONObject.quote(selector) + ")", "DOM focus after actual native touch", 10000);
+        checkpoint(cycle, composePhase + "/dom-focused");
         AtomicReference<Throwable> failure = new AtomicReference<>();
+        checkpoint(cycle, composePhase + "/show-ime-before");
         scenario.onActivity(a -> {
             try {
                 WebView web = a.getBridge().getWebView();
@@ -160,6 +169,7 @@ public class InputLifecycle16kStressInstrumentedTest {
             } catch (Throwable e) { failure.set(e); }
         });
         if (failure.get() != null) throw new AssertionError("IME show failed", failure.get());
+        checkpoint(cycle, composePhase + "/show-ime-after");
         long end = Math.min(deadline, SystemClock.elapsedRealtime() + 10000);
         AtomicReference<Boolean> visible = new AtomicReference<>(false);
         do {
@@ -172,12 +182,31 @@ public class InputLifecycle16kStressInstrumentedTest {
         } while (SystemClock.elapsedRealtime() < end);
         if (!Boolean.TRUE.equals(visible.get())) inputEvidence("input-lifecycle-ime-failure-" + cycle, selector);
         assertTrue("Actual IME must be visible, not a DOM-value-only test", visible.get());
+        checkpoint(cycle, composePhase + "/ime-visible");
+        checkpoint(cycle, composePhase + "/input-connection-before");
+        JSONObject connectionEvidence = new JSONObject().put("cycle", cycle).put("composePhase", composePhase).put("selector", selector);
+        AtomicReference<InputConnection> currentInput = new AtomicReference<>();
         scenario.onActivity(a -> {
             try {
                 WebView web = a.getBridge().getWebView();
                 EditorInfo info = new EditorInfo();
                 InputConnection input = web.onCreateInputConnection(info);
                 assertNotNull("Actual WebView InputConnection unavailable", input);
+                currentInput.set(input);
+                connectionEvidence.put("inputConnectionClass", input.getClass().getName()).put("inputType", info.inputType)
+                    .put("imeOptions", info.imeOptions).put("initialSelStart", info.initialSelStart).put("initialSelEnd", info.initialSelEnd);
+            } catch (Throwable e) { failure.set(e); }
+        });
+        if (failure.get() != null) throw new AssertionError("Native input connection failed", failure.get());
+        try (OutputStream out = RuntimeTestOutput.open("input-lifecycle-connection-" + cycle + "-" + composePhase + ".json")) {
+            out.write(connectionEvidence.toString(2).getBytes(StandardCharsets.UTF_8));
+        }
+        checkpoint(cycle, composePhase + "/input-connection-after");
+        checkpoint(cycle, composePhase + "/set-composing-before");
+        scenario.onActivity(a -> {
+            try {
+                InputConnection input = currentInput.get();
+                assertNotNull("Actual WebView InputConnection unavailable during composition", input);
                 assertTrue(input.beginBatchEdit());
                 try {
                     assertTrue(input.deleteSurroundingText(2000, 2000));
@@ -186,8 +215,10 @@ public class InputLifecycle16kStressInstrumentedTest {
             } catch (Throwable e) { failure.set(e); }
         });
         if (failure.get() != null) throw new AssertionError("Native composing failed", failure.get());
+        checkpoint(cycle, composePhase + "/set-composing-after");
         await("document.querySelector(" + JSONObject.quote(selector) + ").value===" + JSONObject.quote(text), "native composition reflected in DOM", 10000);
-        if (cycle <= 3 && phase.equals("compose-before-background")) inputEvidence("input-lifecycle-" + view + "-composing", selector);
+        checkpoint(cycle, composePhase + "/chinese-dom-verified");
+        if (cycle <= 3 && composePhase.equals("compose-before-background")) inputEvidence("input-lifecycle-" + view + "-composing", selector);
         // Intentionally keep composition active for lifecycle cleanup; no stale connection is called after destruction.
     }
 
