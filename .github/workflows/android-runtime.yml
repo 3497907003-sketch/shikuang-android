@@ -33,6 +33,7 @@ on:
         default: false
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: android-runtime-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -479,7 +480,7 @@ jobs:
   frozen-image-apks:
     if: ${{ inputs.image_comparison }}
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     outputs:
       manifest_sha: ${{ steps.freeze.outputs.manifest_sha }}
     steps:
@@ -488,45 +489,32 @@ jobs:
         test "${{ inputs.image_comparison }}" = true
         for SHIKUANG_OTHER_FLAG in "${{ inputs.network_probe }}" "${{ inputs.lifecycle_stress }}" "${{ inputs.lifecycle_comparison }}"; do test "$SHIKUANG_OTHER_FLAG" != true; done
     - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
+    - name: Retrieve exact immutable APK artifact from retained setup-failure run
+      uses: actions/download-artifact@v5
       with:
-        node-version: 22
-        cache: npm
-    - uses: actions/setup-java@v4
-      with:
-        distribution: temurin
-        java-version: 17
-        cache: gradle
-    - run: npm ci
-    - run: npm run sync
+        name: shikuang-image-comparison-frozen-apks
+        path: frozen-apks
+        repository: ${{ github.repository }}
+        run-id: 38104162907
+        github-token: ${{ secrets.GITHUB_TOKEN }}
     - id: freeze
-      name: Build and freeze one identical set of four experiment APKs and helper
-      run: |-
-        ./android/gradlew -p android --no-daemon --max-workers=2 :app:assembleDebug :app:assembleDebugAndroidTest
-        ./android/gradlew -p android16k-control --no-daemon --max-workers=2 assembleDebug assembleDebugAndroidTest
-        mkdir -p frozen-apks
-        curl --fail --location --max-time 60 --silent --show-error https://dl.google.com/dl/android/maven2/androidx/test/services/test-services/1.4.2/test-services-1.4.2.apk --output frozen-apks/test-services-1.4.2.apk
-        python3 - <<'PYFREEZE'
+      name: Verify byte-identical original four APKs and helper without rebuilding
+      run: |
+        python3 - <<'PYREUSE'
         from pathlib import Path
-        import os,json,hashlib,shutil,subprocess
-        out=Path('frozen-apks')
-        for root,name in [('android/app','app'),('android16k-control','control')]:
-            for part,suffix in [('debug',''),('androidTest/debug','-test')]:
-                files=list((Path(root)/'build/outputs/apk'/part).glob('*.apk'))
-                assert len(files)==1,(root,part,files)
-                shutil.copy2(files[0],out/(name+suffix+'.apk'))
-        sources=['android/app/src/androidTest/java/com/shikuang/app/InputLifecycle16kStressInstrumentedTest.java','android16k-control/src/androidTest/java/com/shikuang/control16k/WebViewControl16kInstrumentedTest.java','.github/workflows/android-runtime.yml']
-        frozen=[]
-        for source in sources:
-            data=Path(source).read_bytes(); target=out/'source'/source;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(data)
-            frozen.append({'path':source,'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest()})
-        apks=[{'name':p.name,'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for p in sorted(out.glob('*.apk'))]
-        assert len(apks)==5
-        manifest={'sourceSha':os.environ['GITHUB_SHA'],'fourExperimentApks':['app.apk','app-test.apk','control.apk','control-test.apk'],'testStorageHelper':'test-services-1.4.2.apk','apks':apks,'sourceFiles':frozen,'scope':'Same byte-identical APKs on two official complete system images; multi-component image condition, not provider-only A/B'}
-        (out/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n')
-        print(json.dumps(manifest,ensure_ascii=False))
-        with open(os.environ['GITHUB_OUTPUT'],'a') as f:f.write('manifest_sha='+hashlib.sha256((out/'manifest.json').read_bytes()).hexdigest()+'\n')
-        PYFREEZE
+        import json,hashlib,os
+        folder=Path('frozen-apks');raw=(folder/'manifest.json').read_bytes()
+        assert hashlib.sha256(raw).hexdigest()=='4e91883a61c8663248bb62463616bc216637a5b20373a1571b67461c1f52bd0b'
+        m=json.loads(raw);assert m['sourceSha']=='1c345718018ae0ffe657cb5a853adfedcddd11eb'
+        assert m['fourExperimentApks']==['app.apk','app-test.apk','control.apk','control-test.apk'] and len(m['apks'])==5
+        for row in m['apks']:
+            file=folder/row['name'];assert file.stat().st_size==row['bytes'] and hashlib.sha256(file.read_bytes()).hexdigest()==row['sha256']
+        for row in m['sourceFiles']:
+            file=folder/'source'/row['path'];assert file.stat().st_size==row['bytes'] and hashlib.sha256(file.read_bytes()).hexdigest()==row['sha256']
+            if row['path'].endswith('.java'):assert Path(row['path']).read_bytes()==file.read_bytes(),'Frozen test Java must be unchanged'
+        with open(os.environ['GITHUB_OUTPUT'],'a') as output:output.write('manifest_sha='+hashlib.sha256(raw).hexdigest()+'\n')
+        print('Reuse exact retained original APKs; no Gradle/npm build or signing occurs in this workflow')
+        PYREUSE
     - uses: actions/upload-artifact@v4
       with:
         name: shikuang-image-comparison-frozen-apks
@@ -569,6 +557,17 @@ jobs:
       with:
         name: shikuang-image-comparison-frozen-apks
         path: frozen-apks
+    - name: Repair confirmed Ubuntu emulator host dependency and expose diagnostics path
+      run: |
+        set -euo pipefail
+        mkdir -p runtime-artifacts
+        SHIKUANG_ANDROID_SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+        printf '%s\n' "$SHIKUANG_ANDROID_SDK/platform-tools" >> "$GITHUB_PATH"
+        dpkg-query -W libpulse0 > runtime-artifacts/host-libpulse-before.txt 2>&1 || true
+        sudo apt-get update -qq
+        sudo apt-get install -y --no-install-recommends libpulse0
+        dpkg-query -W libpulse0 > runtime-artifacts/host-libpulse-after.txt
+        apt-cache policy libpulse0 > runtime-artifacts/host-libpulse-policy.txt
     - name: Verify official archive and exact installed system image
       run: |-
         set -euo pipefail
@@ -594,7 +593,10 @@ jobs:
         Path('runtime-artifacts/official-image-verification.json').write_text(json.dumps({'catalog_sha256':hashlib.sha256(raw).hexdigest(),'package':pkg.get('path'),'revision':'${{ matrix.revision }}','url':'https://dl.google.com/android/repository/sys-img/google_apis/${{ matrix.archive }}','bytes':size,'sha1':s1.hexdigest(),'sha256':s256.hexdigest(),'scope':'Complete image condition; ART/framework/provider may all change'},indent=2)+'\n')
         PYIMAGE
         "$SHIKUANG_ANDROID_SDK/cmdline-tools/latest/bin/sdkmanager" "platform-tools" "emulator" "system-images;android-${{ matrix.api }};google_apis_ps16k;x86_64"
-        "$SHIKUANG_ANDROID_SDK/emulator/emulator" -version > runtime-artifacts/emulator-version.txt
+        ldd "$SHIKUANG_ANDROID_SDK/emulator/qemu/linux-x86_64/qemu-system-x86_64" > runtime-artifacts/emulator-host-ldd.txt
+        cat runtime-artifacts/emulator-host-ldd.txt
+        ! grep -q 'not found' runtime-artifacts/emulator-host-ldd.txt
+        "$SHIKUANG_ANDROID_SDK/emulator/emulator" -version > runtime-artifacts/emulator-version.txt 2>&1
         grep -q 16428233 runtime-artifacts/emulator-version.txt
         python3 - <<'PYINSTALLED'
         from pathlib import Path
@@ -713,10 +715,12 @@ jobs:
         from pathlib import Path
         import json,hashlib,os
         folder=Path('frozen-apks');raw=(folder/'manifest.json').read_bytes();assert hashlib.sha256(raw).hexdigest()==os.environ['EXPECTED_MANIFEST_SHA']
-        m=json.loads(raw);assert m['sourceSha']==os.environ['GITHUB_SHA'];assert len(m['apks'])==5
+        m=json.loads(raw);assert m['sourceSha']=='1c345718018ae0ffe657cb5a853adfedcddd11eb';assert len(m['apks'])==5
         for row in m['apks']:
             p=folder/row['name'];assert p.stat().st_size==row['bytes'] and hashlib.sha256(p.read_bytes()).hexdigest()==row['sha256']
         Path('runtime-artifacts/frozen-apk-manifest.json').write_bytes(raw)
+        Path('runtime-artifacts/executed-test-workflow.yml').write_bytes(Path('.github/workflows/android-runtime.yml').read_bytes())
+        Path('runtime-artifacts/reused-apk-protocol.json').write_text(json.dumps({'executedWorkflowSha':os.environ['GITHUB_SHA'],'frozenApkSourceSha':m['sourceSha'],'frozenApkRunId':38104162907,'scope':'Repair CI host libpulse dependency; same original APK bytes, not App fix'},indent=2)+'\n')
         PYAPKCHECK
         for SHIKUANG_APK in frozen-apks/test-services-1.4.2.apk frozen-apks/control.apk frozen-apks/control-test.apk frozen-apks/app.apk frozen-apks/app-test.apk; do timeout 90 adb install -r -g "$SHIKUANG_APK"; done
         adb shell appops set androidx.test.services MANAGE_EXTERNAL_STORAGE allow
