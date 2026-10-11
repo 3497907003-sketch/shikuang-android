@@ -500,9 +500,10 @@ jobs:
     - id: freeze
       name: Verify byte-identical original four APKs and helper without rebuilding
       run: |
+        git fetch --no-tags --depth=1 origin 1c345718018ae0ffe657cb5a853adfedcddd11eb
         python3 - <<'PYREUSE'
         from pathlib import Path
-        import json,hashlib,os
+        import json,hashlib,os,subprocess
         folder=Path('frozen-apks');raw=(folder/'manifest.json').read_bytes()
         assert hashlib.sha256(raw).hexdigest()=='4e91883a61c8663248bb62463616bc216637a5b20373a1571b67461c1f52bd0b'
         m=json.loads(raw);assert m['sourceSha']=='1c345718018ae0ffe657cb5a853adfedcddd11eb'
@@ -510,7 +511,14 @@ jobs:
         for row in m['apks']:
             file=folder/row['name'];assert file.stat().st_size==row['bytes'] and hashlib.sha256(file.read_bytes()).hexdigest()==row['sha256']
         for row in m['sourceFiles']:
-            file=folder/'source'/row['path'];assert file.stat().st_size==row['bytes'] and hashlib.sha256(file.read_bytes()).hexdigest()==row['sha256']
+            file=folder/'source'/row['path']
+            if not file.exists():
+                assert row['path']=='.github/workflows/android-runtime.yml','Only original hidden workflow metadata may be restored'
+                source=subprocess.check_output(['git','show',m['sourceSha']+':'+row['path']])
+                assert len(source)==row['bytes'] and hashlib.sha256(source).hexdigest()==row['sha256']
+                file.parent.mkdir(parents=True,exist_ok=True);file.write_bytes(source)
+                (folder/'workflow-source-recovery.json').write_text(json.dumps({'sourceSha':m['sourceSha'],'manifestBoundEntry':row,'cause':'Original artifact upload excluded hidden .github directory; old commit bytes restored, APKs untouched'},indent=2)+'\n')
+            assert file.stat().st_size==row['bytes'] and hashlib.sha256(file.read_bytes()).hexdigest()==row['sha256']
             if row['path'].endswith('.java'):assert Path(row['path']).read_bytes()==file.read_bytes(),'Frozen test Java must be unchanged'
         with open(os.environ['GITHUB_OUTPUT'],'a') as output:output.write('manifest_sha='+hashlib.sha256(raw).hexdigest()+'\n')
         print('Reuse exact retained original APKs; no Gradle/npm build or signing occurs in this workflow')
@@ -520,6 +528,7 @@ jobs:
         name: shikuang-image-comparison-frozen-apks
         path: frozen-apks/
         if-no-files-found: error
+        include-hidden-files: true
   official-image-runtime:
     if: ${{ inputs.image_comparison }}
     needs: frozen-image-apks
