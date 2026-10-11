@@ -433,14 +433,26 @@ jobs:
               assert report['packageName']==package and report['activeNetworkBefore'] is None and report['activeNetworkAfter'] is None
               assert len(report['cycles'])==12 and len({r['cycle'] for r in report['cycles']})==12
               assert sum(r['nativeComposingAndVisibleImeVerified'] for r in report['cycles'])==9
+              for suffix in ['/native-touch-after','/ime-visible','/chinese-dom-verified']:
+                  assert sum(event['action'].endswith(suffix) for event in report['events'])==27
               assert all(r['backgroundForegroundVerified'] and r['recreateVerified'] and r['storedRecordPreserved'] and r['closedWithoutObservedCrash'] for r in report['cycles'])
               assert report['sentinelRemoved'] and not report['productionAccuracyClaim']
+              for cycle in range(12):
+                  if cycle % 4 == 0: continue
+                  for phase in ['compose-before-background','compose-before-recreate','compose-before-close']:
+                      connection=json.loads((folder / f'{prefix}-connection-result-{cycle}-{phase}.json').read_text())
+                      assert connection['nativeCompositionReturned'] and 'failure' not in connection
+                      assert connection['actualCallThreadId']==connection['handlerThreadId'] and connection['actualCallThreadName']==connection['handlerThreadName']
               for view,selector,cycle in [('identify','#notes',1),('library','#librarySearch',2),('records','#recordSearch',3)]:
                   stem=f'{prefix}-{view}-composing'
                   evidence=json.loads((folder / (stem+'.json')).read_text())
                   assert evidence['selector']==selector and evidence['imeVisible'] and evidence['windowFocus'] and evidence['nativeViewFocus']
                   assert evidence['dom']['active'] and evidence['dom']['value']==f'quartz-实验室-{cycle}'
                   assert (folder / (stem+'.png')).read_bytes().startswith(b'\x89PNG\r\n\x1a\n')
+                  ime_stem=f'{prefix}-{view}-ime-visible'
+                  ime=json.loads((folder / (ime_stem+'.json')).read_text())
+                  assert ime['imeVisible'] and ime['windowFocus'] and ime['nativeViewFocus'] and ime['dom']['active']
+                  assert (folder / (ime_stem+'.png')).read_bytes().startswith(b'\x89PNG\r\n\x1a\n')
           print('Both bounded protocols fully observed. Root cause remains open; no production fix or release claim.')
           PYCOMPARE
       - uses: actions/upload-artifact@v4

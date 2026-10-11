@@ -5,6 +5,7 @@ import static org.junit.Assert.*;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.os.Build;
+import android.os.Handler;
 import android.os.SystemClock;
 import android.os.ParcelFileDescriptor;
 import android.system.Os;
@@ -128,9 +129,15 @@ public class WebViewControl16kInstrumentedTest {
         final String composePhase = phase;
         // Real touch is essential: script focus alone is not a user gesture in WebView.
         checkpoint(cycle, composePhase + "/view-switch-before");
-        evaluate("(()=>{const f=document.querySelector(" + JSONObject.quote(selector) + ");f.scrollIntoView({block:'center'});return true;})()");
         checkpoint(cycle, composePhase + "/view-switch-after");
-        await("(()=>{const r=document.querySelector(" + JSONObject.quote(selector) + ").getBoundingClientRect();return r.width>0&&r.height>0&&r.top>=0&&r.bottom<=innerHeight;})()", "visible input bounds", 10000);
+        evaluate("document.querySelector(" + JSONObject.quote(selector) + ").scrollIntoView({block:'center',behavior:'instant'});true");
+        checkpoint(cycle, composePhase + "/scroll-after-route");
+        try {
+            await("(()=>{const r=document.querySelector(" + JSONObject.quote(selector) + ").getBoundingClientRect();return r.width>0&&r.height>0&&r.top>=0&&r.bottom<=innerHeight;})()", "visible input bounds", 10000);
+        } catch (AssertionError failure) {
+            inputEvidence("control16k-input-lifecycle-bounds-failure-" + cycle, selector);
+            throw failure;
+        }
         checkpoint(cycle, composePhase + "/bounds-visible");
         JSONObject bounds = new JSONObject(evaluate("JSON.stringify((()=>{const r=document.querySelector(" + JSONObject.quote(selector) + ").getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2,w:innerWidth,h:innerHeight};})())"));
         final float[] point = new float[2];
@@ -179,9 +186,11 @@ public class WebViewControl16kInstrumentedTest {
         if (!Boolean.TRUE.equals(visible.get())) inputEvidence("control16k-input-lifecycle-ime-failure-" + cycle, selector);
         assertTrue("Actual IME must be visible, not a DOM-value-only test", visible.get());
         checkpoint(cycle, composePhase + "/ime-visible");
+        if (cycle <= 3 && composePhase.equals("compose-before-background")) inputEvidence("control16k-input-lifecycle-" + view + "-ime-visible", selector);
         checkpoint(cycle, composePhase + "/input-connection-before");
         JSONObject connectionEvidence = new JSONObject().put("cycle", cycle).put("composePhase", composePhase).put("selector", selector);
         AtomicReference<InputConnection> currentInput = new AtomicReference<>();
+        AtomicReference<Handler> currentInputHandler = new AtomicReference<>();
         scenario.onActivity(a -> {
             try {
                 WebView web = a.getWebView();
@@ -189,8 +198,12 @@ public class WebViewControl16kInstrumentedTest {
                 InputConnection input = web.onCreateInputConnection(info);
                 assertNotNull("Actual WebView InputConnection unavailable", input);
                 currentInput.set(input);
+                Handler handler = input.getHandler();
+                assertNotNull("Actual Chromium InputConnection handler unavailable", handler);
+                currentInputHandler.set(handler);
                 connectionEvidence.put("inputConnectionClass", input.getClass().getName()).put("inputType", info.inputType)
-                    .put("imeOptions", info.imeOptions).put("initialSelStart", info.initialSelStart).put("initialSelEnd", info.initialSelEnd);
+                    .put("imeOptions", info.imeOptions).put("initialSelStart", info.initialSelStart).put("initialSelEnd", info.initialSelEnd)
+                    .put("handlerThreadName", handler.getLooper().getThread().getName()).put("handlerThreadId", handler.getLooper().getThread().getId());
             } catch (Throwable e) { failure.set(e); }
         });
         if (failure.get() != null) throw new AssertionError("Native input connection failed", failure.get());
@@ -199,8 +212,11 @@ public class WebViewControl16kInstrumentedTest {
         }
         checkpoint(cycle, composePhase + "/input-connection-after");
         checkpoint(cycle, composePhase + "/set-composing-before");
-        scenario.onActivity(a -> {
+        CountDownLatch composingReturned = new CountDownLatch(1);
+        boolean posted = currentInputHandler.get().post(() -> {
             try {
+                assertSame("InputConnection must run on its declared handler looper", currentInputHandler.get().getLooper(), android.os.Looper.myLooper());
+                connectionEvidence.put("actualCallThreadName", Thread.currentThread().getName()).put("actualCallThreadId", Thread.currentThread().getId());
                 InputConnection input = currentInput.get();
                 assertNotNull("Actual WebView InputConnection unavailable during composition", input);
                 assertTrue(input.beginBatchEdit());
@@ -208,9 +224,20 @@ public class WebViewControl16kInstrumentedTest {
                     assertTrue(input.deleteSurroundingText(2000, 2000));
                     assertTrue(input.setComposingText(text, 1));
                 } finally { input.endBatchEdit(); }
+                connectionEvidence.put("nativeCompositionReturned", true);
             } catch (Throwable e) { failure.set(e); }
+            finally { composingReturned.countDown(); }
         });
-        if (failure.get() != null) throw new AssertionError("Native composing failed", failure.get());
+        assertTrue("InputConnection handler rejected bounded composition", posted);
+        assertTrue("InputConnection handler composition timed out", composingReturned.await(10, TimeUnit.SECONDS));
+        if (failure.get() != null) connectionEvidence.put("failure", failure.get().toString());
+        try (OutputStream out = RuntimeTestOutput.open("control16k-input-lifecycle-connection-result-" + cycle + "-" + composePhase + ".json")) {
+            out.write(connectionEvidence.toString(2).getBytes(StandardCharsets.UTF_8));
+        }
+        if (failure.get() != null) {
+            inputEvidence("control16k-input-lifecycle-compose-failure-" + cycle, selector);
+            throw new AssertionError("Native composing failed", failure.get());
+        }
         checkpoint(cycle, composePhase + "/set-composing-after");
         await("document.querySelector(" + JSONObject.quote(selector) + ").value===" + JSONObject.quote(text), "native composition reflected in DOM", 10000);
         checkpoint(cycle, composePhase + "/chinese-dom-verified");

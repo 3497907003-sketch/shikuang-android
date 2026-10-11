@@ -1,6 +1,6 @@
 # Independent 16KB WebView control experiment
 
-This is a separate diagnostic APK (`com.shikuang.control16k`) and separate instrumentation APK. It is not included in `android/settings.gradle`, does not add an Activity to the product manifest, and contains no Capacitor, mineral engine, product assets, model, credentials or release tasks. Its only Activity is not exported and has no launcher intent. The manifest has network-state permission, but no internet permission.
+This is a separate diagnostic APK (`com.shikuang.control16k`) and separate instrumentation APK. It is not included in `android/settings.gradle`, does not add an Activity to the product manifest, and contains no Capacitor, mineral engine, product assets, model, credentials or release pipeline. Its only Activity is not exported and has no launcher intent. The manifest has network-state permission, but no internet permission.
 
 The control uses the official device WebView provider, a local HTML string with three inputs, native touch, a genuinely visible system IME, and native `InputConnection.setComposingText`. Its 12 bounded launch/background/foreground/recreate/close cycles comprise 3 no-edit cycles and 9 edited cycles. A localStorage sentinel is verified across lifecycle changes; this does not test the product's IndexedDB implementation. Every edited cycle composes Chinese text before background, recreate and close, with strict DOM equality. Keyboard suggestion selection is not claimed.
 
