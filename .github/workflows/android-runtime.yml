@@ -602,9 +602,24 @@ jobs:
         Path('runtime-artifacts/official-image-verification.json').write_text(json.dumps({'catalog_sha256':hashlib.sha256(raw).hexdigest(),'package':pkg.get('path'),'revision':'${{ matrix.revision }}','url':'https://dl.google.com/android/repository/sys-img/google_apis/${{ matrix.archive }}','bytes':size,'sha1':s1.hexdigest(),'sha256':s256.hexdigest(),'scope':'Complete image condition; ART/framework/provider may all change'},indent=2)+'\n')
         PYIMAGE
         "$SHIKUANG_ANDROID_SDK/cmdline-tools/latest/bin/sdkmanager" "platform-tools" "emulator" "system-images;android-${{ matrix.api }};google_apis_ps16k;x86_64"
-        ldd "$SHIKUANG_ANDROID_SDK/emulator/qemu/linux-x86_64/qemu-system-x86_64" > runtime-artifacts/emulator-host-ldd.txt
+        # QEMU is launched with bundled emulator libraries; naked ldd reports
+        # those as absent even when the official launcher successfully boots.
+        # Resolve actual bundled parent directories only for this dependency audit.
+        SHIKUANG_EMULATOR_LD_DIRS="$(python3 - "$SHIKUANG_ANDROID_SDK/emulator" <<'PYLDDDIRS'
+        from pathlib import Path
+        import sys
+        root=Path(sys.argv[1]);dirs=sorted({str(p.parent) for p in root.rglob('*.so*') if p.is_file()})
+        assert dirs,'Official emulator bundled library directories not found'
+        print(':'.join(dirs))
+        PYLDDDIRS
+        )"
+        printf '%s\n' "$SHIKUANG_EMULATOR_LD_DIRS" > runtime-artifacts/emulator-bundled-ldd-path.txt
+        LD_LIBRARY_PATH="$SHIKUANG_EMULATOR_LD_DIRS${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" ldd "$SHIKUANG_ANDROID_SDK/emulator/qemu/linux-x86_64/qemu-system-x86_64" > runtime-artifacts/emulator-host-ldd.txt
         cat runtime-artifacts/emulator-host-ldd.txt
-        ! grep -q 'not found' runtime-artifacts/emulator-host-ldd.txt
+        if grep -q 'not found' runtime-artifacts/emulator-host-ldd.txt; then
+          echo 'Unresolved emulator dependency in actual bundled-library audit environment'
+          exit 1
+        fi
         "$SHIKUANG_ANDROID_SDK/emulator/emulator" -version > runtime-artifacts/emulator-version.txt 2>&1
         grep -q 16428233 runtime-artifacts/emulator-version.txt
         python3 - <<'PYINSTALLED'
@@ -761,11 +776,20 @@ jobs:
                 with zipfile.ZipFile(local) as z:
                     for name in z.namelist():
                         if not name.startswith('lib/x86_64/') or not name.endswith('.so'):continue
-                        data=z.read(name);elf=temp/(local.stem+'-'+Path(name).name);elf.write_bytes(data)
+                        data=z.read(name)
+                        if name=='lib/x86_64/libplaceholder.so' and len(data)==0:
+                            # Official Chromium apkbuilder.py adds empty ABI placeholders.
+                            # They are not ELF libraries and have no BuildId or segments.
+                            row.setdefault('emptyAbiPlaceholders',[]).append({'name':name,'bytes':0,'sha256':hashlib.sha256(data).hexdigest(),'classification':'Exact known empty ABI placeholder, not an ELF','source':'https://chromium.googlesource.com/chromium/src/+/refs/tags/124.0.6367.219/build/android/gyp/apkbuilder.py'})
+                            (out/(local.stem+'-'+Path(name).name+'-empty-entry.bin')).write_bytes(data)
+                            continue
+                        assert data.startswith(b'\x7fELF'),f'Unexpected non-ELF native entry: {package} {name} {len(data)} bytes'
+                        elf=temp/(local.stem+'-'+Path(name).name);elf.write_bytes(data)
                         meta=subprocess.check_output(['readelf','-W','-l','-n',str(elf)],text=True)
                         target=out/(elf.name+'-readelf.txt');target.write_text(meta)
                         row['elfs'].append({'name':name,'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest(),'readelf':target.name})
                 rows.append(row)
+        assert any(row['elfs'] for row in rows),'No actual x86_64 provider ELF libraries were audited'
         art=temp/'libart.so';subprocess.run(['adb','pull','/apex/com.android.art/lib64/libart.so',str(art)],check=True,timeout=60)
         meta=subprocess.check_output(['readelf','-W','-l','-n',str(art)],text=True);(out/'libart-readelf.txt').write_text(meta)
         rows.append({'remote':'/apex/com.android.art/lib64/libart.so','bytes':art.stat().st_size,'sha256':hashlib.sha256(art.read_bytes()).hexdigest(),'readelf':'libart-readelf.txt'})
