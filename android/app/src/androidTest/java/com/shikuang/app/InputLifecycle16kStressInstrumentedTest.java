@@ -6,10 +6,12 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.os.Build;
 import android.os.SystemClock;
+import android.os.ParcelFileDescriptor;
 import android.system.Os;
 import android.system.OsConstants;
 import android.util.Log;
 import android.view.WindowInsets;
+import android.view.MotionEvent;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
@@ -88,9 +90,66 @@ public class InputLifecycle16kStressInstrumentedTest {
         assertEquals("Stored record changed across lifecycle", snapshot, evaluate("window.__stressRecordSnapshot"));
     }
 
-    private void focusAndCompose(String selector, String view, String text) throws Exception {
-        evaluate("(()=>{document.querySelector('[data-view=" + view + "]').click();const f=document.querySelector(" + JSONObject.quote(selector) + ");f.scrollIntoView({block:'center'});f.focus();return true;})()");
-        await("document.activeElement===document.querySelector(" + JSONObject.quote(selector) + ")", "DOM editable focus", 10000);
+    private void screenshot(String name) throws Exception {
+        Bitmap bitmap = InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
+        assertNotNull(bitmap);
+        try (OutputStream out = RuntimeTestOutput.open(name)) {
+            assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG, 100, out));
+        } finally { bitmap.recycle(); }
+    }
+
+    private void shellSnapshot(String command, String name) throws Exception {
+        try (ParcelFileDescriptor.AutoCloseInputStream input = new ParcelFileDescriptor.AutoCloseInputStream(
+                 InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommand(command));
+             OutputStream output = RuntimeTestOutput.open(name)) {
+            byte[] buffer = new byte[8192];
+            int count;
+            while ((count = input.read(buffer)) != -1) output.write(buffer, 0, count);
+        }
+    }
+
+    private void inputEvidence(String stem, String selector) throws Exception {
+        JSONObject evidence = new JSONObject().put("phase", phase).put("selector", selector)
+            .put("dom", new JSONObject(evaluate("JSON.stringify((()=>{const f=document.querySelector(" + JSONObject.quote(selector) + ");const r=f.getBoundingClientRect();return {active:document.activeElement===f,value:f.value,left:r.left,top:r.top,width:r.width,height:r.height,viewportWidth:innerWidth,viewportHeight:innerHeight,devicePixelRatio:devicePixelRatio};})())")));
+        scenario.onActivity(a -> {
+            WebView web = a.getBridge().getWebView();
+            WindowInsets insets = web.getRootWindowInsets();
+            try {
+                evidence.put("windowFocus", web.hasWindowFocus()).put("nativeViewFocus", web.hasFocus())
+                    .put("imeVisible", insets != null && insets.isVisible(WindowInsets.Type.ime()));
+            } catch (Exception e) { throw new AssertionError(e); }
+        });
+        try (OutputStream out = RuntimeTestOutput.open(stem + ".json")) {
+            out.write(evidence.toString(2).getBytes(StandardCharsets.UTF_8));
+        }
+        screenshot(stem + ".png");
+        shellSnapshot("dumpsys input_method", stem + "-input-method.txt");
+        shellSnapshot("dumpsys window", stem + "-window.txt");
+        shellSnapshot("settings get secure show_ime_with_hard_keyboard", stem + "-hard-keyboard-setting.txt");
+    }
+
+    private void focusAndCompose(int cycle, String selector, String view, String text) throws Exception {
+        // Real touch is essential: script focus alone is not a user gesture in WebView.
+        evaluate("(()=>{document.querySelector('[data-view=" + view + "]').click();const f=document.querySelector(" + JSONObject.quote(selector) + ");f.scrollIntoView({block:'center'});return true;})()");
+        await("(()=>{const r=document.querySelector(" + JSONObject.quote(selector) + ").getBoundingClientRect();return r.width>0&&r.height>0&&r.top>=0&&r.bottom<=innerHeight;})()", "visible input bounds", 10000);
+        JSONObject bounds = new JSONObject(evaluate("JSON.stringify((()=>{const r=document.querySelector(" + JSONObject.quote(selector) + ").getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2,w:innerWidth,h:innerHeight};})())"));
+        final float[] point = new float[2];
+        scenario.onActivity(a -> {
+            WebView web = a.getBridge().getWebView();
+            assertTrue("Window must be focused before native touch", web.hasWindowFocus());
+            int[] location = new int[2];web.getLocationOnScreen(location);
+            point[0] = location[0] + (float)(bounds.optDouble("x") * web.getWidth() / bounds.optDouble("w"));
+            point[1] = location[1] + (float)(bounds.optDouble("y") * web.getHeight() / bounds.optDouble("h"));
+        });
+        long downAt = SystemClock.uptimeMillis();
+        MotionEvent down = MotionEvent.obtain(downAt, downAt, MotionEvent.ACTION_DOWN, point[0], point[1], 0);
+        MotionEvent up = MotionEvent.obtain(downAt, downAt + 80, MotionEvent.ACTION_UP, point[0], point[1], 0);
+        try {
+            InstrumentationRegistry.getInstrumentation().sendPointerSync(down);
+            SystemClock.sleep(80);
+            InstrumentationRegistry.getInstrumentation().sendPointerSync(up);
+        } finally {down.recycle();up.recycle();}
+        await("document.activeElement===document.querySelector(" + JSONObject.quote(selector) + ")", "DOM focus after actual native touch", 10000);
         AtomicReference<Throwable> failure = new AtomicReference<>();
         scenario.onActivity(a -> {
             try {
@@ -111,6 +170,7 @@ public class InputLifecycle16kStressInstrumentedTest {
             if (Boolean.TRUE.equals(visible.get())) break;
             SystemClock.sleep(80);
         } while (SystemClock.elapsedRealtime() < end);
+        if (!Boolean.TRUE.equals(visible.get())) inputEvidence("input-lifecycle-ime-failure-" + cycle, selector);
         assertTrue("Actual IME must be visible, not a DOM-value-only test", visible.get());
         scenario.onActivity(a -> {
             try {
@@ -127,6 +187,7 @@ public class InputLifecycle16kStressInstrumentedTest {
         });
         if (failure.get() != null) throw new AssertionError("Native composing failed", failure.get());
         await("document.querySelector(" + JSONObject.quote(selector) + ").value===" + JSONObject.quote(text), "native composition reflected in DOM", 10000);
+        if (cycle <= 3 && phase.equals("compose-before-background")) inputEvidence("input-lifecycle-" + view + "-composing", selector);
         // Intentionally keep composition active for lifecycle cleanup; no stale connection is called after destruction.
     }
 
@@ -164,7 +225,7 @@ public class InputLifecycle16kStressInstrumentedTest {
                 int input = cycle % 4;
                 if (input != 0) {
                     checkpoint(cycle, "compose-before-background");
-                    focusAndCompose(selectors[input], views[input], "quartz-实验室-" + cycle);
+                    focusAndCompose(cycle, selectors[input], views[input], "quartz-实验室-" + cycle);
                 }
                 checkpoint(cycle, "background-before");
                 scenario.moveToState(Lifecycle.State.CREATED);
@@ -174,7 +235,7 @@ public class InputLifecycle16kStressInstrumentedTest {
                 assertStoredRecord();
                 if (input != 0) {
                     checkpoint(cycle, "compose-before-recreate");
-                    focusAndCompose(selectors[input], views[input], "pyrite-共生-" + cycle);
+                    focusAndCompose(cycle, selectors[input], views[input], "pyrite-共生-" + cycle);
                 }
                 checkpoint(cycle, "recreate-before");
                 scenario.recreate();
@@ -182,7 +243,7 @@ public class InputLifecycle16kStressInstrumentedTest {
                 assertStoredRecord();
                 if (input != 0) {
                     checkpoint(cycle, "compose-before-close");
-                    focusAndCompose(selectors[input], views[input], "calcite-不规则-" + cycle);
+                    focusAndCompose(cycle, selectors[input], views[input], "calcite-不规则-" + cycle);
                 }
                 checkpoint(cycle, "close-before");
                 scenario.close();
@@ -209,10 +270,7 @@ public class InputLifecycle16kStressInstrumentedTest {
                 .put("productionAccuracyClaim", false).put("unsavedDraftPersistenceClaim", false)
                 .put("coldProcessRestartClaim", false).put("physicalImeSuggestionSelectionClaim", false);
             try (OutputStream out = RuntimeTestOutput.open("input-lifecycle-report.json")) {out.write(report.toString(2).getBytes(StandardCharsets.UTF_8));}
-            Bitmap bitmap = InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
-            assertNotNull(bitmap);
-            try (OutputStream out = RuntimeTestOutput.open("input-lifecycle-final.png")) {assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG, 100, out));}
-            finally {bitmap.recycle();}
+            screenshot("input-lifecycle-final.png");
         } finally {
             if (scenario != null) scenario.close();
         }

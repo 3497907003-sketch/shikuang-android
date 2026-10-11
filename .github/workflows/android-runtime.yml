@@ -185,6 +185,17 @@ jobs:
         if: ${{ !inputs.network_probe && !inputs.lifecycle_stress }}
         working-directory: android
         run: ./gradlew --no-daemon --max-workers=2 -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true -Pandroid.testInstrumentationRunnerArguments.expectedPageSize=${{ matrix.pageSize }} -Pandroid.testInstrumentationRunnerArguments.notClass=com.shikuang.app.InputLifecycle16kStressInstrumentedTest connectedDebugAndroidTest
+      - name: Allow and record visible soft keyboard for isolated input stress
+        if: ${{ inputs.lifecycle_stress && !inputs.network_probe }}
+        shell: bash
+        run: |
+          adb shell settings get secure show_ime_with_hard_keyboard > runtime-artifacts/ime-with-hard-keyboard-before.txt
+          adb shell settings put secure show_ime_with_hard_keyboard 1
+          adb shell settings get secure show_ime_with_hard_keyboard > runtime-artifacts/ime-with-hard-keyboard-after.txt
+          test "$(tr -d '\r\n' < runtime-artifacts/ime-with-hard-keyboard-after.txt)" = 1
+          adb shell settings get secure default_input_method > runtime-artifacts/default-input-method-before-stress.txt
+          adb shell dumpsys input_method > runtime-artifacts/input-method-before-stress.txt
+          adb shell dumpsys window > runtime-artifacts/window-before-stress.txt
       - name: Run bounded genuine 16KB input and lifecycle stress
         if: ${{ inputs.lifecycle_stress && !inputs.network_probe }}
         working-directory: android
@@ -213,6 +224,8 @@ jobs:
           timeout 20 adb shell getprop ro.build.fingerprint > runtime-artifacts/device-build-fingerprint.txt 2>&1 || true
           timeout 20 adb shell settings get secure default_input_method > runtime-artifacts/default-input-method.txt 2>&1 || true
           timeout 20 adb shell dumpsys input_method > runtime-artifacts/input-method-final.txt 2>&1 || true
+          timeout 20 adb shell dumpsys window > runtime-artifacts/window-final.txt 2>&1 || true
+          timeout 20 adb shell settings get secure show_ime_with_hard_keyboard > runtime-artifacts/ime-with-hard-keyboard-final.txt 2>&1 || true
           timeout 20 adb shell pm list packages --apex-only --show-versioncode > runtime-artifacts/apex-versions.txt 2>&1 || true
           mkdir -p runtime-artifacts/tombstones
           timeout 30 adb pull /data/tombstones/. runtime-artifacts/tombstones/ > runtime-artifacts/tombstone-collection.txt 2>&1 || true
@@ -227,7 +240,7 @@ jobs:
           source = Path('android/app/build/outputs/connected_android_test_additional_output')
           target = Path('runtime-artifacts/runtime-smoke')
           for file in source.rglob('*') if source.exists() else []:
-              if not file.is_file() or file.suffix not in ('.json', '.png'):
+              if not file.is_file() or file.suffix not in ('.json', '.png', '.txt'):
                   continue
               target.mkdir(parents=True, exist_ok=True)
               output = target / file.name
@@ -348,7 +361,15 @@ jobs:
           assert sum(r['nativeComposingAndVisibleImeVerified'] for r in report['cycles'])==9
           assert report['sentinelRemoved'] and report['productionAccuracyClaim'] is False
           assert migration['phase']=='migration-passed' and migration['historyPreserved'] and not migration['poisonedPage']
-          assert Path('runtime-artifacts/runtime-smoke/input-lifecycle-final.png').read_bytes().startswith(b'\x89PNG\r\n\x1a\n')
+          folder = Path('runtime-artifacts/runtime-smoke')
+          for view, selector, cycle in [('identify','#notes',1),('library','#librarySearch',2),('records','#recordSearch',3)]:
+              stem = f'input-lifecycle-{view}-composing'
+              evidence = json.loads((folder / (stem + '.json')).read_text())
+              assert evidence['selector']==selector and evidence['imeVisible'] and evidence['windowFocus'] and evidence['nativeViewFocus']
+              assert evidence['dom']['active'] and evidence['dom']['value']==f'quartz-实验室-{cycle}'
+              assert (folder / (stem + '.png')).read_bytes().startswith(b'\x89PNG\r\n\x1a\n')
+              assert (folder / (stem + '-hard-keyboard-setting.txt')).read_text().strip()=='1'
+          assert (folder / 'input-lifecycle-final.png').read_bytes().startswith(b'\x89PNG\r\n\x1a\n')
           print('Observed 12 bounded lifecycle cycles, 9 native composing/visible-IME cycles and 3 no-edit controls; not root-cause closure.')
           PYSTRESS
       - uses: actions/upload-artifact@v4
