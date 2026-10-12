@@ -36,7 +36,7 @@ def validate_sync(raw,expected_sha):
   seen.add(name)
  if not {'index.html','core.js','app.js','viewport.js','model-manifest.json'}<=seen:raise HealthError('current_r9_required_assets')
  return m
-def bind_current(folder,expected_manifest_sha,expected_source_sha,expected_sync_sha,repo):
+def bind_current(folder,expected_manifest_sha,expected_source_sha,expected_sync_sha,repo,expected_case_selection='comparison'):
  if not re.fullmatch(r'[a-f0-9]{64}',expected_manifest_sha or '') or not re.fullmatch(r'[a-f0-9]{40}',expected_source_sha or ''):raise HealthError('current_build_trusted_hashes_required')
  p=Path(folder);repo=Path(repo);file=p/'manifest.json'
  if file.is_symlink() or file.stat().st_size>256*1024:raise HealthError('current_manifest_file_bound')
@@ -45,6 +45,7 @@ def bind_current(folder,expected_manifest_sha,expected_source_sha,expected_sync_
  try:m=json.loads(raw)
  except (ValueError,UnicodeError):raise HealthError('current_manifest_json') from None
  if m.get('schema')!='current-r9-functional-test-build-v1' or m.get('sourceSha')!=expected_source_sha or m.get('currentR9') is not True or m.get('distributableRelease') is not False:raise HealthError('current_build_source_contract')
+ if expected_case_selection not in ('comparison','app_only_diagnostic') or m.get('experiment_case_selection','comparison')!=expected_case_selection:raise HealthError('current_experiment_case_selection')
  rows=m.get('apks');pins={}
  if not isinstance(rows,list) or len(rows)!=5:raise HealthError('current_five_apks_required')
  for row in rows:
@@ -70,4 +71,4 @@ def bind_current(folder,expected_manifest_sha,expected_source_sha,expected_sync_
  if m.get('webSyncSha256')!=expected_sync_sha or m.get('webSourceSha')!=sync['web_source_commit'] or m.get('packagedWebAssetsSha256')!=sha(json.dumps(sync['assets'],sort_keys=True,separators=(',',':')).encode()):raise HealthError('current_packaged_asset_binding')
  return {'manifest_sha256':sha(raw),'source_sha':m['sourceSha'],'apk_pins':pins,'java_source_pins':[r for r in source if r['path'] in PRESSURE_JAVA],
   'web_source_sha':sync['web_source_commit'],'web_sync_sha256':expected_sync_sha,'artifact_source_kind':'new_current_r9_same_run_test_build',
-  'new_build_or_signing':True,'distributable_release':False,'old_comparand_reused':False}
+  'new_build_or_signing':True,'distributable_release':False,'old_comparand_reused':False,'experiment_case_selection':expected_case_selection}

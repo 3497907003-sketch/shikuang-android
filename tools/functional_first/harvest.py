@@ -79,5 +79,7 @@ def collect(runner,case,folder,terminal_success):
  for name in allowed['required']+allowed['optional_failure']:
   if name not in done:results.append({'file':name,'required_after_success':name in allowed['required'],'status':'not_attempted','reason':'failure_evidence_not_expected_after_terminal_success' if terminal_success else 'case_harvest_budget_exhausted'})
  missing=[n for n in allowed['required'] if n not in downloaded]
- out={'schema':'finite-harvest-result-v1','case':case,'required_success_files':102,'optional_failure_files':180,'results':results,'bytes_read':total,'required_missing':missing,'required_complete':not missing,'all282_names_accounted':len(results)==282,'transport_or_host_interruption':transport_uncertain,'guest_termination_confirmed':False,'genuine_device_claim':False}
+ host_or_transport=any(r.get('interruption_reason','').startswith(('host_','transport_')) for r in results)
+ guest_client_crash=any(r.get('interruption_reason')=='guest_client_segmentation_fault_marker' for r in results)
+ out={'schema':'finite-harvest-result-v1','case':case,'required_success_files':102,'optional_failure_files':180,'results':results,'bytes_read':total,'required_missing':missing,'required_complete':not missing,'all282_names_accounted':len(results)==282,'transport_or_host_interruption':host_or_transport,'guest_client_crash_observed':guest_client_crash,'persistent_command_uncertainty':transport_uncertain,'guest_termination_confirmed':False,'genuine_device_claim':False}
  (folder/'harvest-manifest.json').write_text(json.dumps(out,indent=2)+'\n');return out

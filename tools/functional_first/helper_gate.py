@@ -57,7 +57,7 @@ def check_helper(package_dump, query_dump, install_stdout, appops):
     package_members = force_queryable_members(package_queries)
     global_members = force_queryable_members(query_dump)
     assert len(re.findall(r"(?m)^Success[ \t]*$", install_stdout)) == 1, "Helper install did not unambiguously report Success"
-    assert re.fullmatch(r"MANAGE_EXTERNAL_STORAGE: allow\s*", appops), "Helper storage appop is not allowed"
+    assert re.fullmatch(r"MANAGE_EXTERNAL_STORAGE: allow(?:; time=\+(?=[0-9])(?:[0-9]+d)?(?:[0-9]+h)?(?:[0-9]+m)?(?:[0-9]+s)?(?:[0-9]+ms)? ago)?\s*", appops), "Helper storage appop is not allowed"
     return {"exact_helper": HELPER, "manifest_force_queryable": flags[0][0] == "true", "adb_override": True,
             "package_set_member": HELPER in package_members, "global_set_member": HELPER in global_members,
             "output_authority": OUTPUT, "output_component": COMPONENT, "helper_user0_installed": True,

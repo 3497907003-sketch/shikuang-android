@@ -24,7 +24,7 @@ def command(argv,folder,stem):
  if p.returncode!=0:raise ValueError('required_build_tool_failed_'+stem)
  return p.stdout
 def main():
- a=argparse.ArgumentParser();a.add_argument('--out',required=True);a.add_argument('--helper',required=True);a.add_argument('--sdk',required=True);a.add_argument('--source-sha',required=True);a.add_argument('--web-sync-sha',required=True);args=a.parse_args()
+ a=argparse.ArgumentParser();a.add_argument('--out',required=True);a.add_argument('--helper',required=True);a.add_argument('--sdk',required=True);a.add_argument('--source-sha',required=True);a.add_argument('--web-sync-sha',required=True);a.add_argument('--diagnostic-app-only',action='store_true');args=a.parse_args()
  repo=Path.cwd();out=Path(args.out);out.mkdir(mode=0o700,exist_ok=False);evidence=out/'build-evidence';evidence.mkdir()
  source=subprocess.check_output(['git','rev-parse','HEAD']).decode().strip()
  if not re.fullmatch(r'[a-f0-9]{40}',args.source_sha) or source!=args.source_sha:raise ValueError('actual_current_checkout_source_mismatch')
@@ -72,8 +72,10 @@ def main():
  command(['python3','tools/inspect_apk.py',str(out/'app.apk'),'--require-16k','--output',str(evidence/'app-native-compatibility.json')],evidence,'app-native-inspect')
  command([str(tools/'zipalign'),'-v','-c','-P','16','4',str(out/'app.apk')],evidence,'app-zipalign')
  manifest={'schema':'current-r9-functional-test-build-v1','sourceSha':source,'currentR9':True,'webSourceSha':sync['web_source_commit'],'webSyncSha256':args.web_sync_sha,'packagedWebAssetsSha256':sha(json.dumps(sync['assets'],sort_keys=True,separators=(',',':')).encode()),'fourExperimentApks':['app.apk','app-test.apk','control.apk','control-test.apk'],'testStorageHelper':'test-services-1.4.2.apk','apks':apks,'sourceFiles':sources,'distributableRelease':False,'oldComparandOverwritten':False,'actualAndroidRuntimeProven':False,'scope':'Once-built current r9 App/control/test APKs reused byte-identically on two official full16KB images. Full-image comparison, not provider-only A/B; no release or accuracy claim.'}
+ manifest['experiment_case_selection']='app_only_diagnostic' if args.diagnostic_app_only else 'comparison'
+ if args.diagnostic_app_only:manifest['scope']='Once-built current r9 five-APK test bundle for independent App-only diagnosis on two fresh official full16KB images. Control case is not executed; no dual-case comparison, release, production stability or accuracy acceptance.'
  raw=(json.dumps(manifest,indent=2)+'\n').encode();(out/'manifest.json').write_bytes(raw)
  if os.environ.get('GITHUB_OUTPUT'):
   with open(os.environ['GITHUB_OUTPUT'],'a') as f:f.write('manifest_sha='+sha(raw)+'\n')
- print(json.dumps({'current_source_sha':source,'manifest_sha':sha(raw),'web_source_sha':sync['web_source_commit'],'actual_built_APKs':4,'same_byte_helper':True,'public_release':False,'actual_Android_runtime_proven':False}))
+ print(json.dumps({'current_source_sha':source,'manifest_sha':sha(raw),'web_source_sha':sync['web_source_commit'],'actual_built_APKs':4,'same_byte_helper':True,'experiment_case_selection':manifest['experiment_case_selection'],'public_release':False,'actual_Android_runtime_proven':False}))
 if __name__=='__main__':main()

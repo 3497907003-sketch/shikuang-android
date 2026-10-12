@@ -109,7 +109,13 @@ def observe(runner,label,sdk,runtime,frozen):
 def interrupted_guest_uncertain(receipt,out,err):
  return instrumentation_uncertain(receipt,out,err)
 
+def selected_cases(diagnostic_app_only=False):
+ if type(diagnostic_app_only) is not bool:raise ValueError('exact_diagnostic_boolean_required')
+ return ('app',) if diagnostic_app_only else ('control','app')
+
 def run(args):
+ diagnostic=getattr(args,'diagnostic_app_only',False);case_order=selected_cases(diagnostic)
+ if diagnostic and args.unit_fixture:raise ValueError('app_only_diagnostic_requires_live_run')
  if args.sdk not in IMAGE or not re.fullmatch(r'emulator-[0-9]{4,5}',args.serial):raise ValueError('fixed sdk/exact emulator serial required')
  clock=load(args.clock);now=time.monotonic();start=clock.get('started_monotonic_ns')
  if not args.unit_fixture:
@@ -122,13 +128,14 @@ def run(args):
  deadline=start/1e9+3000
  runner=Runner(args.adb,args.serial,args.out,deadline,args.unit_fixture)
  report={'schema':'functional-first-executor-result-v1','execution_domain':runner.domain,'cases':{},'forensics':{'status':'not_attempted'},'experiment_protocol_accepted':False,'root_cause_closed':False,'production_stability_accepted':False,'new_build_or_signing':False,'genuine_device_claim':False,'root_visual_review_required':True,'job_clock_sha256':sha(Path(args.clock).read_bytes()),'job_clock_input_file':str(args.clock),'job_clock_original_response_sha256':sha(raw_clock) if not args.unit_fixture else None,'job_clock_original_response_file':str(Path(args.clock).with_suffix('.response.bin')) if not args.unit_fixture else None,'first_training_or_kappa_claim':False,'unit_scope':bool(args.unit_fixture)}
+ report.update(experiment_case_selection='app_only_diagnostic' if diagnostic else 'comparison',diagnostic_app_only=diagnostic)
  fatal=None;baseline=None;open_failure=False
  try:
   if args.unit_fixture:
    report['frozen_gate']=bind_frozen(args.frozen)
   else:
    from current_artifact import bind_current
-   report['frozen_gate']=bind_current(args.frozen,args.expected_manifest_sha,args.expected_source_sha,args.expected_web_sync_sha,Path(__file__).resolve().parents[2])
+   report['frozen_gate']=bind_current(args.frozen,args.expected_manifest_sha,args.expected_source_sha,args.expected_web_sync_sha,Path(__file__).resolve().parents[2],report['experiment_case_selection'])
    report.update(artifact_source_kind='new_current_r9_same_run_test_build',new_build_or_signing=True)
   report['image_gate']=bind_image(args.runtime,args.sdk)
   if not args.unit_fixture:
@@ -138,8 +145,8 @@ def run(args):
     report[name+'_tool']={'path':str(f),'bytes':f.stat().st_size,'sha256':sha(f.read_bytes())}
    runner.command('host-adb-version',[args.adb,'version'],15,host=True)
    runner.command('host-adb-server-status',[args.adb,'server-status'],15,host=True)
-  for case in ('control','app'):
-   row={'status':'not_attempted','functional_observed':False,'case_structure':'not_attempted','harvest_required_complete':False,'guest_terminated_by_host_kill_claim':False};report['cases'][case]=row
+  for case in case_order:
+   row={'status':'not_attempted','functional_observed':False,'case_structure':'not_attempted','harvest_required_complete':False,'guest_terminated_by_host_kill_claim':False,'post_identity_verified':False};report['cases'][case]=row
    if open_failure or runner.interruption_observations:row['reason']='previous_host_timeout_transport_platform_or_identity_failure';open_failure=True;continue
    h=observe(runner,'pre-'+case,args.sdk,args.runtime,report['frozen_gate']);row['pre_health']=h['label']+'.json'
    if not h['eligible']:row['reason']='fresh_health_identity_failed';open_failure=True;continue
@@ -157,10 +164,15 @@ def run(args):
    except GateError as e:row['terminal_error']=str(e)
    # Immediately harvest small core/PNG/JSON before all connection and system binary transfers.
    hv=collect(runner,case,runner.out/(case+'-evidence'),terminal);row['harvest_manifest']=case+'-evidence/harvest-manifest.json';row['harvest_required_complete']=hv['required_complete'];row['harvest_required_missing']=hv['required_missing'];row['harvest_transport_or_host_interruption']=hv['transport_or_host_interruption']
-   if hv['transport_or_host_interruption']:open_failure=True
+   row['harvest_guest_client_crash_observed']=hv.get('guest_client_crash_observed',False)
+   row['harvest_required_file_count']=hv['required_success_files']
+   if hv['transport_or_host_interruption'] or row['harvest_guest_client_crash_observed']:open_failure=True
    if terminal:
     try:
      structure=validate_case(runner.out/(case+'-evidence'),case,args.sdk,runner.out/r['relative_dir']);put(runner.out/(case+'-structure.json'),structure);row['case_structure']=structure['status'];row['all_inputs_unobscured']=structure['all_observed_inputs_unobscured']
+     if diagnostic:
+      from app_diagnostic_gate import validate_geometry
+      row['diagnostic_geometry']=validate_geometry(runner.out/(case+'-evidence'),case);put(runner.out/(case+'-diagnostic-geometry.json'),row['diagnostic_geometry']);row['all_inputs_unobscured']=row['diagnostic_geometry']['all_nine_geometries_verified']
      if hv['required_complete']:row.update(status='unit_only_structure_and_harvest_complete' if args.unit_fixture else 'fully_observed_pending_root_visual_review',functional_observed=not bool(args.unit_fixture),software_structure_and_harvest_complete=True)
     except (GateError,ValueError,KeyError,TypeError) as e:row['structure_error']=str(e)[:160]
    post=observe(runner,'post-'+case,args.sdk,args.runtime,report['frozen_gate']);row['post_health']=post['label']+'.json'
@@ -168,6 +180,7 @@ def run(args):
    else:
     try:continuous(baseline,post['observed'])
     except HealthError:open_failure=True;row['post_identity_failed']=True
+    else:row['post_identity_verified']=True
    # host kill/reaped is not guest termination. Any interruption/abort blocks subsequent case.
    if interrupted_guest_uncertain(r,out,err) or runner.interruption_observations:open_failure=True
    row['instrumentation_transport_or_host_interruption']=interrupted_guest_uncertain(r,out,err)
@@ -188,17 +201,23 @@ def run(args):
   report['software_path_both_structure_harvest_complete']=len(report['cases'])==2 and all(r.get('software_structure_and_harvest_complete') for r in report['cases'].values());report['functional_both_fully_observed']=not bool(args.unit_fixture) and len(report['cases'])==2 and all(r['functional_observed'] for r in report['cases'].values())
   report['complete_candidate_evidence']=report['functional_both_fully_observed'] and report['forensics']['status']=='complete_verified' and not fatal and not open_failure
   report['all_observed_inputs_unobscured']=len(report['cases'])==2 and all(r.get('all_inputs_unobscured') is True for r in report['cases'].values())
+  if diagnostic:report['all_observed_inputs_unobscured']=set(report['cases'])=={'app'} and report['cases']['app'].get('all_inputs_unobscured') is True
   report['new_ci_dispatches']=0;report['retries']=0;report['active_reconnects']=0;report['reboot_or_force_stop_after_cases']=0
+  report['complete_app_only_diagnostic_evidence']=False
+  if diagnostic:
+   from app_diagnostic_gate import validate as validate_app_diagnostic
+   report['complete_app_only_diagnostic_evidence']=True
+   report['complete_app_only_diagnostic_evidence']=not fatal and not open_failure and validate_app_diagnostic(report)
   put(runner.out/'executor-report.json',report)
  return report
 
 def main():
- p=argparse.ArgumentParser();p.add_argument('--sdk',type=int,required=True);p.add_argument('--serial',required=True);p.add_argument('--adb',required=True);p.add_argument('--emulator',required=True);p.add_argument('--sdk-root',required=True);p.add_argument('--clock',required=True);p.add_argument('--frozen',required=True);p.add_argument('--runtime',required=True);p.add_argument('--out',required=True);p.add_argument('--unit-fixture');p.add_argument('--expected-manifest-sha');p.add_argument('--expected-source-sha');p.add_argument('--expected-web-sync-sha')
+ p=argparse.ArgumentParser();p.add_argument('--sdk',type=int,required=True);p.add_argument('--serial',required=True);p.add_argument('--adb',required=True);p.add_argument('--emulator',required=True);p.add_argument('--sdk-root',required=True);p.add_argument('--clock',required=True);p.add_argument('--frozen',required=True);p.add_argument('--runtime',required=True);p.add_argument('--out',required=True);p.add_argument('--unit-fixture');p.add_argument('--expected-manifest-sha');p.add_argument('--expected-source-sha');p.add_argument('--expected-web-sync-sha');p.add_argument('--diagnostic-app-only',action='store_true')
  args=p.parse_args()
  try:r=run(args)
  except (OSError,ValueError,TypeError,KeyError,AttributeError) as e:
   output=Path(args.out)
   if output.exists():raise
-  output.mkdir(mode=0o700);r={'schema':'functional-first-executor-result-v1','execution_domain':'unit_only_python_adapter_no_device' if args.unit_fixture else 'live_adb_test_candidate_root_review_pending','cases':{'control':{'status':'not_attempted','reason':'preflight_or_clock_rejected'},'app':{'status':'not_attempted','reason':'preflight_or_clock_rejected'}},'complete_candidate_evidence':False,'experiment_protocol_accepted':False,'fatal_error':{'type':type(e).__name__,'code':'controlled_preflight_rejection'},'unit_scope':bool(args.unit_fixture),'genuine_device_claim':False};put(output/'executor-report.json',r)
- print(json.dumps({'result_file':str(Path(args.out)/'executor-report.json'),'unit_only':bool(args.unit_fixture),'complete_candidate_evidence':r['complete_candidate_evidence'],'experiment_protocol_accepted':False,'case_statuses':{k:x['status'] for k,x in r['cases'].items()}}));return 0 if args.unit_fixture and not r.get('fatal_error') or r['complete_candidate_evidence'] else 2
+  output.mkdir(mode=0o700);r={'schema':'functional-first-executor-result-v1','execution_domain':'unit_only_python_adapter_no_device' if args.unit_fixture else 'live_adb_test_candidate_root_review_pending','cases':{case:{'status':'not_attempted','reason':'preflight_or_clock_rejected'} for case in selected_cases(args.diagnostic_app_only)},'complete_candidate_evidence':False,'complete_app_only_diagnostic_evidence':False,'experiment_case_selection':'app_only_diagnostic' if args.diagnostic_app_only else 'comparison','diagnostic_app_only':args.diagnostic_app_only,'experiment_protocol_accepted':False,'fatal_error':{'type':type(e).__name__,'code':'controlled_preflight_rejection'},'unit_scope':bool(args.unit_fixture),'genuine_device_claim':False};put(output/'executor-report.json',r)
+ print(json.dumps({'result_file':str(Path(args.out)/'executor-report.json'),'unit_only':bool(args.unit_fixture),'experiment_case_selection':r['experiment_case_selection'],'complete_candidate_evidence':r['complete_candidate_evidence'],'complete_app_only_diagnostic_evidence':r.get('complete_app_only_diagnostic_evidence',False),'experiment_protocol_accepted':False,'case_statuses':{k:x['status'] for k,x in r['cases'].items()}}));return 0 if args.unit_fixture and not r.get('fatal_error') or r['complete_candidate_evidence'] or r.get('complete_app_only_diagnostic_evidence') else 2
 if __name__=='__main__':sys.exit(main())

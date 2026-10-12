@@ -1,4 +1,5 @@
 """One persistent guest-uncertainty classifier; host termination is not guest exit."""
+import re
 HOST_INTERRUPTION_STATUSES=('timeout','output_limit','spawn_error')
 TRANSPORT_MARKERS=(b'device offline',b'no devices/emulators found',b'error: closed')
 
@@ -8,6 +9,9 @@ def interruption_reason(receipt,out,err):
  raw=out+err
  for marker in TRANSPORT_MARKERS:
   if marker in raw.lower():return 'transport_'+marker.decode('ascii').replace(' ','_').replace(':','')
+ # exec-out can return host 0 after the guest content client's signal crash.
+ # Preserve the original non-JSON bytes and stop; never silently reread evidence.
+ if re.search(rb'(?m)^Segmentation fault(?: \(core dumped\))?[ \t]*\r?$',raw):return 'guest_client_segmentation_fault_marker'
  return None
 
 def instrumentation_uncertain(receipt,out,err):
