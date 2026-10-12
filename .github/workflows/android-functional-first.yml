@@ -79,7 +79,7 @@ jobs:
       CURRENT_BUILD_MANIFEST_SHA: ${{ needs.build-current-apks.outputs.manifest_sha }}
       CURRENT_SOURCE_SHA: ${{ github.sha }}
       CURRENT_WEB_SYNC_SHA: 10803d3729e7b3144e703f289cfa991829c866a517cf1d722320f3af5c217364
-      SHIKUANG_FF_CLOCK_FILE: ${{ runner.temp }}/shikuang-functional-first-job-clock.json
+      SHIKUANG_FF_CLOCK_FILE: /tmp/shikuang-functional-first-job-clock.json
     strategy:
       fail-fast: false
       matrix:
