@@ -1,0 +1,16 @@
+name: Current r9 Android functional-first 16KB experiment
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  choose-reviewed-test-branch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+    - name: Require the reviewed current-r9 test branch
+      shell: bash
+      run: |
+        printf '%s\n' 'This main-branch file registers the manual test workflow only.'
+        printf '%s\n' 'Run android-functional-first.yml on the Root-reviewed current-r9 test branch.'
+        exit 2
