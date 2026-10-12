@@ -163,7 +163,7 @@ def run(args):
     parse_terminal(out,err,GateError);terminal=True
    except GateError as e:row['terminal_error']=str(e)
    # Immediately harvest small core/PNG/JSON before all connection and system binary transfers.
-   hv=collect(runner,case,runner.out/(case+'-evidence'),terminal);row['harvest_manifest']=case+'-evidence/harvest-manifest.json';row['harvest_required_complete']=hv['required_complete'];row['harvest_required_missing']=hv['required_missing'];row['harvest_transport_or_host_interruption']=hv['transport_or_host_interruption']
+   hv=collect(runner,case,runner.out/(case+'-evidence'),terminal,require_final_state=diagnostic);row['harvest_manifest']=case+'-evidence/harvest-manifest.json';row['harvest_required_complete']=hv['required_complete'];row['harvest_required_missing']=hv['required_missing'];row['harvest_transport_or_host_interruption']=hv['transport_or_host_interruption']
    row['harvest_guest_client_crash_observed']=hv.get('guest_client_crash_observed',False)
    row['harvest_required_file_count']=hv['required_success_files']
    if hv['transport_or_host_interruption'] or row['harvest_guest_client_crash_observed']:open_failure=True

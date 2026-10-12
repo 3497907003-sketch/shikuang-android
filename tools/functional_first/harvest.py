@@ -1,4 +1,4 @@
-"""Finite names from unchanged Java; successful structure is not harvest completion."""
+"""Finite Java outputs; App-only final-state evidence is an explicit extra gate."""
 import hashlib,json,re,time
 from pathlib import Path
 from protocol import CASES,PHASES
@@ -7,7 +7,8 @@ from interruptions import interruption_reason
 
 def stem_files(stem):return [stem+'.json',stem+'.png']
 def dump_files(stem):return [stem+'-input-method.txt',stem+'-window.txt',stem+'-hard-keyboard-setting.txt']
-def names(case):
+def names(case,require_final_state=False):
+ if type(require_final_state) is not bool or (require_final_state and case!='app'):raise ValueError('final_state_requires_explicit_app_case')
  p=CASES[case]['prefix'];core=[p+'-report.json',p+'-progress.json'];visual=[];diagnostics=[];connections=[];failures=[]
  for view in ('identify','library','records'):
   for state in ('ime-visible','composing','after-touch'):
@@ -17,18 +18,19 @@ def names(case):
   for phase in PHASES:connections += [f'{p}-connection-{cycle}-{phase}.json',f'{p}-connection-result-{cycle}-{phase}.json']
   for failure in ('route','bounds','ime','compose'):
    stem=f'{p}-{failure}-failure-{cycle}';failures+=stem_files(stem)+dump_files(stem)
- required=core+visual+connections+diagnostics+[p+'-final.png']
- assert len(required)==102 and len(set(required+failures))==282
- return {'core':core,'visual':visual,'connections':connections,'diagnostics':diagnostics,'required':required,'optional_failure':failures}
+ final=([p+'-final-state.json'] if require_final_state else [])+[p+'-final.png']
+ required=core+visual+connections+diagnostics+final
+ assert len(required)==102+int(require_final_state) and len(set(required+failures))==282+int(require_final_state)
+ return {'core':core,'visual':visual,'connections':connections,'diagnostics':diagnostics,'final':final,'required':required,'optional_failure':failures}
 
-def priority(case,progress=None,terminal_success=False):
- x=names(case);p=CASES[case]['prefix'];current=[]
+def priority(case,progress=None,terminal_success=False,require_final_state=False):
+ x=names(case,require_final_state);p=CASES[case]['prefix'];current=[]
  if not terminal_success:
   cycle=progress.get('cycle') if isinstance(progress,dict) else None
   if type(cycle) is int and cycle in range(12) and cycle%4:
    for failure in ('route','bounds','ime','compose'):current+=stem_files(f'{p}-{failure}-failure-{cycle}')
   else:current=[n for n in x['optional_failure'] if n.endswith(('.json','.png'))]
- ordered=x['core']+x['visual']+current+x['connections']+x['diagnostics']+[p+'-final.png']
+ ordered=x['core']+x['visual']+current+x['connections']+x['diagnostics']+x['final']
  if not terminal_success:ordered+=x['optional_failure']
  return list(dict.fromkeys(ordered))
 
@@ -45,8 +47,8 @@ def validate_payload(name,raw):
  if not s.endswith('\n') or any(t in s for t in ('Error while accessing provider','No result found','FileNotFoundException','Permission Denial')):raise GateError('harvest_invalid_dump')
  return {'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest()}
 
-def collect(runner,case,folder,terminal_success):
- folder=Path(folder);folder.mkdir();allowed=names(case);results=[];downloaded={};progress=None
+def collect(runner,case,folder,terminal_success,require_final_state=False):
+ folder=Path(folder);folder.mkdir();allowed=names(case,require_final_state);results=[];downloaded={};progress=None
  deadline=min(time.monotonic()+150,runner.deadline-180);total=0;done=set();transport_uncertain=False
  # Two core first; then update finite priority from actual progress if parsable.
  queue=allowed['core'][:]
@@ -75,11 +77,11 @@ def collect(runner,case,folder,terminal_success):
       if isinstance(progress.get('events'),list) and progress['events'] and isinstance(progress['events'][-1],dict):progress={**progress,'cycle':progress['events'][-1].get('cycle')}
     except GateError as e:row.update(status='failed',reason=str(e))
   results.append(row)
-  if name==allowed['core'][-1]:queue+=priority(case,progress,terminal_success)[2:]
+  if name==allowed['core'][-1]:queue+=priority(case,progress,terminal_success,require_final_state)[2:]
  for name in allowed['required']+allowed['optional_failure']:
   if name not in done:results.append({'file':name,'required_after_success':name in allowed['required'],'status':'not_attempted','reason':'failure_evidence_not_expected_after_terminal_success' if terminal_success else 'case_harvest_budget_exhausted'})
  missing=[n for n in allowed['required'] if n not in downloaded]
  host_or_transport=any(r.get('interruption_reason','').startswith(('host_','transport_')) for r in results)
  guest_client_crash=any(r.get('interruption_reason')=='guest_client_segmentation_fault_marker' for r in results)
- out={'schema':'finite-harvest-result-v1','case':case,'required_success_files':102,'optional_failure_files':180,'results':results,'bytes_read':total,'required_missing':missing,'required_complete':not missing,'all282_names_accounted':len(results)==282,'transport_or_host_interruption':host_or_transport,'guest_client_crash_observed':guest_client_crash,'persistent_command_uncertainty':transport_uncertain,'guest_termination_confirmed':False,'genuine_device_claim':False}
+ out={'schema':'finite-harvest-result-v1','case':case,'required_success_files':len(allowed['required']),'optional_failure_files':180,'results':results,'bytes_read':total,'required_missing':missing,'required_complete':not missing,'all282_names_accounted':len(results)==282,'all_expected_names_accounted':len(results)==len(allowed['required'])+180,'final_state_required':require_final_state,'transport_or_host_interruption':host_or_transport,'guest_client_crash_observed':guest_client_crash,'persistent_command_uncertainty':transport_uncertain,'guest_termination_confirmed':False,'genuine_device_claim':False}
  (folder/'harvest-manifest.json').write_text(json.dumps(out,indent=2)+'\n');return out

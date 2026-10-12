@@ -5,6 +5,14 @@ from health import binary_meta,HealthError
 from interruptions import interruption_reason
 
 def sha(raw):return hashlib.sha256(raw).hexdigest()
+def actual_apk_signer_sha256s(raw):
+ # SDK 37 prints V3.0 Signer:, older SDKs print Signer #n. Source Stamp
+ # authenticates a stamp, not the APK signer; it must never satisfy this gate.
+ digests=[]
+ for line in raw.splitlines():
+  match=re.fullmatch(rb'(?:Signer #[1-9][0-9]*|V3\.0 Signer:) certificate SHA-256 digest: ([a-f0-9]{64})',line)
+  if match:digests.append(match.group(1).decode('ascii'))
+ return digests
 def capture_forensics(runner,identity,sdk_root):
  folder=runner.out/'binary-forensics';folder.mkdir();targets=[x for x in identity['binary_targets'] if x['role'] in ('provider-package','resolved-static-library','art')];rows=[];transport_failed=False
  signers=sorted(Path(sdk_root).glob('build-tools/*/apksigner'));readelf=shutil.which('readelf')
@@ -41,7 +49,7 @@ def capture_forensics(runner,identity,sdk_root):
    else:
     if not signers:raise HealthError('official_apksigner_unavailable')
     r,out,err=runner.command(f'binary-{i}-signer',[str(signers[-1]),'verify','--print-certs',str(local)],60,host=True);row['signer_receipt']=r['relative_dir']
-    if not r['success'] or not re.search(rb'Signer #\d+ certificate SHA-256 digest: [a-f0-9]+',out):raise HealthError('actual_signer_verification_failed')
+    if not r['success'] or not actual_apk_signer_sha256s(out):raise HealthError('actual_signer_verification_failed')
     (folder/f'{i:02d}-certificates.txt').write_bytes(out)
     with zipfile.ZipFile(local) as z:
      seen=set()

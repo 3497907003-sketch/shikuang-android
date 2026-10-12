@@ -160,6 +160,29 @@ public class InputLifecycle16kStressInstrumentedTest {
         assertTrue("WebView DOM was not observed in a real drawn frame; raw PNG/JSON retained", visualFrameObserved);
     }
 
+    private void finalEvidence() throws Exception {
+        JSONObject evidence = new JSONObject().put("schema", "app-final-drawn-frame-v1")
+            .put("synchronizationStartedElapsedRealtimeMs", SystemClock.elapsedRealtime())
+            .put("wallTimeMillis", System.currentTimeMillis());
+        boolean visualFrameObserved = waitForRenderedFrame();
+        evidence.put("visualFrameObserved", visualFrameObserved)
+            .put("synchronizationFinishedElapsedRealtimeMs", SystemClock.elapsedRealtime());
+        JSONObject dom = new JSONObject(evaluate("JSON.stringify((()=>{const cover=document.getElementById('launchCover');return {launchCoverHidden:!!cover&&cover.hidden,bootSupported:!!window.__shikuangBootCapabilities&&window.__shikuangBootCapabilities.supported===true,route:location.hash,visibleViews:Array.from(document.querySelectorAll('section.view')).filter(e=>!e.hidden).map(e=>e.id),performanceNowMs:performance.now()};})())"));
+        evidence.put("dom", dom).put("domCapturedElapsedRealtimeMs", SystemClock.elapsedRealtime())
+            .put("screenshotStartedElapsedRealtimeMs", SystemClock.elapsedRealtime());
+        try {
+            screenshot("input-lifecycle-final.png");
+        } finally {
+            evidence.put("screenshotFinishedElapsedRealtimeMs", SystemClock.elapsedRealtime());
+            try (OutputStream out = RuntimeTestOutput.open("input-lifecycle-final-state.json")) {
+                out.write(evidence.toString(2).getBytes(StandardCharsets.UTF_8));
+            }
+        }
+        assertTrue("Final Surface capture requires a real synchronized drawn frame", visualFrameObserved);
+        assertTrue("Final DOM startup overlay must have exited", dom.getBoolean("launchCoverHidden"));
+        assertTrue("Final DOM must still be supported", dom.getBoolean("bootSupported"));
+    }
+
     private void focusAndCompose(int cycle, String selector, String view, String text) throws Exception {
         final String composePhase = phase;
         // Real touch is essential: script focus alone is not a user gesture in WebView.
@@ -367,8 +390,8 @@ public class InputLifecycle16kStressInstrumentedTest {
                 .put("activeNetworkAfter", networkAfter == null ? JSONObject.NULL : networkAfter.toString())
                 .put("productionAccuracyClaim", false).put("unsavedDraftPersistenceClaim", false)
                 .put("coldProcessRestartClaim", false).put("physicalImeSuggestionSelectionClaim", false);
+            finalEvidence();
             try (OutputStream out = RuntimeTestOutput.open("input-lifecycle-report.json")) {out.write(report.toString(2).getBytes(StandardCharsets.UTF_8));}
-            screenshot("input-lifecycle-final.png");
         } finally {
             if (scenario != null) scenario.close();
         }

@@ -11,11 +11,13 @@ def UNIT_ONLY_shape():
               for view in ('identify', 'library', 'records')
               for state in ('after-touch', 'ime-visible', 'composing')]
     app = {'status': 'fully_observed_pending_root_visual_review', 'case_structure': 'structure_pass',
-           'functional_observed': True, 'harvest_required_complete': True, 'harvest_required_file_count': 102,
+           'functional_observed': True, 'harvest_required_complete': True, 'harvest_required_file_count': 103,
            'all_inputs_unobscured': True, 'post_identity_verified': True,
            'diagnostic_geometry': {'case': 'app', 'all_nine_geometries_verified': True,
                                    'native_ime_frames_verified': 6, 'after_touch_geometries_verified': 3,
-                                   'states': states}}
+                                   'states': states,
+                                   'final_capture': {'synchronized_final_capture_verified': True,
+                                                     'cold_process_restart_claim': False}}}
     return {'execution_domain': 'live_adb_test_candidate_root_review_pending', 'unit_scope': False,
             'experiment_case_selection': 'app_only_diagnostic', 'diagnostic_app_only': True,
             'complete_app_only_diagnostic_evidence': True, 'complete_candidate_evidence': False,
@@ -57,12 +59,18 @@ class AppDiagnosticTests(unittest.TestCase):
             report = UNIT_ONLY_shape();report[key] = value
             with self.subTest(key=key):self.assertFalse(validate(report))
 
-    def test_requires_102_files_post_identity_and_no_guest_crash(self):
-        for key, value in (('harvest_required_complete', False), ('harvest_required_file_count', 101),
+    def test_requires_103_files_post_identity_and_no_guest_crash(self):
+        for key, value in (('harvest_required_complete', False), ('harvest_required_file_count', 102),
                            ('post_identity_verified', False), ('post_identity_failed', True),
                            ('harvest_guest_client_crash_observed', True), ('functional_observed', False)):
             report = UNIT_ONLY_shape();report['cases']['app'][key] = value
             with self.subTest(key=key):self.assertFalse(validate(report))
+
+    def test_requires_synchronized_final_capture_without_cold_process_claim(self):
+        for value in (None, {}, {'synchronized_final_capture_verified': False, 'cold_process_restart_claim': False},
+                      {'synchronized_final_capture_verified': True, 'cold_process_restart_claim': True}):
+            report = UNIT_ONLY_shape();report['cases']['app']['diagnostic_geometry']['final_capture'] = value
+            with self.subTest(value=value):self.assertFalse(validate(report))
 
     def test_requires_all_nine_distinct_geometries_and_manifest_mode(self):
         report = UNIT_ONLY_shape();report['cases']['app']['diagnostic_geometry']['states'] = report['cases']['app']['diagnostic_geometry']['states'][:6]

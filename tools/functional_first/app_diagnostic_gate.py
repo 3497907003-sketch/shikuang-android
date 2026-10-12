@@ -12,6 +12,24 @@ def number(value):
     return type(value) in (int, float) and math.isfinite(value)
 
 
+def validate_final_state(folder):
+    evidence = load_object(folder, 'input-lifecycle-final-state.json')
+    need(evidence.get('schema') == 'app-final-drawn-frame-v1' and evidence.get('visualFrameObserved') is True, 'diagnostic_final_draw')
+    keys = ('synchronizationStartedElapsedRealtimeMs', 'synchronizationFinishedElapsedRealtimeMs', 'domCapturedElapsedRealtimeMs', 'screenshotStartedElapsedRealtimeMs', 'screenshotFinishedElapsedRealtimeMs')
+    times = [evidence.get(key) for key in keys]
+    need(all(type(value) is int and value > 0 for value in times) and times == sorted(times), 'diagnostic_final_time_order')
+    need(type(evidence.get('wallTimeMillis')) is int and evidence['wallTimeMillis'] > 0, 'diagnostic_final_wall_time')
+    dom = evidence.get('dom')
+    need(isinstance(dom, dict) and dom.get('launchCoverHidden') is True and dom.get('bootSupported') is True and number(dom.get('performanceNowMs')) and dom['performanceNowMs'] >= 0, 'diagnostic_final_dom_ready')
+    route = dom.get('route')
+    need(route in ('', '#identify', '#library', '#records', '#settings'), 'diagnostic_final_route')
+    need(dom.get('visibleViews') == ['view-' + (route[1:] if route else 'identify')], 'diagnostic_final_route_visibility')
+    png = check_png(read_regular(folder, 'input-lifecycle-final.png', 16 * 1024 * 1024))
+    return {'schema': 'app-final-drawn-frame-validation-v1', 'synchronized_final_capture_verified': True,
+            'png': png, 'dom': dom, 'original_elapsed_realtime_ms': dict(zip(keys, times)),
+            'requires_root_actual_final_PNG_review': True, 'cold_process_restart_claim': False}
+
+
 def validate_geometry(folder, case='app'):
     need(case in CASES, 'diagnostic_case')
     contract = CASES[case]
@@ -53,6 +71,7 @@ def validate_geometry(folder, case='app'):
             rows.append({'view': view, 'state': state, 'file': stem + '.json', 'png': png,
                          'input_fully_unobscured': True, 'native_ime_frame': ime_frame})
     return {'schema': 'app-only-nine-input-geometries-v1', 'case': case, 'states': rows,
+            'final_capture': validate_final_state(folder),
             'all_nine_geometries_verified': True, 'native_ime_frames_verified': 6,
             'after_touch_geometries_verified': 3, 'requires_root_actual_PNG_review': True,
             'scope': 'Recorded DOM/native bounds and real IME dumps; no inferred WebView screen origin or replacement for direct PNG review.'}
@@ -78,10 +97,13 @@ def validate(report):
         return False
     if any(app.get(key) is not True for key in ('functional_observed', 'harvest_required_complete', 'all_inputs_unobscured', 'post_identity_verified')) or app.get('post_identity_failed') or app.get('harvest_guest_client_crash_observed'):
         return False
-    if type(app.get('harvest_required_file_count')) is not int or app['harvest_required_file_count'] != 102:
+    if type(app.get('harvest_required_file_count')) is not int or app['harvest_required_file_count'] != 103:
         return False
     geometry = app.get('diagnostic_geometry')
     if not isinstance(geometry, dict) or geometry.get('case') != 'app' or geometry.get('all_nine_geometries_verified') is not True or geometry.get('native_ime_frames_verified') != 6 or geometry.get('after_touch_geometries_verified') != 3:
+        return False
+    final_capture = geometry.get('final_capture')
+    if not isinstance(final_capture, dict) or final_capture.get('synchronized_final_capture_verified') is not True or final_capture.get('cold_process_restart_claim') is not False:
         return False
     states = geometry.get('states')
     if not isinstance(states, list) or len(states) != 9 or any(not isinstance(state, dict) or state.get('input_fully_unobscured') is not True for state in states):
