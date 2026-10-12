@@ -2,7 +2,7 @@
 """Freeze exactly one new current-r9 debug comparison build; never publish it."""
 import argparse,hashlib,json,os,re,shutil,subprocess,zipfile,xml.etree.ElementTree as ET
 from pathlib import Path
-from current_artifact import APK_NAMES,HELPER_SHA,PRESSURE_JAVA,SYNC_PATH,WORKFLOW_PATH,validate_sync,sha
+from current_artifact import APK_NAMES,HELPER_SHA,pressure_java_pins,SYNC_PATH,WORKFLOW_PATH,validate_sync,sha
 
 EXPECTED_PACKAGE={'app.apk':'com.shikuang.app.preview','app-test.apk':'com.shikuang.app.preview.test','control.apk':'com.shikuang.control16k','control-test.apk':'com.shikuang.control16k.test','test-services-1.4.2.apk':'androidx.test.services'}
 BUILD_DIRS={'app.apk':'android/app/build/outputs/apk/debug','app-test.apk':'android/app/build/outputs/apk/androidTest/debug','control.apk':'android16k-control/build/outputs/apk/debug','control-test.apk':'android16k-control/build/outputs/apk/androidTest/debug'}
@@ -26,6 +26,7 @@ def command(argv,folder,stem):
 def main():
  a=argparse.ArgumentParser();a.add_argument('--out',required=True);a.add_argument('--helper',required=True);a.add_argument('--sdk',required=True);a.add_argument('--source-sha',required=True);a.add_argument('--web-sync-sha',required=True);a.add_argument('--diagnostic-app-only',action='store_true');args=a.parse_args()
  repo=Path.cwd();out=Path(args.out);out.mkdir(mode=0o700,exist_ok=False);evidence=out/'build-evidence';evidence.mkdir()
+ pressure_java=pressure_java_pins('app_only_diagnostic' if args.diagnostic_app_only else 'comparison')
  source=subprocess.check_output(['git','rev-parse','HEAD']).decode().strip()
  if not re.fullmatch(r'[a-f0-9]{40}',args.source_sha) or source!=args.source_sha:raise ValueError('actual_current_checkout_source_mismatch')
  syncraw=(repo/SYNC_PATH).read_bytes();sync=validate_sync(syncraw,args.web_sync_sha)
@@ -35,13 +36,13 @@ def main():
   original_raw=original.read_bytes();packaged_raw=packaged.read_bytes()
   committed=subprocess.check_output(['git','show',source+':web/'+row['path']])
   if original_raw!=committed or packaged_raw!=original_raw or len(original_raw)!=row['bytes'] or sha(original_raw)!=row['sha256']:raise ValueError('current_committed_packaged_web_asset_mismatch_'+row['path'])
- srcnames=set(PRESSURE_JAVA)|{SYNC_PATH,WORKFLOW_PATH,'package.json','package-lock.json','tools/build.cjs','tools/check.cjs','tools/verify-sync.cjs','android/app/build.gradle','android/variables.gradle','android/app/src/androidTest/java/com/shikuang/app/RuntimeTestOutput.java'}
- srcnames|={str(p.relative_to(repo)) for base in ('tools/functional_first','android/app/src/main/java','android16k-control') for p in (repo/base).rglob('*') if p.is_file() and 'build' not in p.relative_to(repo/base).parts and '.gradle' not in p.relative_to(repo/base).parts}
+ srcnames=set(pressure_java)|{SYNC_PATH,WORKFLOW_PATH,'package.json','package-lock.json','tools/build.cjs','tools/check.cjs','tools/verify-sync.cjs','android/app/build.gradle','android/variables.gradle','android/app/src/androidTest/java/com/shikuang/app/RuntimeTestOutput.java'}
+ srcnames|={str(p.relative_to(repo)) for base in ('tools/functional_first','android/app/src/main/java','android16k-control') for p in (repo/base).rglob('*') if p.is_file() and not any(part in ('build','.gradle','__pycache__') for part in p.relative_to(repo/base).parts)}
  sources=[]
  for name in sorted(srcnames):
   raw=(repo/name).read_bytes();committed=subprocess.check_output(['git','show',source+':'+name])
   if raw!=committed:raise ValueError('current_source_not_committed_'+name)
-  if name in PRESSURE_JAVA and sha(raw)!=PRESSURE_JAVA[name]:raise ValueError('strict_pressure_class_changed')
+  if name in pressure_java and sha(raw)!=pressure_java[name]:raise ValueError('strict_pressure_class_changed')
   dst=out/'source'/name;dst.parent.mkdir(parents=True,exist_ok=True);dst.write_bytes(raw)
   sources.append({'path':name,'bytes':len(raw),'sha256':sha(raw)})
  tools=Path(args.sdk)/'build-tools/35.0.0'
