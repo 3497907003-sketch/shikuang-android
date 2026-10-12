@@ -58,7 +58,7 @@ test('directory failures preserve original knowledge and expose an effective ret
 test('physical facts use field-specific sources, retain raw text and do not turn n.d. into a value',async()=>{
   const catalog=mockCatalog(1);catalog.minerals[1].physical_properties={hardness:{value:'2–3',raw:'2 - 3',source_url:'https://example.org/handbook.pdf',source_page:1,status:'verified'},density_measured:{value:'n.d.',raw:'n.d.',source_url:'https://example.org/handbook.pdf',source_page:1,status:'not_determined'}};
   const f=fixture({catalog});await f.settle();await f.documentClick('[data-detail]',{detail:'catalog:ima-test-1'});
-  const body=f.node('detailBody').innerHTML;assert.match(body,/2–3/);assert.match(body,/原文：2 - 3/);assert.match(body,/MSA 矿物手册 · 第 1 页/);assert.match(body,/handbook\.pdf#page=1/);assert.match(body,/原文未给出可用值/);assert.doesNotMatch(body,/>n\.d\.</);
+  const body=f.node('detailBody').innerHTML;assert.match(body,/2–3/);assert.match(body,/原文：2–3/);assert.doesNotMatch(body,/原文：2 - 3/);assert.match(body,/MSA 矿物手册 · 第 1 页/);assert.match(body,/handbook\.pdf#page=1/);assert.match(body,/原文未给出可用值/);assert.doesNotMatch(body,/>n\.d\.</);
 });
 
 test('legacy labels for the same official species share one searchable card and keep result lookup working',async()=>{

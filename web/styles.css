@@ -73,12 +73,17 @@ dialog{max-height:86vh;max-height:86dvh}
 .property-original summary{font-size:10px;color:var(--accent);padding-top:7px;justify-content:flex-start}
 .property-original summary:after{content:'＋';margin-left:5px}.property-original[open] summary:after{content:'－'}
 .property-original p{margin-top:7px;font-size:11px;line-height:1.8}
+.miller-negative{display:inline-block;text-decoration:overline;white-space:nowrap}
+.close-glyph{font-size:25px;font-weight:400;line-height:1}
 .crystal-system-note{margin-top:9px;color:var(--muted);font-size:11px;line-height:1.8}
 .crystal-system-note summary{color:var(--accent);font-size:11px;justify-content:flex-start}
 .crystal-system-note p{font-size:11px;margin-top:8px}
 .crystal-system-note a{text-decoration:underline;overflow-wrap:break-word;word-break:break-word}
 .crystal-system-note .property-raw{word-break:break-all}
 .translation-pending{color:var(--muted)}
+#detailDialog[open],#recordDialog[open]{display:flex;flex-direction:column;overflow:hidden}
+#detailDialog>.dialog-head,#recordDialog>.dialog-head{flex:0 0 auto}
+#detailBody,#recordBody{min-height:0;overflow-y:auto;overscroll-behavior:contain}
 @media(max-width:720px){
   .stage{padding-bottom:88.4956%}
   .library-tools{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -102,3 +107,6 @@ dialog{max-height:86vh;max-height:86dvh}
 .reference-photo img{display:block;width:auto;max-width:100%;height:auto;max-height:340px;margin:0 auto;object-fit:contain;border-radius:8px}
 .reference-photo img[hidden]{display:none}
 .reference-photo p{margin:10px 0 0}
+/* Editing in a compressed viewport takes priority over fixed navigation. */
+body.compact-editing .bottom-nav{display:none}
+body.compact-editing main{padding-bottom:20px;padding-bottom:calc(20px + env(safe-area-inset-bottom))}

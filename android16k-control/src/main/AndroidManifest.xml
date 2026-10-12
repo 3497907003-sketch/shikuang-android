@@ -1,0 +1,6 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <application android:label="WebView 16KB control experiment" android:theme="@android:style/Theme.Material.Light.NoActionBar" android:allowBackup="false">
+        <activity android:name=".WebViewControlActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
+    </application>
+</manifest>

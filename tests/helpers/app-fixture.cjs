@@ -1,5 +1,14 @@
 const fs=require('node:fs'),vm=require('node:vm'),Core=require('../../web/core.js');
 
+function serviceWorkerFixture(base='http://127.0.0.1/test/', register=async()=>({})) {
+  const events=()=>({listeners:new Map(),addEventListener(type,fn){const list=this.listeners.get(type)||new Set();list.add(fn);this.listeners.set(type,list);},removeEventListener(type,fn){this.listeners.get(type)?.delete(fn);},emit(type){for(const fn of this.listeners.get(type)||[])fn();}});
+  const names=Core.offlineCaches(base);
+  const worker=Object.assign(events(),{state:'activated',scriptURL:new URL('sw.js',base).href,postMessage(data,ports){if(data.type==='OFFLINE_IDENTITY')ports[0].postMessage({scope:names.scope,shell:names.shell,models:names.models});}});
+  const registration=Object.assign(events(),{scope:names.scope,active:worker,installing:null,waiting:null});
+  const serviceWorker=Object.assign(events(),{register,controller:worker,ready:Promise.resolve(registration)});
+  return {serviceWorker,registration,worker,names};
+}
+
 function fixture({ register, catalog, crystals, images, crystalSystems, loader, knowledge, classes, engine, native, timers } = {}) {
   class Element {
     constructor(id) { this.id=id;this.innerHTML='';this.value='';this.hidden=false;this.disabled=false;this.checked=false;this.listeners={};this.style={};this.dataset={};this.naturalWidth=256;this.naturalHeight=256;this.clientWidth=300;this.clientHeight=300;this.classList={add(){},remove(){},toggle(){}}; }
@@ -19,12 +28,12 @@ function fixture({ register, catalog, crystals, images, crystalSystems, loader, 
   const saved=new Map(), local=new Map(), listeners={}, documentListeners={}, confirmations=[];
   let hash='#identify',imageId=0,analysisError,confirmResult=true;
   const result=()=>({key:'quartz',score:.8,status:'uncertain',reasons:[],rankings:[{key:'quartz',score:.8}],checks:[],agreement:1,photoCount:1,modelCount:1});
-  const context={ document:{querySelector:s=>s==='dialog[open]'?groups.dialog.find(el=>el.open):node(s.slice(1)),querySelectorAll:s=>groups[s]||[],createElement:tag=>{const element=new Element(tag);created.push(element);return element;},addEventListener:(type,fn)=>{(documentListeners[type] ||= []).push(fn);} ,body:{classList:{add(){},remove(){}}}},
+  const context={ document:{documentElement:{outerHTML:fs.readFileSync(require.resolve('../../web/index.html'),'utf8')},querySelector:s=>s==='dialog[open]'?groups.dialog.find(el=>el.open):node(s.slice(1)),querySelectorAll:s=>groups[s]||[],createElement:tag=>{const element=new Element(tag);created.push(element);return element;},addEventListener:(type,fn)=>{(documentListeners[type] ||= []).push(fn);} ,body:{classList:{add(){},remove(){}}}},
     location:{protocol:'http:',hostname:'127.0.0.1',href:'http://127.0.0.1/test/',get hash(){return hash;},set hash(v){hash=v.startsWith('#')?v:'#'+v;}},
-    navigator:{onLine:true,serviceWorker:register?{register}:undefined}, caches:{},
+    navigator:{onLine:true,serviceWorker:register?serviceWorkerFixture(undefined,register).serviceWorker:undefined}, caches:{},MessageChannel:require('node:worker_threads').MessageChannel,
     addEventListener:(type,fn)=>{listeners[type]=fn;},requestAnimationFrame:fn=>fn(),matchMedia:()=>({matches:true}),
     setTimeout:timers?.setTimeout||( (fn,ms)=>{const timer=setTimeout(fn,ms);timer.unref();return timer;}),clearTimeout:timers?.clearTimeout||clearTimeout,AbortController,DOMException,Date,Math,Promise,Map,Set,Number,String,Array,Object,Blob,TextDecoder,
-    crypto:{randomUUID:()=>`record-${saved.size+1}`},URL:{createObjectURL:()=>`blob:photo-${++imageId}`,revokeObjectURL:url=>revoked.push(url)},
+    crypto:{randomUUID:()=>`record-${saved.size+1}`},URL:class FixtureURL extends URL {static createObjectURL(){return `blob:photo-${++imageId}`;}static revokeObjectURL(url){revoked.push(url);}},
     localStorage:{getItem:key=>local.get(key)||null,setItem:(key,value)=>local.set(key,value)},confirm:message=>{confirmations.push(message);return confirmResult;},
     MINERAL_KB:{quartz:{name_zh:'石英',name_en:'Quartz',formula:'SiO₂',classification:{class_9:'氧化物/氢氧化物'}}},MINERAL_CLASSES:{quartz:{zh:'石英'}},MINERAL_SOURCES:[],MineralCore:Core,MineralGallery:require('../../web/gallery.js'),
     MineralEngine:{image:async src=>({src,naturalWidth:256,naturalHeight:256}),analyze:async()=>{if(analysisError)throw analysisError;return result();},models:[],modelResources:manifest=>manifest.models.map(model=>({...model,url:new URL(model.path,'http://127.0.0.1/test/').href+'?fixture-model-sha='+model.sha256}))},
@@ -41,4 +50,4 @@ function fixture({ register, catalog, crystals, images, crystalSystems, loader, 
   return {node,saved,created,revoked,confirmations,context,settle,until,photoFile,documentClick:async(selector,dataset={})=>{const target={closest:query=>query===selector?{dataset}:null};for(const fn of documentListeners.click||[])fn({target});await settle();},setError:error=>{analysisError=error;},setConfirmation:value=>{confirmResult=value;},route:view=>{context.location.hash=view;listeners.hashchange();},click:async id=>{node(id).fire('click');await settle();},photo:async()=>{node('fileInput').files=[photoFile()];node('fileInput').fire('change');await settle();}};
 }
 
-module.exports={fixture};
+module.exports={fixture,serviceWorkerFixture};

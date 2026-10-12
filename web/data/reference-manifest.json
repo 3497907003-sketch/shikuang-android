@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "version": "2026-10-10",
+  "version": "2026-10-11",
   "catalog_version": "2026-09",
   "counts": {
     "ima_species": 6239,
@@ -10,13 +10,17 @@
     "species_with_records": 3430,
     "source_image_records": 871,
     "local_reviewed_photos": 117,
-    "local_reference_exact_ima_species": 52
+    "local_reference_exact_ima_species": 52,
+    "catalog_species_with_physical_facts": 185,
+    "verified_catalog_fields": 955,
+    "catalog_species_with_literature_facts": 100,
+    "verified_literature_fields": 198
   },
   "files": [
     {
       "path": "data/catalog.json",
-      "bytes": 3869255,
-      "sha256": "18b11661a6eb87d40c57759ac59dfe6156612276a8ce854cd047517d63b068ac"
+      "bytes": 4580222,
+      "sha256": "e70ef4cc25e3a82bf444ea6ce041970c71b23daceaf3002d07f4fab2143cb21b"
     },
     {
       "path": "data/crystals.json",
@@ -28,5 +32,11 @@
       "bytes": 2038948,
       "sha256": "7895e0cc81769658fdcbc3067cab1181292cda23f405e7c7acf7a3d295f7fef6"
     }
-  ]
+  ],
+  "literature_bundle": {
+    "path": "data/minerals.js",
+    "bytes": 631708,
+    "sha256": "96ea48691cebc6719306076763aef95c965d3441dfa64c46123456a50936de24",
+    "root_ledger_sha256": "1d3223d772c275db9677f2fa1a7d02ccae1c46450a478db1f19013b578f51b58"
+  }
 }

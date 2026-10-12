@@ -57,7 +57,43 @@ test('all 89 linked knowledge labels show Chinese property descriptions and reta
 
 test('new unreviewed English descriptions are marked for translation and the exact source is available in a closed disclosure',async()=>{
   const f=fixture({knowledge:{quartz:{name_zh:'石英',verified_properties:{luster:{value:'Unreviewed unusual source description',raw:'Unreviewed unusual source description.',status:'verified'}}}}});await f.settle();await f.documentClick('[data-detail]',{detail:'quartz'});
-  const body=f.node('detailBody').innerHTML;assert.match(body,/原文待翻译/);assert.match(body,/<details class="property-original">/);assert.match(body,/Unreviewed unusual source description\./);assert.doesNotMatch(body,/<details class="property-original" open/);
+  const body=f.node('detailBody').innerHTML;assert.match(body,/原文待翻译/);assert.match(body,/<details class="property-original">/);assert.match(body,/原文：Unreviewed unusual source description</);assert.doesNotMatch(body,/<details class="property-original" open/);
+});
+
+test('all reviewed catalog extensions render Chinese with conditioned facts and leave unverified values empty',async()=>{
+  const catalog=JSON.parse(fs.readFileSync(path.join(root,'data/catalog.json'),'utf8'));
+  const ids=catalog.physical_stats.extension_batches.flatMap(batch=>batch.records.map(r=>r.catalog_id));
+  assert.ok(ids.length>=100);assert.equal(new Set(ids).size,ids.length);
+  const f=fixture({catalog});await f.settle();
+  let checked=0;
+  for(const id of ids){
+    const row=catalog.minerals.find(r=>r.id===id);await f.documentClick('[data-detail]',{detail:'catalog:'+id});
+    const body=f.node('detailBody').innerHTML;assert.doesNotMatch(body,/原文待翻译/,id);
+    for(const prop of Object.values(row.physical_properties)){
+      if(prop.status==='verified'){
+        assert.equal(prop.translation.source_value,prop.value);assert.equal(prop.translation.status,'reviewed');checked++;
+      }else assert.equal(prop.value,null);
+    }
+  }
+  assert.ok(checked>=498);
+  for(const [id,condition] of [['ima-epsomite','合成样品'],['ima-uraninite','随氧化显著降低'],['ima-tridymite','约 100 °C 以下'],['ima-clintonite','垂直于 {001}']]){
+    await f.documentClick('[data-detail]',{detail:'catalog:'+id});assert.ok(f.node('detailBody').innerHTML.includes(condition),id+':'+condition);
+  }
+});
+
+test('negative plane indices retain their exact overbar position and damaged extraction is not shown as source transcription',async()=>{
+  const value='Perfect on {101̅0}',fact={value,raw:'Perfect on 1010 lost-vector-glyph',status:'verified',translation:{status:'reviewed',source_value:value,text_zh:'{101̅0} 面完全'}};
+  const f=fixture({knowledge:{quartz:{name_zh:'石英',verified_properties:{cleavage:fact}}}});await f.settle();await f.documentClick('[data-detail]',{detail:'quartz'});
+  const body=f.node('detailBody').innerHTML;
+  assert.match(body,/\{10<span class="miller-negative" aria-label="负 1">1<\/span>0\}/);
+  assert.match(body,/数字上方横线表示负晶面指数/);assert.doesNotMatch(body,/lost-vector-glyph|\u0305/);
+  assert.equal(f.context.MINERAL_KB.quartz.verified_properties.cleavage.value,value);
+});
+
+test('a stale translation or unverified non-null field cannot become a displayed verified mineral property',async()=>{
+  const facts={luster:{value:'New unknown source wording',raw:'Old raw wording',status:'verified',translation:{status:'reviewed',source_value:'Old wording',text_zh:'错误的旧翻译'}},cleavage:{value:'Perfect on {001}',raw:'Inferred',status:'source_inferred',translation:{status:'reviewed',source_value:'Perfect on {001}',text_zh:'不应显示'}}};
+  const f=fixture({knowledge:{quartz:{name_zh:'石英',verified_properties:facts}}});await f.settle();await f.documentClick('[data-detail]',{detail:'quartz'});
+  const body=f.node('detailBody').innerHTML;assert.match(body,/原文待翻译/);assert.match(body,/原文：New unknown source wording/);assert.match(body,/来源推测尚无可核验值/);assert.doesNotMatch(body,/错误的旧翻译|不应显示|Old raw wording|原文：Perfect/);
 });
 
 test('copying a readable chemical formula preserves the exact source subscripts and charges',async()=>{

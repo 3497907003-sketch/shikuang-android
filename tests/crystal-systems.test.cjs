@@ -9,9 +9,9 @@ test('source-bound seven-system annotations cover all reviewed Hexagonal fields 
   assert.equal(knowledge.quartz.verified_properties.crystal_system.raw,'Hexagonal.');assert.equal(knowledge.pyrrhotite.verified_properties.crystal_system.value,'Monoclinic, pseudohexagonal');assert.equal(knowledge.aragonite.verified_properties.crystal_system.value,'Orthorhombic, pseudohexagonal');
 });
 
-test('quartz calcite and corundum display trigonal from reviewed point groups with source raw and classification links',async()=>{
+test('quartz calcite and corundum display trigonal from reviewed point groups with reviewed source transcription and classification links',async()=>{
   const loaded=data(),original=JSON.stringify(loaded.knowledge),f=fixture(loaded);await f.settle();
-  for(const key of ['quartz','calcite','corundum']){await f.documentClick('[data-detail]',{detail:key});const body=f.node('detailBody').innerHTML;assert.match(body,/晶系（七晶系）/);assert.match(body,/三方晶系/);assert.match(body,/Hexagonal\./);assert.match(body,/dictionary\.iucr\.org\/Crystal_family/);assert.match(body,/table1o3o4o3\.pdf/);assert.doesNotMatch(body,/<div class="property-value">六方晶系/);}
+  for(const key of ['quartz','calcite','corundum']){await f.documentClick('[data-detail]',{detail:key});const body=f.node('detailBody').innerHTML;assert.match(body,/晶系（七晶系）/);assert.match(body,/三方晶系/);assert.match(body,/原文：Hexagonal</);assert.match(body,/dictionary\.iucr\.org\/Crystal_family/);assert.match(body,/table1o3o4o3\.pdf/);assert.doesNotMatch(body,/<div class="property-value">六方晶系/);}
   assert.match(f.node('detailBody').innerHTML,/原 PDF SHA-256/);assert.equal(JSON.stringify(loaded.knowledge),original);
 });
 
@@ -26,4 +26,15 @@ test('confirmed sixfold point groups remain hexagonal; polytypes and alternative
 test('an internally inconsistent source point group is disclosed, and changed sources fail back to review rather than reusing a stale annotation',async()=>{
   const loaded=data(),f=fixture(loaded);await f.settle();await f.documentClick('[data-detail]',{detail:'proustite'});assert.match(f.node('detailBody').innerHTML,/空间群R3c对应3m，二者不一致/);assert.match(f.node('detailBody').innerHTML,/点群具体值待复核/);
   loaded.knowledge.quartz.verified_properties.crystal_system.source_url='https://example.com/unreviewed.pdf';await f.documentClick('[data-detail]',{detail:'quartz'});assert.match(f.node('detailBody').innerHTML,/原表六方分类（七晶系待复核）/);assert.doesNotMatch(f.node('detailBody').innerHTML,/晶系（七晶系）/);
+});
+
+test('annotation PDF checksum must match the fact even when URL and source value are unchanged',async()=>{
+  const loaded=data(),f=fixture(loaded);await f.settle();
+  loaded.knowledge.quartz.verified_properties.crystal_system.source_pdf_sha256='f'.repeat(64);
+  await f.documentClick('[data-detail]',{detail:'quartz'});
+  assert.match(f.node('detailBody').innerHTML,/原表六方分类（七晶系待复核）/);
+  assert.doesNotMatch(f.node('detailBody').innerHTML,/晶系（七晶系）/);
+  delete loaded.knowledge.quartz.verified_properties.crystal_system.source_pdf_sha256;
+  await f.documentClick('[data-detail]',{detail:'quartz'});
+  assert.doesNotMatch(f.node('detailBody').innerHTML,/晶系（七晶系）/);
 });

@@ -3,7 +3,7 @@ const vm = require('node:vm');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const root = path.resolve(__dirname, '../web');
-for (const file of ['app.js','native-assets.js','core.js','inference.js','storage.js','sw.js','engine-worker.js','media.js','history.js','reference-loader.js','gallery.js','data/sources.js']) new vm.Script(fs.readFileSync(path.join(root,file),'utf8'), { filename:file });
+for (const file of ['app.js','native-assets.js','core.js','inference.js','storage.js','sw.js','engine-worker.js','media.js','history.js','reference-loader.js','gallery.js', 'viewport.js','data/sources.js']) new vm.Script(fs.readFileSync(path.join(root,file),'utf8'), { filename:file });
 const context = { window: {} };
 for (const file of ['classes','minerals','imagenet']) vm.runInNewContext(fs.readFileSync(path.join(root,`data/${file}.js`),'utf8'),context);
 const keys = Object.keys(context.window.MINERAL_CLASSES);
@@ -37,10 +37,13 @@ for(const [id,records] of Object.entries(crystals.by_species)){
 if(recordCount!==crystals.stats.matched_records||Object.keys(crystals.by_species).length!==crystals.stats.species_with_records)throw new Error('Crystal record count mismatch');
 let verifiedFields=0;
 for(const row of catalog.minerals) for(const prop of Object.values(row.physical_properties||{})) {
-  if(!['verified','source_inferred','needs_review','unavailable'].includes(prop.status)||!prop.source_url?.startsWith('https://www.handbookofmineralogy.org/')||prop.source_page!==1)throw new Error('Invalid physical source: '+row.id);
+  if(!['verified','source_inferred','needs_review','unavailable'].includes(prop.status)||!/^https:\/\/(?:www\.)?handbookofmineralogy\.org\/pdfs\/[A-Za-z0-9_-]+\.pdf$/.test(prop.source_url||'')||prop.source_page!==1)throw new Error('Invalid physical source: '+row.id);
   if(prop.status==='verified'){if(prop.value===null||prop.value===undefined||prop.value==='')throw new Error('Empty verified field: '+row.id);verifiedFields++;}
   else if(prop.value!==null)throw new Error('Unverified value published: '+row.id);
+  if(prop.translation&&(prop.status!=='verified'||prop.translation.status!=='reviewed'||prop.translation.source_value!==prop.value||typeof prop.translation.text_zh!=='string'||!prop.translation.text_zh.trim()))throw new Error('Stale/unreviewed property translation: '+row.id);
+  if(prop.source_pdf_sha256&&!/^[a-f0-9]{64}$/.test(prop.source_pdf_sha256))throw new Error('Invalid property source hash: '+row.id);
 }
+if(catalog.physical_stats?.verified_catalog_fields!==undefined&&catalog.physical_stats.verified_catalog_fields!==verifiedFields)throw new Error('Verified catalog field total differs');
 const images=JSON.parse(fs.readFileSync(path.join(root,'data/image-sources.json'),'utf8'));
 if(images.records.length!==images.stats.image_references||new Set(images.records.map(x=>x.id)).size!==images.records.length)throw new Error('Image count/ID mismatch');
 const gallery=require('../web/gallery.js'),photos=gallery.validateAssets(JSON.parse(fs.readFileSync(path.join(root,'data/reviewed-photo-assets.json'),'utf8')));

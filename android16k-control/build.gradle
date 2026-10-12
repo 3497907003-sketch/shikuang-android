@@ -1,0 +1,24 @@
+plugins { id 'com.android.application' version '8.2.1' }
+
+android {
+    namespace 'com.shikuang.control16k'
+    compileSdk 34
+    defaultConfig {
+        applicationId 'com.shikuang.control16k'
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName 'test-only-1'
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+        testInstrumentationRunnerArguments useTestStorageService: 'true'
+    }
+    buildTypes { debug { debuggable true } }
+}
+
+dependencies {
+    androidTestImplementation 'androidx.test:core:1.5.0'
+    androidTestImplementation 'androidx.test:runner:1.5.2'
+    androidTestImplementation 'androidx.test.services:storage:1.4.2'
+    androidTestUtil 'androidx.test.services:test-services:1.4.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+}

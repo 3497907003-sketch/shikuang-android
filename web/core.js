@@ -6,6 +6,93 @@
 })(typeof globalThis === 'object' ? globalThis : this, function () {
   'use strict';
   const POLICY = Object.freeze({ score: 0.65, margin: 0.20, agreement: 2/3, version: '2.0-preview' });
+  const OFFLINE_CACHES = Object.freeze({ shell:'shikuang-static-2.5.0-preview.1-r9', models:'shikuang-models-v2-20261010' });
+  function offlineCaches(base) {
+    const scope = new URL('./', base);
+    if (!['https:','http:'].includes(scope.protocol) || scope.username || scope.password) throw new Error('离线应用地址无效');
+    const prefix = 'shikuang-scope-' + encodeURIComponent(scope.href) + '::';
+    return Object.freeze({ scope:scope.href, prefix, shell:prefix+OFFLINE_CACHES.shell, models:prefix+OFFLINE_CACHES.models });
+  }
+  async function offlineWorkerIdentity(serviceWorker, base, signal, Channel) {
+    const expected = offlineCaches(base), scriptURL = new URL('sw.js', expected.scope).href;
+    const stopped = () => new DOMException('离线准备已停止','AbortError');
+    if (signal?.aborted) throw stopped();
+    const registration = await new Promise((resolve,reject) => {
+      const finish = (error,value) => { signal?.removeEventListener('abort',cancel); error?reject(error):resolve(value); };
+      const cancel = () => finish(stopped());
+      signal?.addEventListener('abort',cancel,{once:true});
+      Promise.resolve(serviceWorker.ready).then(value=>finish(null,value),finish);
+    });
+    if (signal?.aborted) throw stopped();
+    if (!registration || registration.scope !== expected.scope) throw new Error('离线服务范围不一致，请刷新页面后重试');
+    const worker = await new Promise((resolve,reject) => {
+      const watched = new Set(); let settled = false;
+      const finish = (error,value) => {
+        if (settled) return; settled = true;
+        signal?.removeEventListener('abort',cancel);
+        serviceWorker.removeEventListener('controllerchange',check);
+        registration.removeEventListener('updatefound',check);
+        watched.forEach(item=>item.removeEventListener('statechange',check));
+        error?reject(error):resolve(value);
+      };
+      const cancel = () => finish(stopped());
+      const check = () => {
+        if (signal?.aborted) { cancel(); return; }
+        for (const item of [registration.installing,registration.waiting,registration.active,serviceWorker.controller]) {
+          if (item && !watched.has(item)) { watched.add(item); item.addEventListener('statechange',check); }
+        }
+        if (registration.installing && registration.installing.state !== 'redundant') return;
+        if (registration.waiting) { registration.waiting.postMessage({type:'ACTIVATE_UPDATE'}); return; }
+        const controller = serviceWorker.controller;
+        if (registration.active?.state !== 'activated' || controller?.state !== 'activated') return;
+        if (controller.scriptURL !== scriptURL) { finish(new Error('离线服务已变更，请刷新页面后重试')); return; }
+        finish(null,controller);
+      };
+      signal?.addEventListener('abort',cancel,{once:true});
+      serviceWorker.addEventListener('controllerchange',check);
+      registration.addEventListener('updatefound',check); check();
+    });
+    if (typeof Channel !== 'function') throw new Error('浏览器无法检查离线服务，请使用安装版');
+    return new Promise((resolve,reject) => {
+      const channel = new Channel(); let settled = false;
+      const finish = (error,value) => {
+        if (settled) return; settled = true;
+        signal?.removeEventListener('abort',cancel); channel.port1.close(); channel.port2.close();
+        error?reject(error):resolve(value);
+      };
+      const cancel = () => finish(stopped());
+      signal?.addEventListener('abort',cancel,{once:true});
+      channel.port1.onmessage = event => {
+        const value = event.data;
+        if (signal?.aborted) { cancel(); return; }
+        if (serviceWorker.controller !== worker || value?.scope !== expected.scope || value?.shell !== expected.shell || value?.models !== expected.models) {
+          finish(new Error('页面与离线资源版本不一致，请刷新页面后重新准备')); return;
+        }
+        finish(null,expected);
+      };
+      if (signal?.aborted) { cancel(); return; }
+      try { worker.postMessage({type:'OFFLINE_IDENTITY'},[channel.port2]); }
+      catch (error) { finish(error); }
+    });
+  }
+  // The entry document owns its exact dependency URLs, including version queries.
+  // Keep these identities in Cache Storage; stripping queries can mix releases.
+  function shellAssets(html, base) {
+    if (typeof html !== 'string' || html.length > 1000000) throw new Error('离线页面内容无效');
+    const scope = new URL('./', base), urls = new Set();
+    const attribute = (tag, name) => tag.match(new RegExp('(?:^|\\s)'+name+'\\s*=\\s*(?:"([^"]*)"|\'([^\']*)\')','i'))?.slice(1).find(value => value !== undefined);
+    for (const match of html.matchAll(/<(script|link)\b[^>]*>/gi)) {
+      const tag = match[0], script = match[1].toLowerCase() === 'script';
+      if (!script && !/\b(?:stylesheet|manifest|icon)\b/i.test(attribute(tag,'rel') || '')) continue;
+      const value = attribute(tag, script ? 'src' : 'href');
+      if (!value) continue;
+      const url = new URL(value.replace(/&amp;/g,'&'), base);
+      if (url.origin !== scope.origin || !url.pathname.startsWith(scope.pathname)) throw new Error('离线页面资源超出应用范围');
+      if (url.hash || url.username || url.password || !/\.(?:js|css|svg|png|webmanifest)$/i.test(url.pathname)) throw new Error('离线页面资源地址无效');
+      urls.add(url.href);
+    }
+    return [...urls];
+  }
   const BACKUP_LIMIT_BYTES = 100 * 1024 * 1024;
   function checkBackupSize(value) {
     const bytes = typeof value === 'number' ? value : typeof value === 'string' ? new TextEncoder().encode(value).byteLength : NaN;
@@ -257,5 +344,5 @@
     if (new Set(records.map(r => r.id)).size !== records.length) throw new Error('导入文件包含重复记录编号');
     return records;
   }
-  return { POLICY, NON_MINERAL, BACKUP_LIMIT_BYTES, MODEL_MAX_BYTES, validateManifest, selectedModels, modelResourceURL, readResource, pixelsToInput, validateAnalysis, checkBackupSize, screen, softmax, probabilities, average, argmax, hardnessRange, evidenceFor, summarize, quality, qualityWarnings, sanitizeRecord, parseImport };
+  return { POLICY, OFFLINE_CACHES, offlineCaches, offlineWorkerIdentity, shellAssets, NON_MINERAL, BACKUP_LIMIT_BYTES, MODEL_MAX_BYTES, validateManifest, selectedModels, modelResourceURL, readResource, pixelsToInput, validateAnalysis, checkBackupSize, screen, softmax, probabilities, average, argmax, hardnessRange, evidenceFor, summarize, quality, qualityWarnings, sanitizeRecord, parseImport };
 });

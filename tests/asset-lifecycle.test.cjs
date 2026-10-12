@@ -1,5 +1,5 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
-const WEB=fs.existsSync(require('node:path').join(__dirname,'../web/core.js'))?'../web/':'../';
+const WEB=fs.existsSync(require('node:path').join(__dirname,'../web/core.js'))?'../web/':'../web/';
 const Core=require(WEB+'core.js'),{fixture,hash}=require('./helpers/model-contract.cjs');
 const swSource=fs.readFileSync(require.resolve(WEB+'sw.js'),'utf8');
 function cacheStorage() {
@@ -8,12 +8,12 @@ function cacheStorage() {
     return {match:async key=>data.get(url(key))?.clone(),put:async(key,value)=>data.set(url(key),value.clone()),delete:async key=>data.delete(url(key)),addAll:async()=>{}};
   }};
 }
-function serviceWorker() {
-  const caches=cacheStorage(),listeners={},network={fetch:async()=>{throw Error('offline');}},context={MineralCore:Core,URL,Request,Response,Headers,TextDecoder,AbortController,DOMException,setTimeout,clearTimeout,crypto:require('node:crypto').webcrypto,caches,importScripts(){},fetch:(...args)=>network.fetch(...args),self:{registration:{scope:'https://localhost/app/'},addEventListener:(name,callback)=>listeners[name]=callback,skipWaiting:async()=>{},clients:{claim:async()=>{}}}};
+function serviceWorker(scope='https://localhost/app/',caches=cacheStorage()) {
+  const listeners={},network={fetch:async()=>{throw Error('offline');}},context={MineralCore:Core,URL,Request,Response,Headers,TextDecoder,AbortController,DOMException,setTimeout,clearTimeout,crypto:require('node:crypto').webcrypto,caches,importScripts(){},fetch:(...args)=>network.fetch(...args),self:{registration:{scope},addEventListener:(name,callback)=>listeners[name]=callback,skipWaiting:async()=>{},clients:{claim:async()=>{}}}};
   vm.runInNewContext(swSource,context);
   return {caches,network,async request(path,cache='default'){
-    let reply;listeners.fetch({request:new Request(new URL(path,'https://localhost/app/'),{cache}),respondWith:value=>reply=value,waitUntil(){}});return reply;
-  },async message(data){const work=[];let ack;listeners.message({data,ports:[{postMessage:value=>ack=value}],waitUntil:value=>work.push(value)});await Promise.all(work);return ack;}};
+    let reply;listeners.fetch({request:new Request(new URL(path,scope),{cache}),respondWith:value=>reply=value,waitUntil(){}});return reply;
+  },async activate(){let work;listeners.activate({waitUntil:value=>work=value});await work;},async message(data){const work=[];let ack;listeners.message({data,ports:[{postMessage:value=>ack=value}],waitUntil:value=>work.push(value)});await Promise.all(work);return ack;}};
 }
 async function publish(sw,data=fixture()) {
   const bytes=Buffer.from(JSON.stringify(data.manifest));sw.network.fetch=async()=>new Response(bytes);
@@ -33,7 +33,7 @@ test('manifest is network-first, bounded offline fallback is explicit, invalid u
 test('models bind manifest and checksum identities; legacy entries migrate only after verification',async()=>{
   const sw=serviceWorker(),{data,manifestHash}=await publish(sw),model=data.manifest.models[0];
   const key=Core.modelResourceURL(model,manifestHash,'https://localhost/app/').href;
-  const store=await sw.caches.open('shikuang-models-v2-20261010');
+  const store=await sw.caches.open(Core.offlineCaches('https://localhost/app/').models);
   await store.put('https://localhost/app/'+model.path,new Response(Buffer.from([9])));
   sw.network.fetch=async()=>{throw Error('offline');};assert.equal((await sw.request(key)).type,'error');
   assert.equal(await store.match('https://localhost/app/'+model.path),undefined);
@@ -48,8 +48,60 @@ test('network model corruption never enters cache and repair permits a later val
   const sw=serviceWorker(),{data,manifestHash}=await publish(sw),model=data.manifest.models[0];
   const key=Core.modelResourceURL(model,manifestHash,'https://localhost/app/').href;
   sw.network.fetch=async()=>new Response(Buffer.from([8]));assert.equal((await sw.request(key)).type,'error');
-  const cache=await sw.caches.open('shikuang-models-v2-20261010');assert.equal(await cache.match(key),undefined);
+  const cache=await sw.caches.open(Core.offlineCaches('https://localhost/app/').models);assert.equal(await cache.match(key),undefined);
   sw.network.fetch=async()=>new Response(data.files[model.path]);assert.equal((await sw.request(key,'reload')).status,200);assert.ok(await cache.match(key));
+});
+test('offline preparation retains the entry document exact versioned script and stylesheet URLs',()=>{
+  const html=fs.readFileSync(require.resolve(WEB+'index.html'),'utf8'),base='https://localhost/app/';
+  const assets=Core.shellAssets(html,base);
+  for(const match of html.matchAll(/<(?:script|link)\b[^>]*\s(?:src|href)="([^\"]+)"[^>]*>/g)) {
+    assert.ok(assets.includes(new URL(match[1],base).href),'Missing entry dependency: '+match[1]);
+  }
+  assert.ok(assets.some(url=>new URL(url).pathname.endsWith('/styles.css')&&new URL(url).searchParams.has('v')));
+  assert.deepEqual(Core.shellAssets('<script data-src="./fake.js" src=\'./real.js?v=1&amp;x=2\'></script>',base),[base+'real.js?v=1&x=2']);
+  assert.throws(()=>Core.shellAssets('<script src="../other/app.js"></script>',base),/应用范围/);
+});
+test('offline shell reload uses the exact current URL without concealing another version or an HTTP failure',async()=>{
+  const sw=serviceWorker(),cache=await sw.caches.open(Core.offlineCaches('https://localhost/app/').shell);
+  const current='https://localhost/app/styles.css?v=current';
+  await cache.put(current,new Response('body{color:teal}',{headers:{'content-type':'text/css'}}));
+  await cache.put('https://localhost/app/styles.css',new Response('old unversioned CSS'));
+  assert.equal(await (await sw.request(current,'reload')).text(),'body{color:teal}');
+  assert.equal((await sw.request('styles.css?v=another','reload')).type,'error');
+  assert.equal((await sw.request(current,'no-store')).type,'error');
+  sw.network.fetch=async()=>new Response('missing',{status:404});
+  assert.equal((await sw.request(current,'reload')).status,404);
+});
+test('Worker activation isolates different application scopes and reports its actual cache identities',async()=>{
+  const caches=cacheStorage(),first=Core.offlineCaches('https://localhost/app/'),other=Core.offlineCaches('https://localhost/other/');
+  assert.notEqual(first.shell,other.shell);
+  const old=first.prefix+'shikuang-static-old',globalLegacy='shikuang-static-2.5.0-preview.1-r4';
+  for(const name of [old,first.shell,first.models,other.shell,other.models,globalLegacy,'shikuang-other-app-scope-cache'])await caches.open(name);
+  const sw=serviceWorker('https://localhost/app/',caches);await sw.activate();
+  assert.equal(caches.stores.has(old),false);
+  for(const name of [first.shell,first.models,other.shell,other.models,globalLegacy,'shikuang-other-app-scope-cache'])assert.equal(caches.stores.has(name),true,name);
+  assert.deepEqual(JSON.parse(JSON.stringify(await sw.message({type:'OFFLINE_IDENTITY'}))),{scope:first.scope,shell:first.shell,models:first.models});
+});
+test('verified model migration from the former shared cache preserves other scopes and rejects wrong bytes',async()=>{
+  const sw=serviceWorker(),{data,manifestHash}=await publish(sw),model=data.manifest.models[0],key=Core.modelResourceURL(model,manifestHash,'https://localhost/app/').href;
+  const legacy=await sw.caches.open(Core.OFFLINE_CACHES.models),foreign='https://localhost/other/'+model.path;
+  await legacy.put(foreign,new Response('other application bytes'));
+  await legacy.put(key,new Response(Buffer.from([9])));sw.network.fetch=async()=>{throw Error('offline');};
+  assert.equal((await sw.request(key)).type,'error');assert.equal(await legacy.match(key),undefined);assert.ok(await legacy.match(foreign));
+  await legacy.put(key,new Response(data.files[model.path]));assert.deepEqual(Buffer.from(await (await sw.request(key)).arrayBuffer()),data.files[model.path]);
+  assert.ok(await (await sw.caches.open(Core.offlineCaches('https://localhost/app/').models)).match(key));assert.equal(await legacy.match(key),undefined);assert.ok(await legacy.match(foreign));
+});
+test('offline readiness waits for activation/control, detects a page/Worker version mismatch, and cancels pending installation',async()=>{
+  const {serviceWorkerFixture}=require('./helpers/app-fixture.cjs'),{MessageChannel}=require('node:worker_threads');
+  const h=serviceWorkerFixture(),controller=new AbortController();h.serviceWorker.controller=null;h.worker.state='activating';
+  let done=false;const pending=Core.offlineWorkerIdentity(h.serviceWorker,h.names.scope,controller.signal,MessageChannel).then(value=>{done=true;return value;});
+  await new Promise(resolve=>setImmediate(resolve));assert.equal(done,false);
+  h.worker.state='activated';h.serviceWorker.controller=h.worker;h.serviceWorker.emit('controllerchange');assert.equal((await pending).shell,h.names.shell);
+  h.worker.postMessage=(_data,ports)=>ports[0].postMessage({scope:h.names.scope,shell:h.names.prefix+'old-shell',models:h.names.models});
+  await assert.rejects(Core.offlineWorkerIdentity(h.serviceWorker,h.names.scope,controller.signal,MessageChannel),/版本不一致/);
+  h.registration.installing=Object.assign({},h.worker,{state:'installing'});
+  const canceled=new AbortController(),waiting=Core.offlineWorkerIdentity(h.serviceWorker,h.names.scope,canceled.signal,MessageChannel);await new Promise(resolve=>setImmediate(resolve));canceled.abort();await assert.rejects(waiting,{name:'AbortError'});
+  assert.equal(h.serviceWorker.listeners.get('controllerchange').size,0);
 });
 function nativeMigration({controller=true,stall=false}={}) {
   const removed=[],deleted=[],timers=[];let reloads=0;

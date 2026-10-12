@@ -1,0 +1,545 @@
+name: Current r9 Android functional-first 16KB experiment
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: shikuang-current-r9-functional-first-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  build-current-apks:
+    name: Build and freeze current-r9 comparison once
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    outputs:
+      manifest_sha: ${{ steps.freeze.outputs.manifest_sha }}
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 22
+        cache: npm
+    - uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: 17
+        cache: gradle
+    - name: Check current-r9 source and original strict test contract
+      shell: bash
+      run: |
+        set -euo pipefail
+        test "${{ github.event_name }}" = workflow_dispatch
+        npm ci
+        npm test
+        npm run check
+        python3 -B -m unittest discover -s tools/functional_first -p 'test_*.py'
+        npm run sync
+    - name: Build four test APKs without release secrets
+      shell: bash
+      run: |
+        set -euo pipefail
+        SHIKUANG_ANDROID_SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+        "$SHIKUANG_ANDROID_SDK/cmdline-tools/latest/bin/sdkmanager" "build-tools;35.0.0" "platforms;android-34"
+        ./android/gradlew -p android --no-daemon --max-workers=2 assembleDebug assembleDebugAndroidTest lintDebug
+        ./android/gradlew -p android16k-control --no-daemon --max-workers=2 assembleDebug assembleDebugAndroidTest
+        mkdir -p current-build-input
+        curl --fail --silent --show-error --max-time 90 --output current-build-input/test-services-1.4.2.apk https://dl.google.com/dl/android/maven2/androidx/test/services/test-services/1.4.2/test-services-1.4.2.apk
+    - name: Freeze actual APK signatures, source and packaged current-r9 bytes
+      id: freeze
+      shell: bash
+      run: |
+        set -euo pipefail
+        SHIKUANG_ANDROID_SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+        python3 -B tools/functional_first/freeze_current.py --out current-apks --helper current-build-input/test-services-1.4.2.apk --sdk "$SHIKUANG_ANDROID_SDK" --source-sha "${{ github.sha }}" --web-sync-sha 10803d3729e7b3144e703f289cfa991829c866a517cf1d722320f3af5c217364
+    - uses: actions/upload-artifact@v4
+      if: ${{ always() }}
+      with:
+        name: shikuang-current-r9-comparison-apks
+        path: current-apks/
+        include-hidden-files: true
+        if-no-files-found: error
+    - uses: actions/upload-artifact@v4
+      if: ${{ always() }}
+      with:
+        name: shikuang-current-r9-build-diagnostics
+        path: |
+          current-build-input/
+          android/app/build/reports/
+          android16k-control/build/reports/
+        if-no-files-found: warn
+  official-image-runtime:
+    name: shikuang-current-r9-functional-first-${{ matrix.id }}
+    needs: build-current-apks
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      ANDROID_AVD_HOME: /tmp/shikuang-image-comparison-avd
+      ANDROID_SERIAL: emulator-5554
+      CURRENT_BUILD_MANIFEST_SHA: ${{ needs.build-current-apks.outputs.manifest_sha }}
+      CURRENT_SOURCE_SHA: ${{ github.sha }}
+      CURRENT_WEB_SYNC_SHA: 10803d3729e7b3144e703f289cfa991829c866a517cf1d722320f3af5c217364
+      SHIKUANG_FF_CLOCK_FILE: ${{ runner.temp }}/shikuang-functional-first-job-clock.json
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - api: 35
+          id: 35-r05
+          tag: google_apis_ps16k
+          pageSize: 16384
+          revision: 5
+          archive: x86_64-ps16k-35_r05.zip
+          bytes: 1696342085
+          sha1: d709cf26b375abecfbbf5803afd20749ddfa2865
+        - api: 36
+          id: 36-r07
+          tag: google_apis_ps16k
+          pageSize: 16384
+          revision: 7
+          archive: x86_64-ps16k-36_r07.zip
+          bytes: 1849428145
+          sha1: dd783282e84bf475a02eba6777c79fc5695e1583
+    steps:
+    - name: Bind actual public GitHub job start and conservative monotonic deadline
+      continue-on-error: true
+      shell: bash
+      run: |
+        # Source checkout has not occurred; inline the exact clock module below.
+        python3 - "$SHIKUANG_FF_CLOCK_FILE" "shikuang-current-r9-functional-first-${{ matrix.id }}" <<'PYCLOCK'
+        #!/usr/bin/env python3
+        """Public GitHub job started_at -> conservative host monotonic deadline; no token access.
+        
+        Called only by a future root-reviewed CI. Unit tests pass supplied synthetic API
+        bytes separately; this module has not requested any actual workflow/job here.
+        """
+        import datetime,email.utils,hashlib,json,os,re,sys,time,urllib.request
+        from pathlib import Path
+        
+        def endpoint(repo,run_id,attempt):
+         if not isinstance(repo,str) or not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+',repo) or not isinstance(run_id,str) or not re.fullmatch(r'[0-9]{1,20}',run_id) or type(attempt) is not int or not 1<=attempt<=9999:raise ValueError('fixed_public_job_identity')
+         return f'https://api.github.com/repos/{repo}/actions/runs/{run_id}/attempts/{attempt}/jobs?per_page=100'
+        
+        def derive(raw,date,repo,run_id,attempt,job_name,before_ns,after_ns,request_url,response_url):
+         expected_url=endpoint(repo,run_id,attempt)
+         if request_url!=expected_url or response_url!=expected_url:raise ValueError('attempt_endpoint_binding')
+         if not isinstance(job_name,str) or not re.fullmatch(r'shikuang-current-r9-functional-first-(35-r05|36-r07)',job_name):raise ValueError('fixed_job_name')
+         if not isinstance(raw,bytes) or len(raw)>1024*1024:raise ValueError('public_job_body_cap')
+         try:data=json.loads(raw);server=email.utils.parsedate_to_datetime(date)
+         except (ValueError,TypeError,UnicodeError):raise ValueError('invalid_public_job_response') from None
+         if not isinstance(data,dict) or not isinstance(data.get('jobs'),list) or type(data.get('total_count')) is not int or not 0<=data['total_count']<=100 or len(data['jobs'])!=data['total_count']:raise ValueError('job_page_incomplete')
+         # Official attempt-list example has no run_attempt field. The exact requested
+         # and final HTTPS endpoint binds the attempt; if the field exists, it must agree.
+         jobs=[j for j in data['jobs'] if isinstance(j,dict) and j.get('name')==job_name and j.get('status')=='in_progress' and str(j.get('run_id'))==run_id and ('run_attempt' not in j or type(j['run_attempt']) is int and j['run_attempt']==attempt)]
+         if len(jobs)!=1:raise ValueError('unique_current_job_not_found')
+         if type(jobs[0].get('id')) is not int or jobs[0]['id']<=0 or not isinstance(jobs[0].get('started_at'),str):raise ValueError('job_id_or_start_type')
+         try:start=datetime.datetime.fromisoformat(jobs[0]['started_at'].replace('Z','+00:00'));elapsed=(server-start).total_seconds()
+         except (ValueError,TypeError,KeyError):raise ValueError('job_start_timestamp') from None
+         if not 0<=elapsed<=3000 or type(before_ns) is not int or type(after_ns) is not int or not 0<before_ns<=after_ns:raise ValueError('job_clock_range')
+         # Date rounds to seconds. Use request-start monotonic and subtract2 seconds,
+         # never granting a later deadline from network latency or second granularity.
+         mapped_start=before_ns-int((elapsed+2)*1e9)
+         return {'schema':'authoritative-public-job-monotonic-clock-v1','started_monotonic_ns':mapped_start,'job_started_at_utc':jobs[0]['started_at'],'job_id':jobs[0]['id'],'repository':repo,'run_id':run_id,'run_attempt':attempt,'job_name':job_name,'public_api_request_url':request_url,'public_api_response_url':response_url,'attempt_identity_basis':'exact attempt-specific HTTPS request and final response URL; optional job run_attempt must agree','public_api_body_sha256':hashlib.sha256(raw).hexdigest(),'public_server_date':date,'request_before_monotonic_ns':before_ns,'request_after_monotonic_ns':after_ns,'authoritative_job_start_verified':True,'clock_scope':'actual public GitHub current-job started_at via HTTPS plus server Date, conservative request-start mapping minus2seconds','job_limit_seconds':3000,'no_secret_or_auth_token_read':True,'full_identity_root_review_still_required':True}
+        
+        def main():
+         file=Path(sys.argv[1]);repo=os.environ.get('GITHUB_REPOSITORY','');run=os.environ.get('GITHUB_RUN_ID','');attempt_s=os.environ.get('GITHUB_RUN_ATTEMPT','');job_name=sys.argv[2]
+         if not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+',repo) or not re.fullmatch(r'[0-9]{1,20}',run) or not re.fullmatch(r'[0-9]{1,4}',attempt_s) or not re.fullmatch(r'shikuang-current-r9-functional-first-(35-r05|36-r07)',job_name):raise ValueError('fixed_public_job_identity')
+         url=endpoint(repo,run,int(attempt_s));before=time.monotonic_ns();raw=b'';date=None;error=None
+         try:
+          req=urllib.request.Request(url,headers={'Accept':'application/vnd.github+json','User-Agent':'Shikuang-Private-Test-Budget','X-GitHub-Api-Version':'2022-11-28'})
+          with urllib.request.urlopen(req,timeout=20) as response:
+           raw=response.read(1024*1024+1);date=response.headers.get('Date');response_url=response.geturl()
+          after=time.monotonic_ns();clock=derive(raw,date,repo,run,int(attempt_s),job_name,before,after,url,response_url)
+         except (OSError,ValueError,TypeError) as e:
+          error=type(e).__name__;clock={'authoritative_job_start_verified':False,'clock_scope':'public API unavailable or unverified; no case may start','error_type':error,'no_secret_or_auth_token_read':True}
+         for path,data in [(file.with_suffix('.response.bin'),raw),(file,(json.dumps(clock,indent=2)+'\n').encode())]:
+          with path.open('xb') as f:f.write(data)
+         print(json.dumps({'job_clock_verified':not error,'file':str(file),'no_device_commands':True,'no_ci_dispatch':True}));return 0 if not error else 2
+        if __name__=='__main__':sys.exit(main())
+        PYCLOCK
+    - uses: actions/checkout@v4
+    - uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: 17
+    - uses: actions/download-artifact@v5
+      with:
+        name: shikuang-current-r9-comparison-apks
+        path: current-apks
+    - name: Repair confirmed Ubuntu emulator host dependency and expose diagnostics path
+      run: |
+        set -euo pipefail
+        mkdir -p runtime-artifacts
+        SHIKUANG_ANDROID_SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+        printf '%s\n' "$SHIKUANG_ANDROID_SDK/platform-tools" >> "$GITHUB_PATH"
+        dpkg-query -W libpulse0 > runtime-artifacts/host-libpulse-before.txt 2>&1 || true
+        sudo apt-get update -qq
+        sudo apt-get install -y --no-install-recommends libpulse0
+        dpkg-query -W libpulse0 > runtime-artifacts/host-libpulse-after.txt
+        apt-cache policy libpulse0 > runtime-artifacts/host-libpulse-policy.txt
+    - name: Verify official archive and exact installed system image
+      run: |-
+        set -euo pipefail
+        mkdir -p runtime-artifacts
+        SHIKUANG_ANDROID_SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+        curl --fail --location --max-time 45 --silent --show-error https://dl.google.com/android/repository/sys-img/google_apis/sys-img2-4.xml --output runtime-artifacts/official-sdk-catalog.xml
+        curl --fail --location --max-time 600 --silent --show-error "https://dl.google.com/android/repository/sys-img/google_apis/${{ matrix.archive }}" --output official-image.zip
+        python3 - <<'PYIMAGE'
+        from pathlib import Path
+        import xml.etree.ElementTree as E,hashlib,json,os
+        raw=Path('runtime-artifacts/official-sdk-catalog.xml').read_bytes();tree=E.fromstring(raw)
+        def tag(e):return e.tag.split('}')[-1]
+        pkg=next(p for p in tree.iter() if tag(p)=='remotePackage' and p.get('path')=='system-images;android-${{ matrix.api }};google_apis_ps16k;x86_64')
+        assert next(e.text for e in pkg.iter() if tag(e)=='major')=='${{ matrix.revision }}'
+        assert next(e.get('ref') for e in pkg if tag(e)=='channelRef')=='channel-0'
+        assert next(e.text for e in pkg.iter() if tag(e)=='url')=='${{ matrix.archive }}'
+        assert next(e.text for e in pkg.iter() if tag(e)=='checksum')=='${{ matrix.sha1 }}'
+        size=int(next(e.text for e in pkg.iter() if tag(e)=='size'));assert size==int('${{ matrix.bytes }}')==Path('official-image.zip').stat().st_size
+        s1=hashlib.sha1();s256=hashlib.sha256()
+        with open('official-image.zip','rb') as f:
+            for chunk in iter(lambda:f.read(1024*1024),b''):s1.update(chunk);s256.update(chunk)
+        assert s1.hexdigest()=='${{ matrix.sha1 }}'
+        Path('runtime-artifacts/official-image-verification.json').write_text(json.dumps({'catalog_sha256':hashlib.sha256(raw).hexdigest(),'package':pkg.get('path'),'revision':'${{ matrix.revision }}','url':'https://dl.google.com/android/repository/sys-img/google_apis/${{ matrix.archive }}','bytes':size,'sha1':s1.hexdigest(),'sha256':s256.hexdigest(),'scope':'Complete image condition; ART/framework/provider may all change'},indent=2)+'\n')
+        PYIMAGE
+        "$SHIKUANG_ANDROID_SDK/cmdline-tools/latest/bin/sdkmanager" "platform-tools" "emulator" "system-images;android-${{ matrix.api }};google_apis_ps16k;x86_64"
+        # QEMU is launched with bundled emulator libraries; naked ldd reports
+        # those as absent even when the official launcher successfully boots.
+        # Resolve actual bundled parent directories only for this dependency audit.
+        SHIKUANG_EMULATOR_LD_DIRS="$(python3 - "$SHIKUANG_ANDROID_SDK/emulator" <<'PYLDDDIRS'
+        from pathlib import Path
+        import sys
+        root=Path(sys.argv[1]);dirs=sorted({str(p.parent) for p in root.rglob('*.so*') if p.is_file()})
+        assert dirs,'Official emulator bundled library directories not found'
+        print(':'.join(dirs))
+        PYLDDDIRS
+        )"
+        printf '%s\n' "$SHIKUANG_EMULATOR_LD_DIRS" > runtime-artifacts/emulator-bundled-ldd-path.txt
+        LD_LIBRARY_PATH="$SHIKUANG_EMULATOR_LD_DIRS${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" ldd "$SHIKUANG_ANDROID_SDK/emulator/qemu/linux-x86_64/qemu-system-x86_64" > runtime-artifacts/emulator-host-ldd.txt
+        cat runtime-artifacts/emulator-host-ldd.txt
+        if grep -q 'not found' runtime-artifacts/emulator-host-ldd.txt; then
+          echo 'Unresolved emulator dependency in actual bundled-library audit environment'
+          exit 1
+        fi
+        "$SHIKUANG_ANDROID_SDK/emulator/emulator" -version > runtime-artifacts/emulator-version.txt 2>&1
+        grep -q 16428233 runtime-artifacts/emulator-version.txt
+        python3 - <<'PYINSTALLED'
+        from pathlib import Path
+        import os,zipfile,hashlib,json
+        root=Path(os.environ.get('ANDROID_SDK_ROOT') or os.environ['ANDROID_HOME'])/'system-images/android-${{ matrix.api }}/google_apis_ps16k/x86_64'
+        rows=[]
+        with zipfile.ZipFile('official-image.zip') as z:
+            for member in z.infolist():
+                if member.is_dir():continue
+                parts=Path(member.filename).parts;assert parts[0]=='x86_64' and '..' not in parts
+                installed=root.joinpath(*parts[1:]);assert installed.is_file(),str(installed)
+                a=hashlib.sha256();b=hashlib.sha256()
+                with z.open(member) as f:
+                    for chunk in iter(lambda:f.read(1024*1024),b''):a.update(chunk)
+                with installed.open('rb') as f:
+                    for chunk in iter(lambda:f.read(1024*1024),b''):b.update(chunk)
+                assert a.digest()==b.digest(),member.filename
+                rows.append({'file':member.filename,'bytes':member.file_size,'sha256':a.hexdigest()})
+        Path('runtime-artifacts/installed-image-file-hashes.json').write_text(json.dumps(rows,indent=2)+'\n')
+        Path('runtime-artifacts/installed-image-package.xml').write_bytes((root/'package.xml').read_bytes())
+        PYINSTALLED
+        rm official-image.zip
+        printf '%s\n' "$SHIKUANG_ANDROID_SDK/platform-tools" >> "$GITHUB_PATH"
+        mkdir -p "$ANDROID_AVD_HOME"
+        printf 'no\n' | "$SHIKUANG_ANDROID_SDK/cmdline-tools/latest/bin/avdmanager" create avd --name "shikuang-api${{ matrix.id }}" --package "system-images;android-${{ matrix.api }};google_apis_ps16k;x86_64" --device pixel_2 --path "$ANDROID_AVD_HOME/shikuang-api${{ matrix.id }}.avd" --force
+        sudo chmod 666 /dev/kvm
+    - name: Boot emulator and disconnect device networking
+      shell: bash
+      run: |
+        mkdir -p runtime-artifacts
+        SHIKUANG_ANDROID_SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+        nohup "$SHIKUANG_ANDROID_SDK/emulator/emulator" \
+          -avd "shikuang-api${{ matrix.id }}" -port 5554 -no-window -no-audio \
+          -no-boot-anim -no-snapshot -gpu swiftshader_indirect \
+          -camera-back none -camera-front none -memory 3072 -cores 2 -accel on \
+          > runtime-artifacts/emulator.log 2>&1 &
+        timeout 180 adb wait-for-device
+        timeout 180 bash -c 'until [[ "$(adb shell getprop sys.boot_completed | tr -d "\r")" == "1" ]]; do sleep 2; done'
+        # Check the actual kernel/libc page size. No property override simulates this gate.
+        if (( ${{ matrix.api }} < 26 )); then
+          # Android 7 has no getconf binary. Read an actual mapped kernel page;
+          # the instrumented Java Os.sysconf check independently confirms it.
+          adb shell cat /proc/self/smaps > runtime-artifacts/device-page-mappings.txt
+          awk '/^KernelPageSize:/ {print $2 * 1024; found=1; exit} END {if (!found) exit 1}' runtime-artifacts/device-page-mappings.txt > runtime-artifacts/device-page-size.txt
+        else
+          adb shell getconf PAGE_SIZE > runtime-artifacts/device-page-size.txt
+        fi
+        test "$(tr -d '\r\n' < runtime-artifacts/device-page-size.txt)" = "${{ matrix.pageSize }}"
+        printf '%s\n' "system-images;android-${{ matrix.api }};${{ matrix.tag }};x86_64" > runtime-artifacts/system-image.txt
+        adb shell input keyevent 82
+        adb shell settings put global window_animation_scale 0
+        adb shell settings put global transition_animation_scale 0
+        adb shell settings put global animator_duration_scale 0
+        # Starting adbd as root may close the first transport while Android
+        # finishes booting. Retry only this finite connection transition;
+        # root UID and every genuine offline/page-size gate remain required.
+        SHIKUANG_ROOT_READY=false
+        for SHIKUANG_ROOT_ATTEMPT in 1 2 3 4 5; do
+          printf 'attempt=%s\n' "$SHIKUANG_ROOT_ATTEMPT" >> runtime-artifacts/adb-root-transition.txt
+          timeout 20 adb root >> runtime-artifacts/adb-root-transition.txt 2>&1 || true
+          timeout 30 adb wait-for-device >> runtime-artifacts/adb-root-transition.txt 2>&1 || true
+          SHIKUANG_ROOT_UID="$(timeout 10 adb shell id -u 2>> runtime-artifacts/adb-root-transition.txt | tr -d '\r' || true)"
+          printf 'uid=%s\n' "$SHIKUANG_ROOT_UID" >> runtime-artifacts/adb-root-transition.txt
+          if [[ "$SHIKUANG_ROOT_UID" = 0 ]]; then SHIKUANG_ROOT_READY=true; break; fi
+          sleep 2
+        done
+        test "$SHIKUANG_ROOT_READY" = true
+        # The Google API image carries MOBILE[LTE] on eth0. Wait for SIM setup
+        # before disabling its radio, so first-boot telephony cannot restore it.
+        if (( ${{ matrix.api }} < 29 )); then
+          timeout 90 bash -c 'until [[ "$(adb shell getprop gsm.sim.state)" =~ (LOADED|READY) ]]; do sleep 2; done'
+          sleep 10
+        else
+          timeout 90 bash -c 'until [[ "$(adb shell getprop gsm.sim.state)" == *LOADED* ]]; do sleep 2; done'
+        fi
+        adb shell getprop gsm.sim.state > runtime-artifacts/sim-state.txt
+        adb shell cmd connectivity help > runtime-artifacts/connectivity-shell-help.txt 2>&1 || true
+        # Official ConnectivityService shell API writes the persistent mode and broadcasts it.
+        # https://android.googlesource.com/platform/packages/modules/Connectivity/+/refs/heads/android15-release/service/src/com/android/server/ConnectivityService.java
+        if (( ${{ matrix.api }} < 29 )); then
+          # Android 7's official Settings uses this same setting + protected broadcast.
+          # https://android.googlesource.com/platform/packages/apps/Settings/+/android-7.0.0_r1/src/com/android/settings/AirplaneModeEnabler.java
+          adb shell settings put global airplane_mode_on 1
+          adb shell am broadcast -a android.intent.action.AIRPLANE_MODE --ez state true
+          test "$(adb shell settings get global airplane_mode_on | tr -d '\r')" = 1
+        else
+          adb shell cmd connectivity airplane-mode enable
+          test "$(adb shell cmd connectivity airplane-mode | tr -d '\r')" = enabled
+        fi
+        adb shell svc wifi disable
+        adb shell svc data disable
+        adb shell 'for device in eth0 eth1 wlan0; do if ip link show "$device" >/dev/null 2>&1; then ip link set "$device" down; fi; done'
+        test "$(timeout 20 adb get-state | tr -d '\r')" = device
+        timeout 60 bash -c 'until [[ "$(adb shell dumpsys connectivity)" == *"Active default network: none"* ]]; do sleep 2; done'
+        adb shell ip route show > runtime-artifacts/ipv4-routes.txt
+        adb shell ip -6 route show > runtime-artifacts/ipv6-routes.txt
+        adb shell ip route show table all > runtime-artifacts/ipv4-all-route-tables.txt
+        adb shell ip -6 route show table all > runtime-artifacts/ipv6-all-route-tables.txt
+        adb shell dumpsys ethernet > runtime-artifacts/ethernet.txt 2>&1 || true
+        adb shell dumpsys connectivity > runtime-artifacts/connectivity.txt
+        adb shell service check ethernet > runtime-artifacts/ethernet-service-availability.txt 2>&1 || true
+        adb shell settings get global airplane_mode_on > runtime-artifacts/airplane-mode.txt
+        adb shell dumpsys telephony.registry > runtime-artifacts/telephony.txt
+        adb shell getprop ro.product.cpu.abi > runtime-artifacts/device-abi.txt
+        adb shell getprop ro.product.cpu.abilist > runtime-artifacts/device-supported-abis.txt
+        adb shell dumpsys webviewupdate > runtime-artifacts/webview-provider.txt
+        adb shell settings get global wifi_on > runtime-artifacts/wifi-state.txt
+        adb shell settings get global mobile_data > runtime-artifacts/mobile-data-state.txt
+        adb logcat -c
+        nohup adb logcat -v threadtime > runtime-artifacts/logcat.txt 2>&1 &
+    - name: Bind current-r9 source and install the once-built comparison APKs
+      shell: bash
+      run: |-
+        set -euo pipefail
+        python3 - <<'PYCURRENT'
+        from pathlib import Path
+        import json,os,sys
+        sys.path.insert(0,'tools/functional_first')
+        from current_artifact import bind_current
+        binding=bind_current('current-apks',os.environ['CURRENT_BUILD_MANIFEST_SHA'],os.environ['CURRENT_SOURCE_SHA'],os.environ['CURRENT_WEB_SYNC_SHA'],Path.cwd())
+        Path('runtime-artifacts/frozen-apk-manifest.json').write_bytes(Path('current-apks/manifest.json').read_bytes())
+        Path('runtime-artifacts/executed-test-workflow.yml').write_bytes(Path('.github/workflows/android-functional-first.yml').read_bytes())
+        Path('runtime-artifacts/current-r9-build-binding.json').write_text(json.dumps({'binding':binding,'build_run_id':os.environ['GITHUB_RUN_ID'],'same_run_current_build':True,'old_comparand_reused':False,'distributable_release':False},indent=2)+'\n')
+        PYCURRENT
+        # Same helper bytes; AndroidX maintainer's package-visibility initialization.
+        # https://github.com/android/android-test/issues/1141#issuecomment-930758099
+        timeout 90 adb install -r -g --force-queryable current-apks/test-services-1.4.2.apk > runtime-artifacts/helper-install-stdout.txt 2> runtime-artifacts/helper-install-stderr.txt
+        cat runtime-artifacts/helper-install-stdout.txt runtime-artifacts/helper-install-stderr.txt
+        for SHIKUANG_APK in current-apks/control.apk current-apks/control-test.apk current-apks/app.apk current-apks/app-test.apk; do timeout 90 adb install -r -g "$SHIKUANG_APK"; done
+        adb shell appops set androidx.test.services MANAGE_EXTERNAL_STORAGE allow
+        capture_helper_dump() {
+          local shikuang_helper_label="$1"
+          shift
+          local shikuang_helper_status=0
+          timeout 30 "$@" > "runtime-artifacts/${shikuang_helper_label}.txt" 2> "runtime-artifacts/${shikuang_helper_label}-stderr.bin" || shikuang_helper_status=$?
+          printf '%s\n' "$shikuang_helper_status" > "runtime-artifacts/${shikuang_helper_label}-returncode.txt"
+          return "$shikuang_helper_status"
+        }
+        capture_helper_dump helper-package-visibility adb shell dumpsys package androidx.test.services
+        capture_helper_dump helper-package-queries adb shell dumpsys package queries
+        adb shell appops get androidx.test.services MANAGE_EXTERNAL_STORAGE > runtime-artifacts/helper-storage-appops.txt
+        python3 - <<'PYHELPER'
+        """Test-only initialization gate; no client access or lifecycle success inferred."""
+        from pathlib import Path
+        import hashlib
+        import json
+        import re
+
+        HELPER = "androidx.test.services"
+        OUTPUT = "androidx.test.services.storage.outputfiles"
+        COMPONENT = HELPER + "/.storage.provider.TestOutputFilesContentProvider"
+
+
+        def unique_section(text, start, end):
+            assert text.count(start) == 1 and text.count(end) == 1, "Missing or ambiguous dump section"
+            left = text.index(start) + len(start)
+            right = text.index(end)
+            assert right > left, "Unclosed or reordered dump section"
+            return text[left:right]
+
+
+        def force_queryable_members(text):
+            section = unique_section(text, "  queries via forceQueryable:\n  forceQueryable:\n", "  queries via package name:\n")
+            assert section, "Empty forceQueryable set"
+            members = set()
+            for line in section.splitlines():
+                assert line.startswith("    ") and not line.startswith("     "), "Unexpected forceQueryable row shape"
+                row = line[4:]
+                if row.startswith("[") and row.endswith("]"):
+                    items = row[1:-1].split(",")
+                else:
+                    items = [row]
+                assert items and all(re.fullmatch(r"[A-Za-z_][A-Za-z0-9_.]*", p) for p in items), "Invalid forceQueryable package name"
+                members.update(items)
+            assert HELPER in members, "Exact helper absent from forceQueryable set"
+            return sorted(members)
+
+
+        def check_helper(package_dump, query_dump, install_stdout, appops):
+            assert package_dump and query_dump and install_stdout and appops, "Empty helper evidence"
+            assert package_dump.endswith("\n") and query_dump.endswith("\n"), "Truncated dump record"
+            assert "\x00" not in package_dump + query_dump, "Invalid dump bytes"
+            packages = unique_section(package_dump, "\nPackages:\n", "\nQueries:\n")
+            blocks = list(re.finditer(r"(?ms)^  Package \[([^\]\n]+)\] \([a-f0-9]+\):\n(?P<body>.*?)(?=^  Package \[|\Z)", packages))
+            helper = [p for p in blocks if p[1] == HELPER]
+            assert len(helper) == 1, "Missing or ambiguous exact installed helper package"
+            body = helper[0]["body"]
+            assert len(re.findall(r"(?m)^    pkg=Package\{[a-f0-9]+ " + re.escape(HELPER) + r"\}$", body)) == 1, "Helper package object identity missing"
+            flags = re.findall(r"(?m)^    forceQueryable=(true|false)(?: \(override=(true|false)\))?\s*$", body)
+            assert len(flags) == 1 and flags[0][1] == "true", "Exact helper adb forceQueryable override is not true"
+            users = re.findall(r"(?m)^    User 0: [^\n]*\binstalled=(true|false)\b[^\n]*$", body)
+            assert users == ["true"], "Helper not unambiguously installed for User 0"
+            authorities = unique_section(package_dump, "\nContentProvider Authorities:\n", "\nKey Set Manager:\n")
+            provider = re.findall(r"(?m)^  \[" + re.escape(OUTPUT) + r"\]:\n    Provider\{([a-f0-9]+) " + re.escape(COMPONENT) + r"\}\n      applicationInfo=ApplicationInfo\{[a-f0-9]+ " + re.escape(HELPER) + r"\}\n", authorities)
+            assert len(provider) == 1, "Output authority/component/application belongs to no unique helper"
+            registered = unique_section(package_dump, "\nRegistered ContentProviders:\n", "\nContentProvider Authorities:\n")
+            assert len(re.findall(r"(?m)^  " + re.escape(COMPONENT) + r":\n    Provider\{" + re.escape(provider[0]) + " " + re.escape(COMPONENT) + r"\}\n", registered)) == 1, "Output provider not registered as the same helper object"
+            package_queries = unique_section(package_dump, "\nQueries:\n", "\nDexopt state:\n")
+            package_members = force_queryable_members(package_queries)
+            global_members = force_queryable_members(query_dump)
+            assert len(re.findall(r"(?m)^Success[ \t]*$", install_stdout)) == 1, "Helper install did not unambiguously report Success"
+            assert re.fullmatch(r"MANAGE_EXTERNAL_STORAGE: allow\s*", appops), "Helper storage appop is not allowed"
+            return {"exact_helper": HELPER, "manifest_force_queryable": flags[0][0] == "true", "adb_override": True,
+                    "package_set_member": HELPER in package_members, "global_set_member": HELPER in global_members,
+                    "output_authority": OUTPUT, "output_component": COMPONENT, "helper_user0_installed": True,
+                    "client_provider_access_proven": False, "lifecycle_pass": False}
+
+
+        def verify_files(base):
+            paths = {key: base / name for key, name in {"package_dump": "helper-package-visibility.txt",
+                     "query_dump": "helper-package-queries.txt", "install_stdout": "helper-install-stdout.txt",
+                     "appops": "helper-storage-appops.txt"}.items()}
+            raw = {key: path.read_bytes() for key, path in paths.items()}
+            commands = {}
+            for key, argv in [("package_dump", ["adb", "shell", "dumpsys", "package", HELPER]),
+                              ("query_dump", ["adb", "shell", "dumpsys", "package", "queries"])]:
+                stem = paths[key].stem
+                rc_file = base / (stem + "-returncode.txt")
+                stderr_file = base / (stem + "-stderr.bin")
+                rc, stderr = rc_file.read_bytes(), stderr_file.read_bytes()
+                assert rc == b"0\n", "Helper dump command did not complete successfully: " + stem
+                commands[key] = {"argv": argv, "timeout_seconds": 30, "returncode": 0,
+                    "stdout": {"file": paths[key].name, "bytes": len(raw[key]), "sha256": hashlib.sha256(raw[key]).hexdigest()},
+                    "stderr": {"file": stderr_file.name, "bytes": len(stderr), "sha256": hashlib.sha256(stderr).hexdigest()},
+                    "returncode_record": {"file": rc_file.name, "bytes": len(rc), "sha256": hashlib.sha256(rc).hexdigest()}}
+            result = check_helper(**{key: value.decode("utf-8", errors="strict") for key, value in raw.items()})
+            result["raw_evidence"] = {key: {"file": path.name, "bytes": len(raw[key]), "sha256": hashlib.sha256(raw[key]).hexdigest()} for key, path in paths.items()}
+            result["dump_commands"] = commands
+            (base / "helper-initialization-gate.json").write_text(json.dumps(result, indent=2) + "\n")
+            return result
+
+        verify_files(Path('runtime-artifacts'))
+        PYHELPER
+        adb shell pm list instrumentation > runtime-artifacts/instrumentation-components.txt
+        adb shell pm list packages --show-versioncode > runtime-artifacts/installed-package-versions.txt
+    - name: Allow and record visible soft keyboard for isolated input stress
+      shell: bash
+      run: |
+        set -euo pipefail
+        timeout 15 adb -s "$ANDROID_SERIAL" shell settings get secure show_ime_with_hard_keyboard > runtime-artifacts/ime-with-hard-keyboard-before.txt
+        timeout 15 adb -s "$ANDROID_SERIAL" shell settings put secure show_ime_with_hard_keyboard 1
+        timeout 15 adb -s "$ANDROID_SERIAL" shell settings get secure show_ime_with_hard_keyboard > runtime-artifacts/ime-with-hard-keyboard-after.txt
+        test "$(tr -d '\r\n' < runtime-artifacts/ime-with-hard-keyboard-after.txt)" = 1
+        timeout 15 adb -s "$ANDROID_SERIAL" shell settings get secure default_input_method > runtime-artifacts/default-input-method-before-stress.txt
+        timeout 20 adb -s "$ANDROID_SERIAL" shell dumpsys input_method > runtime-artifacts/input-method-before-stress.txt
+        timeout 20 adb -s "$ANDROID_SERIAL" shell dumpsys window > runtime-artifacts/window-before-stress.txt
+    - name: Retain original public job clock bytes before functional cases
+      shell: bash
+      run: |
+        set -euo pipefail
+        python3 -B tools/functional_first/clock_archive.py "$SHIKUANG_FF_CLOCK_FILE" runtime-artifacts/job-clock-pre-executor
+    - name: Observe functional cases then forensic once with independent bounded receipts
+      id: functional_first
+      continue-on-error: true
+      shell: bash
+      run: |
+        set -euo pipefail
+        SHIKUANG_ANDROID_SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+        python3 -B tools/functional_first/executor.py \
+          --sdk ${{ matrix.api }} --serial "$ANDROID_SERIAL" \
+          --adb "$SHIKUANG_ANDROID_SDK/platform-tools/adb" \
+          --emulator "$SHIKUANG_ANDROID_SDK/emulator/emulator" \
+          --sdk-root "$SHIKUANG_ANDROID_SDK" --clock runtime-artifacts/job-clock-pre-executor/job-clock.json \
+          --expected-manifest-sha "$CURRENT_BUILD_MANIFEST_SHA" --expected-source-sha "$CURRENT_SOURCE_SHA" --expected-web-sync-sha "$CURRENT_WEB_SYNC_SHA" \
+          --frozen current-apks --runtime runtime-artifacts \
+          --out runtime-artifacts/functional-first
+    - name: Require completed live case and forensic evidence without release claim
+      if: ${{ always() }}
+      shell: bash
+      run: |
+        python3 -B tools/functional_first/final_current_gate.py runtime-artifacts/functional-first/executor-report.json
+    - name: Preserve original clock bytes even when setup failed
+      if: ${{ always() }}
+      continue-on-error: true
+      shell: bash
+      run: |
+        # Host-only: source checkout/setup may have failed. Do not requery/rederive.
+        python3 - "$SHIKUANG_FF_CLOCK_FILE" runtime-artifacts/job-clock-final <<'PYCLOCKARCHIVE'
+        #!/usr/bin/env python3
+        """Host-only byte archive of the already obtained clock; no API requests/derivation."""
+        import hashlib,json,os,stat,sys
+        from pathlib import Path
+        
+        def archive_clock(source_file,destination):
+         source=Path(source_file);folder=Path(destination);folder.mkdir(parents=True,exist_ok=False,mode=0o700);rows=[]
+         for src,name,cap in [(source,'job-clock.json',128*1024),(source.with_suffix('.response.bin'),'job-clock.response.bin',1024*1024+1)]:
+          row={'source_path':str(src),'archive_file':name,'status':'not_copied','rederived_or_requested':False};rows.append(row);fd=None
+          try:
+           fd=os.open(src,os.O_RDONLY|os.O_NONBLOCK|os.O_NOFOLLOW);meta=os.fstat(fd)
+           if not stat.S_ISREG(meta.st_mode):raise ValueError('regular_file_required')
+           if not 0<=meta.st_size<=cap:raise ValueError('original_clock_size_bound')
+           chunks=[];total=0
+           while True:
+            raw=os.read(fd,min(65536,cap+1-total))
+            if not raw:break
+            chunks.append(raw);total+=len(raw)
+            if total>cap:raise ValueError('original_clock_size_bound')
+           after=os.fstat(fd);raw=b''.join(chunks)
+           if total!=meta.st_size or (meta.st_dev,meta.st_ino,meta.st_size,meta.st_mtime_ns)!=(after.st_dev,after.st_ino,after.st_size,after.st_mtime_ns):raise ValueError('clock_file_changed_during_read')
+           dst=folder/name
+           with dst.open('xb') as f:f.write(raw)
+           actual=dst.read_bytes();digest=hashlib.sha256(raw).hexdigest()
+           if actual!=raw:raise ValueError('archive_byte_verification_failed')
+           row.update(status='copied_original_bytes_verified',source_bytes=total,source_sha256=digest,archive_bytes=len(actual),archive_sha256=hashlib.sha256(actual).hexdigest())
+          except FileNotFoundError:row.update(status='missing_original',reason='original_file_not_present_no_replacement_created')
+          except (OSError,ValueError) as e:row.update(status='failed_original_read',reason=str(e) if isinstance(e,ValueError) else type(e).__name__)
+          finally:
+           if fd is not None:os.close(fd)
+         report={'schema':'retained-original-public-job-clock-bytes-v1','files':rows,'complete_pair':all(r['status']=='copied_original_bytes_verified' for r in rows),'authoritative_clock_revalidated':False,'no_API_requests_or_secret_access':True,'no_adb_or_guest_commands':True,'missing_files_not_replaced':True,'byte_archive_is_not_case_or_authorization_proof':True}
+         with (folder/'archive-report.json').open('x') as f:json.dump(report,f,indent=2);f.write('\n')
+         return report
+        
+        def main():
+         r=archive_clock(sys.argv[1],sys.argv[2]);print(json.dumps({'complete_original_pair':r['complete_pair'],'archive':sys.argv[2],'no_API_or_guest_commands':True}));return 0 if r['complete_pair'] else 2
+        if __name__=='__main__':sys.exit(main())
+        PYCLOCKARCHIVE
+    - uses: actions/upload-artifact@v4
+      if: ${{ always() }}
+      with:
+        name: shikuang-current-r9-functional-evidence-${{ matrix.id }}
+        path: runtime-artifacts/
+        if-no-files-found: error

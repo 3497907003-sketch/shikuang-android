@@ -1,7 +1,8 @@
-const STATIC = 'shikuang-static-2.5.0-preview.1-r3';
-const MODELS = 'shikuang-models-v2-20261010';
-importScripts('./core.js');
-const ASSETS = ['./', './index.html', './styles.css', './app.js', './native-assets.js', './core.js', './inference.js', './storage.js', './engine-worker.js', './media.js', './history.js', './icon-192.png', './icon-512.png', './icon-maskable.png', './version.json', './data/sources.js', './config.js', './icon.svg', './manifest.webmanifest', './data/classes.js', './data/minerals.js', './data/imagenet.js', './vendor/lucide.min.js', './vendor/ort.min.js', './vendor/ort-wasm-simd-threaded.mjs', './reference-loader.js', './gallery.js', './data/reviewed-photo-assets.json', './data/licenses/reviewed-photos-v25.txt', './data/reference-manifest.json', './data/licenses/ima-cnmnc-2026-09.txt'];
+importScripts('./core.js?v=20261011-2.5.0-preview.1-r9');
+const CACHE_NAMES = MineralCore.offlineCaches(self.registration.scope);
+const STATIC = CACHE_NAMES.shell;
+const MODELS = CACHE_NAMES.models;
+const ASSETS = ['./', './index.html', './styles.css', './app.js', './native-assets.js', './core.js', './inference.js', './storage.js', './engine-worker.js', './media.js', './history.js', './icon-192.png', './icon-512.png', './icon-maskable.png', './version.json', './data/sources.js', './config.js', './icon.svg', './manifest.webmanifest', './data/classes.js', './data/minerals.js', './data/imagenet.js', './vendor/lucide.min.js', './vendor/ort.min.js', './vendor/ort-wasm-simd-threaded.mjs', './reference-loader.js', './gallery.js', './viewport.js', './data/reviewed-photo-assets.json', './data/licenses/reviewed-photos-v25.txt', './data/reference-manifest.json', './data/licenses/ima-cnmnc-2026-09.txt'];
 const scope = new URL(self.registration.scope);
 const manifestURL = new URL('model-manifest.json',scope);
 const hex = bytes => Array.from(new Uint8Array(bytes),b=>b.toString(16).padStart(2,'0')).join('');
@@ -67,11 +68,19 @@ async function loadModel(request,url) {
   const repair=['reload','no-store'].includes(request.cache);
   if(!repair) {
     const exact=await cache.match(request);if(exact)return exact; // Engine verifies even cached bytes.
-    // Migrate old URL-only caches only after checking the current manifest's exact bytes/hash.
-    const legacyURL=new URL(url);legacyURL.search='';const legacy=await cache.match(legacyURL.href);
-    if(legacy) {
-      try {const verified=await boundedCheck(checkedModel(legacy,model),15000);await cache.put(request,verified.clone());await cache.delete(legacyURL.href);return verified;}
-      catch(_){await cache.delete(legacyURL.href);}
+    // Migrate only this scope's exact URLs, after checking the current manifest.
+    // Preserve other registrations' data in the former origin-wide model cache.
+    const legacyURL=new URL(url);legacyURL.search='';
+    const oldStores=[cache];
+    if((await caches.keys()).includes(MineralCore.OFFLINE_CACHES.models))oldStores.push(await caches.open(MineralCore.OFFLINE_CACHES.models));
+    for(const oldStore of oldStores)for(const candidate of oldStore===cache?[legacyURL.href]:[url.href,legacyURL.href]) {
+      const legacy=await oldStore.match(candidate);if(!legacy)continue;
+      let verified;
+      try {verified=await boundedCheck(checkedModel(legacy,model),15000);}
+      catch(_){await oldStore.delete(candidate);continue;}
+      const persisted=await boundedCheck(cache.put(request,verified.clone()),10000).then(()=>true,()=>false);
+      if(persisted)await oldStore.delete(candidate);
+      return verified;
     }
   }
   const verified=await fetchBounded(request,response=>checkedModel(response,model),90000);
@@ -81,10 +90,17 @@ async function loadModel(request,url) {
   return verified;
 }
 self.addEventListener('install',event=>event.waitUntil((async()=>{
-  const cache=await caches.open(STATIC);await cache.addAll(ASSETS);
+  const cache=await caches.open(STATIC),entryURL=new URL('index.html',scope);
+  const entry=await fetchBounded(new Request(entryURL,{cache:'no-cache'}));
+  if(!entry.ok)throw new Error('Offline entry document installation failed');
+  const html=await boundedCheck(entry.clone().text(),5000);
+  const assets=[...new Set([...ASSETS.map(path=>new URL(path,scope).href),...MineralCore.shellAssets(html,scope)])];
+  await cache.addAll(assets.filter(url=>url!==scope.href&&url!==entryURL.href));
+  await cache.put(entryURL.href,entry.clone());await cache.put(scope.href,entry);
   const response=await loadManifest(new Request(manifestURL,{cache:'no-cache'}));if(!response.ok)throw new Error('Model manifest installation failed');await self.skipWaiting();
 })()));
 self.addEventListener('message',event=>{
+  if(event.data?.type==='OFFLINE_IDENTITY' && event.ports[0])event.ports[0].postMessage({scope:CACHE_NAMES.scope,shell:STATIC,models:MODELS});
   if(event.data && event.data.type==='ACTIVATE_UPDATE')self.skipWaiting();
   if(event.data && event.data.type==='INVALIDATE_MODEL')event.waitUntil((async()=>{
     const url=new URL(event.data.url);if(!owned(url)||!url.pathname.startsWith(scope.pathname+'models/'))return;
@@ -94,7 +110,7 @@ self.addEventListener('message',event=>{
   })());
 });
 self.addEventListener('activate',event=>event.waitUntil((async()=>{
-  const names=await caches.keys();await Promise.all(names.filter(name=>name.startsWith('shikuang-') && ![STATIC,MODELS].includes(name)).map(name=>caches.delete(name)));
+  const names=await caches.keys();await Promise.all(names.filter(name=>name.startsWith(CACHE_NAMES.prefix) && ![STATIC,MODELS].includes(name)).map(name=>caches.delete(name)));
   await self.clients.claim();
 })()));
 self.addEventListener('fetch',event=>{
@@ -109,7 +125,9 @@ self.addEventListener('fetch',event=>{
       const cached=repair?null:await cache.match(request);
       if(cached)return cached;
       try {const response=await fetchBounded(request);if(response.ok && request.cache!=='no-store')await boundedCheck(cache.put(request,response.clone()),10000).catch(()=>{});return response;}
-      catch(error){if(!['reload','no-store'].includes(request.cache)){const fallback=await cache.match(request);if(fallback)return fallback;}if(request.mode==='navigate')return await cache.match(new URL('index.html',scope).href)||Response.error();throw error;}
+      // A normal offline reload may use this release's exact shell URL. Explicit
+      // no-store repair and the model/manifest verification rules remain strict.
+      catch(error){if(request.cache!=='no-store'){const fallback=await cache.match(request);if(fallback)return fallback;if(request.mode==='navigate')return await cache.match(new URL('index.html',scope).href)||Response.error();}throw error;}
     }catch(_){return Response.error();}
   })());
 });

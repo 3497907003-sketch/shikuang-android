@@ -2,17 +2,23 @@
 let bootError;
 try { importScripts('./vendor/ort.min.js','./core.js'); } catch(error) { bootError=error.message||String(error); }
 const sessions=new Map();
-let currentManifestHash='',busy=false;
+let currentManifestHash='',busy=false,releaseFailed=false;
 const send=(type,value)=>postMessage({type,...value});
 const hex=bytes=>Array.from(new Uint8Array(bytes),b=>b.toString(16).padStart(2,'0')).join('');
 const matchesShape=(actual,expected)=>Array.isArray(actual)&&actual.length===expected.length&&actual.every((size,i)=>size===expected[i]||(i===0&&(size===-1||typeof size==='string')));
+async function releaseSession(key,session) {
+  try { await session.release(); }
+  catch (_) { releaseFailed=true;throw new Error('识别资源释放失败，请重试或重新打开 App'); }
+  sessions.delete(key);
+}
 async function releaseSessions() {
-  const loaded=Array.from(sessions.values());sessions.clear();
-  for(const session of loaded) { try { await session.release(); } catch (_) {} }
+  // Keep every unconfirmed reference. A rejection poisons this Worker so it
+  // cannot allocate new weights; the main engine terminates it on the error.
+  for(const [key,session] of sessions)await releaseSession(key,session);
 }
 async function retainSessions(models,base,manifestHash) {
   const wanted=new Set(models.map(model=>`${base}|${manifestHash}|${model.path}|${model.sha256}`));
-  for(const [key,session] of sessions)if(!wanted.has(key)){sessions.delete(key);await session.release();}
+  for(const [key,session] of sessions)if(!wanted.has(key))await releaseSession(key,session);
 }
 async function modelSession(model,base,manifestHash) {
   const key=`${base}|${manifestHash}|${model.path}|${model.sha256}`;
@@ -30,6 +36,7 @@ async function modelSession(model,base,manifestHash) {
   }catch(error){send('resource-invalid',{url:resource.href});throw error;}
   send('progress',{message:`${model.title} 已校验，正在初始化…`});
   const loaded=await ort.InferenceSession.create(bytes,{executionProviders:['wasm'],graphOptimizationLevel:'all'});
+  sessions.set(key,loaded);
   try {
     if(loaded.inputNames.length!==1||loaded.outputNames.length!==1||loaded.inputNames[0]!==model.inputName||loaded.outputNames[0]!==model.outputName)throw new Error('模型输入输出名称与清单不匹配');
     // Some bundled ORT releases do not expose shape metadata. The real run still validates its input
@@ -37,8 +44,8 @@ async function modelSession(model,base,manifestHash) {
     const input=loaded.inputMetadata?.[0],output=loaded.outputMetadata?.[0];
     if(input&&(input.isTensor!==true||input.type!=='float32'||!matchesShape(input.shape,[1,3,224,224])))throw new Error('模型输入格式与清单不匹配');
     if(output&&(output.isTensor!==true||output.type!=='float32'||!matchesShape(output.shape,[1,model.classes])))throw new Error('模型输出格式与清单不匹配');
-    sessions.set(key,loaded);return loaded;
-  } catch(error) {await loaded.release();throw error;}
+    return loaded;
+  } catch(error) {await releaseSession(key,loaded);throw error;}
 }
 async function run(session,data,model) {
   const input=new ort.Tensor('float32',data,[1,3,224,224]);let output;
@@ -53,6 +60,7 @@ async function run(session,data,model) {
 }
 onmessage=async({data})=>{
   if(data.type!=='analyze')return;
+  if(releaseFailed){send('error',{message:'识别资源释放失败，请重试或重新打开 App',workerResetRequired:true});return;}
   if(busy){send('error',{message:'已有分析正在进行，请先停止当前分析'});return;}
   busy=true;
   try {
@@ -81,7 +89,10 @@ onmessage=async({data})=>{
     }
     if(models.length===1)warnings.push('快速模式仅提供初步候选，建议使用交叉分析与实测物性复核');
     for(let m=0;m<models.length;m++) {
-      const model=models[m],loaded=await modelSession(model,base,actualHash);
+      const model=models[m];
+      // All angles finish before the next classifier; release its weights before allocating another.
+      await retainSessions([gate,model],base,actualHash);
+      const loaded=await modelSession(model,base,actualHash);
       for(let i=0;i<inputs.length;i++) {
         send('progress',{message:`分析图像 ${i+1}/${inputs.length} · ${model.title}`});
         const values=await run(loaded,inputs[i],model);runs.push({photo:i,model:model.id,values});
@@ -91,7 +102,8 @@ onmessage=async({data})=>{
     send('result',{runs,screening,warnings,manifestSha256:actualHash,modelVersion:manifest.version});
   } catch(error) {
     // A failed selected model never leaves a half-updated session set or a partial ensemble result.
-    await releaseSessions();currentManifestHash='';send('error',{message:error.message||'识别资源无法运行，请更新 App'});
+    if(!releaseFailed)try { await releaseSessions(); } catch (_) { /* References stay until main-thread termination. */ }
+    currentManifestHash='';send('error',{message:error.message||'识别资源无法运行，请更新 App',workerResetRequired:releaseFailed});
   } finally {busy=false;}
 };
 postMessage(bootError?{type:'boot-error',message:bootError}:{type:'ready'});

@@ -1,5 +1,5 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os'),{spawnSync}=require('node:child_process');
-const WEB=fs.existsSync(path.join(__dirname,'../web/core.js'))?'../web/':'../';
+const WEB=fs.existsSync(path.join(__dirname,'../web/core.js'))?'../web/':'../web/';
 const {fixture,hash}=require('./helpers/model-contract.cjs');
 // Graph metadata only, not executable/training weights. Real packaged graphs have
 // their own metadata/checksum gate and instrumented ONNX inference tests.
