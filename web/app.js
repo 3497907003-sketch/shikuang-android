@@ -872,7 +872,8 @@
   ['hardness','luster','precision'].forEach(id=>$('#'+id).addEventListener('change',invalidate));
   $('#predictBtn').addEventListener('click',()=>void predict()); $('#cancelBtn').addEventListener('click',()=>cancelAnalysis());
   $('#cancelInput').addEventListener('click',()=>cancelInput());$('#cancelOffline').addEventListener('click',()=>state.offlineController?.abort());
-  $('#detailDialog').addEventListener('close',stopGallery);
+  // Native close events are queued and can arrive after this dialog reopens.
+  $('#detailDialog').addEventListener('close',()=>{if(!$('#detailDialog').open)stopGallery();});
   $('#retryAnalysis').addEventListener('click',()=>void predict());$('#analysisSettings').addEventListener('click',()=>{location.hash='settings';route();$('#offlineBtn').focus({preventScroll:true});});
   $('#assistCurrent').addEventListener('click',()=>{location.hash='settings';route();$('#assistSection').scrollIntoView({block:'start',behavior:'instant'});$('#apiKey').focus({preventScroll:true});});
   ['notes','sampleId'].forEach(id=>$('#'+id).addEventListener('input',()=>{draftChanged();cancelAssist();}));$('#apiKey').addEventListener('input',cancelAssist);
@@ -888,7 +889,7 @@
   $('#closeDetail').addEventListener('click',()=>closeDialog('#detailDialog'));$('#closeRecord').addEventListener('click',()=>closeDialog('#recordDialog'));
   $('#cancelDelete').addEventListener('click',()=>{state.pendingDelete=null;closeDialog('#confirmDialog');});
   $('#confirmDelete').addEventListener('click',async()=>{const id=state.pendingDelete;if(!id)return;try{await SpecimenStore.remove(id);state.pendingDelete=null;if(state.recordId===id)state.recordId=null;closeDialog('#confirmDialog');closeDialog('#recordDialog');await renderRecords();toast('记录已删除');}catch(e){toast(e.message);}});
-  document.querySelectorAll('dialog').forEach(d=>d.addEventListener('close',()=>{if(d.id==='cameraDialog'){stopCamera();if(inputJob?.kind==='camera'&&inputJob.phase!=='decoding')cancelInput();}if(d.id==='videoDialog'){if(inputJob?.kind==='record-video')cancelInput();stopRecording(true);$('#recordVideo').disabled=false;$('#chooseVideo').disabled=false;$('#stopVideo').hidden=true;}if(!document.querySelector('dialog[open]'))document.body.classList.remove('dialog-open');}));
+  document.querySelectorAll('dialog').forEach(d=>d.addEventListener('close',()=>{if(d.open)return;if(d.id==='cameraDialog'){stopCamera();if(inputJob?.kind==='camera'&&inputJob.phase!=='decoding')cancelInput();}if(d.id==='videoDialog'){if(inputJob?.kind==='record-video')cancelInput();stopRecording(true);$('#recordVideo').disabled=false;$('#chooseVideo').disabled=false;$('#stopVideo').hidden=true;}if(!document.querySelector('dialog[open]'))document.body.classList.remove('dialog-open');}));
   $('#offlineBtn').addEventListener('click',()=>void prepareOffline());$('#assistBtn').addEventListener('click',()=>void assist());
   addEventListener('hashchange',route);
   async function init() {

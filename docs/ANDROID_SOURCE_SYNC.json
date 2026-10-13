@@ -1,7 +1,7 @@
 {
-  "source_commit": "91d1230aeeb7541e3013d96fcad039cc76742282",
+  "source_commit": "c31b0137611155aa99976d8ce1f25978190ddb9b",
   "source_repository": "https://github.com/3497907003-sketch/shikuang-app",
-  "source_method": "Existing validated Web dist; all 158 asset bytes matched the exact local immutable source commit before Capacitor sync",
+  "source_method": "Local reviewed Web dist at exact immutable commit, including delayed-close session protection; no new APK or device acceptance for this sync",
   "applicationVersion": "2.5.0-preview.1",
   "androidVersionCode": 25001,
   "packageName": "com.shikuang.app.preview",
@@ -9,8 +9,8 @@
   "assets": [
     {
       "path": "app.js",
-      "bytes": 104854,
-      "sha256": "28e7999dc95a0bb151331fdf642661c2ba2ae765186e4a04cf09cca82f9bf3d0"
+      "bytes": 104986,
+      "sha256": "a6b1fff37f366c87bbbc883fa91a71ab94e45bacea63226ae43429924fd133d1"
     },
     {
       "path": "config.js",
@@ -801,7 +801,7 @@
   "assetCount": 158,
   "publishedPhotos": 117,
   "scope": "Local preview source and packaged-asset identity; not field accuracy, new model training, CI, physical-device acceptance or a public release",
-  "local_sync_at": "2026-10-13T19:55:25.818638+08:00",
+  "local_sync_at": "2026-10-13T21:11:14.994335+08:00",
   "developmentRevision": "r9",
   "public_deployment_verified_for_this_sync": false,
   "historical_production_web_merge": "95b4b4e4d1d9be561a18ed745c95eb60f0b6ab0f"
