@@ -177,7 +177,15 @@ jobs:
       - name: Run packaged WebView with actual native ONNX inference
         if: ${{ !inputs.network_probe }}
         working-directory: android
-        run: ./gradlew --no-daemon --max-workers=2 -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true -Pandroid.testInstrumentationRunnerArguments.expectedPageSize=${{ matrix.pageSize }} connectedDebugAndroidTest
+        # These contracts support this API/page-size matrix. The dedicated
+        # InputLifecycle16kStressInstrumentedTest requires SDK35/36 and 16KB
+        # and remains selected only by its separately pinned stress workflow.
+        run: >-
+          ./gradlew --no-daemon --max-workers=2
+          -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true
+          -Pandroid.testInstrumentationRunnerArguments.expectedPageSize=${{ matrix.pageSize }}
+          -Pandroid.testInstrumentationRunnerArguments.class=com.shikuang.app.MineralModelContractTest,com.shikuang.app.ReviewedPhotoAssetsInstrumentedTest,com.shikuang.app.MineralEngineInstrumentedTest
+          connectedDebugAndroidTest
       - name: Capture runtime diagnostics
         if: always()
         shell: bash
