@@ -85,7 +85,7 @@ Android 包内置模型、运行时、目录与文献元数据，开发者电脑
 
 ## Android 构建与第二轮平台验收
 
-Android 预览版 2.5.0-preview.1，versionCode 25001，包名仍为 com.shikuang.app.preview；使用同一持续预览签名覆盖更新，升级前建议导出标本备份。首次安装内置 157 个应用资源，包括 117 张经来源与许可审核的真实矿物对照照片；此图库不代表随包模型已训练这些照片或独立实验室确认。原 98 标签权重保留，manifest 为 inherited-2.0-audited；新增八类盲测 Kappa 未达到目标，不替换当前模型。
+Android 预览版 2.5.0-preview.1，versionCode 25001，包名仍为 com.shikuang.app.preview；使用同一持续预览签名覆盖更新，升级前建议导出标本备份。当前本地同步内置 158 个应用资源，包括 117 张经来源与许可审核的真实矿物对照照片；该同步尚未构建新版 APK 或完成真机验收，此图库不代表随包模型已训练这些照片或独立实验室确认。原 98 标签权重保留，manifest 为 inherited-2.0-audited；新增八类盲测 Kappa 未达到目标，不替换当前模型。
 
 最低 Android 7.0/API24，系统 WebView 需具备 Chrome83及以上的现代语法、Promise、URL、AbortController、crypto.subtle 与图片解码能力。旧组件显示可见更新指引并保留历史；首次更新组件需联网。使用 Node20+、JDK17、AndroidSDK：npm run sync 逐字节核对资源，然后 android/ 中运行 ./gradlew assembleDebug lintDebug。固定 ORT1.24.3、四 ABI 与压缩原生库；官方 SDK35 ZIP/ELF16KB 门与真实 16KB 模拟器分别验证。
 

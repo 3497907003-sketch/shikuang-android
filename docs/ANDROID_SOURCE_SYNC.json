@@ -1,7 +1,7 @@
 {
-  "source_commit": "697be109a20cf5ce2724d68efd670c74949f38b6",
+  "source_commit": "91d1230aeeb7541e3013d96fcad039cc76742282",
   "source_repository": "https://github.com/3497907003-sketch/shikuang-app",
-  "source_method": "git archive at exact commit; clean source check/build; per-source bytes compared before Capacitor sync",
+  "source_method": "Existing validated Web dist; all 158 asset bytes matched the exact local immutable source commit before Capacitor sync",
   "applicationVersion": "2.5.0-preview.1",
   "androidVersionCode": 25001,
   "packageName": "com.shikuang.app.preview",
@@ -9,8 +9,8 @@
   "assets": [
     {
       "path": "app.js",
-      "bytes": 99604,
-      "sha256": "4f46db8da64a2ad9bf4d55208837d5d76fe54d60e2a81700d1f27afd94ec45fc"
+      "bytes": 104854,
+      "sha256": "28e7999dc95a0bb151331fdf642661c2ba2ae765186e4a04cf09cca82f9bf3d0"
     },
     {
       "path": "config.js",
@@ -19,13 +19,13 @@
     },
     {
       "path": "core.js",
-      "bytes": 20726,
-      "sha256": "faf32e7d9e0139e72a4144657c1abb66e3da7150e7964452165460fbaa2a0338"
+      "bytes": 26272,
+      "sha256": "0b19825d09d868e59b8e8c27558de743ececd8da7d6fd4bde1f5151588a28bea"
     },
     {
       "path": "data/catalog.json",
-      "bytes": 3869255,
-      "sha256": "18b11661a6eb87d40c57759ac59dfe6156612276a8ce854cd047517d63b068ac"
+      "bytes": 4580222,
+      "sha256": "e70ef4cc25e3a82bf444ea6ce041970c71b23daceaf3002d07f4fab2143cb21b"
     },
     {
       "path": "data/classes.js",
@@ -59,13 +59,13 @@
     },
     {
       "path": "data/minerals.js",
-      "bytes": 277782,
-      "sha256": "8faa563e07ddd0a82d79318e57e1bf870236f88792b31dfdb126cdca47b99c2d"
+      "bytes": 631708,
+      "sha256": "96ea48691cebc6719306076763aef95c965d3441dfa64c46123456a50936de24"
     },
     {
       "path": "data/reference-manifest.json",
-      "bytes": 850,
-      "sha256": "862f03b248382c826c9748f890e92bfd37de1597a3235a4b1b130bc0f6603ecd"
+      "bytes": 1281,
+      "sha256": "2147ce55dc1c573fd7d1563859693b8b836c6abcf8299640695864feca3ff6ae"
     },
     {
       "path": "data/reviewed-photo-assets.json",
@@ -79,8 +79,8 @@
     },
     {
       "path": "engine-worker.js",
-      "bytes": 7168,
-      "sha256": "cffd0a72e87438e3a55260532a14c4d78575e0070830e64fc3cb23bb9ee7c5ad"
+      "bytes": 7930,
+      "sha256": "fcf88a72d83e85950fce26ae990b46663b83371c06bbb9e4808e7596e3991f96"
     },
     {
       "path": "gallery.js",
@@ -699,8 +699,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 27344,
-      "sha256": "18530a4efa8bfcf90ab82fe9a8a97167c96a267fc600f9640cafb25eeb0843a0"
+      "bytes": 27606,
+      "sha256": "aae414121e8e3ba6ba23409ce85fa110e141a0307e27cea9e93a259e606cd37c"
     },
     {
       "path": "inference.js",
@@ -759,13 +759,13 @@
     },
     {
       "path": "styles.css",
-      "bytes": 34830,
-      "sha256": "b17f1631eac0f4738a9a3656992e448a6c0229c110f2af76a955f1ac5672353f"
+      "bytes": 35442,
+      "sha256": "8b36933dcd27d7663be84640d5f27f746a2fd406835014ba30aa68c8be7af63c"
     },
     {
       "path": "sw.js",
-      "bytes": 8061,
-      "sha256": "3f04937d303d1d7c14c969510d8b26cacd7abf77e72d96b545bbc2e657048905"
+      "bytes": 9431,
+      "sha256": "aec966403b73ba0fc514e409fead237ace9690f4b6e92aa94d5065fa8f23a2d1"
     },
     {
       "path": "vendor/lucide.min.js",
@@ -789,12 +789,20 @@
     },
     {
       "path": "version.json",
-      "bytes": 81,
-      "sha256": "49f5ea887262d3609d35fc7e2263ae2d208b725d9322af5a3329775b1cb449c0"
+      "bytes": 111,
+      "sha256": "c4d20da662d7b39e9e4090d4effee0c6b0afaca3812b823d48eb066c936f7f65"
+    },
+    {
+      "path": "viewport.js",
+      "bytes": 6072,
+      "sha256": "9555cff5288db54ab50771f7e2966406e4dae949c7efacbdd1a61288e8f52eae"
     }
   ],
-  "assetCount": 157,
+  "assetCount": 158,
   "publishedPhotos": 117,
-  "scope": "Synchronization identity, not field accuracy or a release claim",
-  "production_web_merge": "95b4b4e4d1d9be561a18ed745c95eb60f0b6ab0f"
+  "scope": "Local preview source and packaged-asset identity; not field accuracy, new model training, CI, physical-device acceptance or a public release",
+  "local_sync_at": "2026-10-13T19:55:25.818638+08:00",
+  "developmentRevision": "r9",
+  "public_deployment_verified_for_this_sync": false,
+  "historical_production_web_merge": "95b4b4e4d1d9be561a18ed745c95eb60f0b6ab0f"
 }

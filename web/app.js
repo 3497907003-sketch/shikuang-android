@@ -7,13 +7,23 @@
   let cameraStream,videoStream,recorder,recordTimer,discardRecording=false,mediaEpoch=0,inputJob=null,restoreAllowed=true;
   function stopCamera(){cameraStream?.getTracks().forEach(t=>t.stop());cameraStream=null;$('#cameraPreview').srcObject=null;}
   function stopRecording(discard=false){discardRecording=discard;if(recorder?.state==='recording')recorder.stop();clearTimeout(recordTimer);videoStream?.getTracks().forEach(t=>t.stop());videoStream=null;$('#videoPreview').srcObject=null;$('#videoPreview').hidden=true;}
-  function lockMedia(busy){state.mediaBusy=busy;for(const id of ['cameraBtn','videoBtn','galleryBtn','removePhoto','cropRange'])$('#'+id).disabled=busy||state.busy;$('#newSample').disabled=false;$('#predictBtn').disabled=busy||state.busy||!state.photos.length;$('#cancelInput').hidden=!busy||!state.mediaController;document.querySelectorAll('[data-photo],[data-add-photo]').forEach(b=>{b.disabled=busy||state.busy;});}
+  function lockMedia(busy){
+    state.mediaBusy=busy;
+    for(const id of ['cameraBtn','videoBtn','galleryBtn','removePhoto','cropRange'])$('#'+id).disabled=busy||state.busy;
+    $('#newSample').disabled=false;$('#predictBtn').disabled=busy||state.busy||!state.photos.length;
+    const cancel=$('#cancelInput');cancel.hidden=!busy||!state.mediaController;
+    if(busy){
+      const kind=inputJob?.kind;
+      cancel.textContent=kind==='video'?'停止视频取帧':kind==='record-video'?'停止视频录制':kind==='photos'||inputJob?.source==='gallery'?'停止照片读取':'停止拍照';
+    }
+    document.querySelectorAll('[data-photo],[data-add-photo]').forEach(b=>{b.disabled=busy||state.busy;});
+  }
   function inputCurrent(job){return inputJob===job&&job.epoch===mediaEpoch&&!job.controller.signal.aborted&&state.view==='identify';}
   function checkInput(job){if(!inputCurrent(job))throw new DOMException('输入已停止','AbortError');}
   function finishInput(job){clearTimeout(job.timer);if(inputJob===job){inputJob=null;state.mediaController=null;lockMedia(false);}}
-  function beginInput(kind,timeout=45000){
+  function beginInput(kind,timeout=45000,source){
     restoreAllowed=false;cancelAssist();
-    const job={kind,phase:'reading',epoch:++mediaEpoch,controller:new AbortController()};inputJob=job;state.mediaController=job.controller;lockMedia(true);
+    const job={kind,source,phase:'reading',epoch:++mediaEpoch,controller:new AbortController()};inputJob=job;state.mediaController=job.controller;lockMedia(true);
     job.timer=setTimeout(()=>{if(inputJob===job){cancelInput(false);status('输入读取超时，已提交的照片保留。请重新选择或拍摄。',true);}},timeout);
     return job;
   }
@@ -42,8 +52,8 @@
   const chemicalSup='⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾ⁿ',chemicalSupPlain='0123456789+-=()n';
   function formulaMarkup(value){
     const text=String(value||'');
-    const convert=(part,from,to)=>Array.from(part).map(char=>to[from.indexOf(char)]).join('');
-    return `<span class="formula" aria-label="${html(text)}">${html(text).replace(/[₀₁₂₃₄₅₆₇₈₉₊₋₌₍₎ₐₑᵢₒᵣᵤₓ]+/g,part=>'<sub>'+convert(part,chemicalSub,chemicalSubPlain)+'</sub>').replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾ⁿ]+/g,part=>'<sup>'+convert(part,chemicalSup,chemicalSupPlain)+'</sup>')}</span>`;
+    const convert=(part,from,to)=>Array.from(part).map(char=>from.includes(char)?to[from.indexOf(char)]:char).join('');
+    return `<span class="formula" aria-label="${html(text)}">${html(text).replace(/[₀₁₂₃₄₅₆₇₈₉₊₋₌₍₎ₐₑᵢₒᵣᵤₓ]*[₀₁₂₃₄₅₆₇₈₉](?:\.[₀₁₂₃₄₅₆₇₈₉]+)+|[₀₁₂₃₄₅₆₇₈₉₊₋₌₍₎ₐₑᵢₒᵣᵤₓ]+/g,part=>'<sub>'+convert(part,chemicalSub,chemicalSubPlain)+'</sub>').replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾ⁿ]*[⁰¹²³⁴⁵⁶⁷⁸⁹](?:\.[⁰¹²³⁴⁵⁶⁷⁸⁹]+)+|[⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾ⁿ]+/g,part=>'<sup>'+convert(part,chemicalSup,chemicalSupPlain)+'</sup>')}</span>`;
   }
   // Exact mineralogical terms and complete reviewed descriptions only. The
   // English scientific values and verification metadata remain unchanged.
@@ -435,7 +445,7 @@
     if (state.busy || state.mediaBusy) return;
     if (state.photos.length >= 3) { toast('已添加 3 个角度，请先分析或移除一张照片'); return; }
     if (isNative()) {
-      const job=beginInput('native-camera',120000);job.phase='external-camera';
+      const job=beginInput('native-camera',120000,source);job.phase='external-camera';
       try {
         const photo = await plugin('Camera').getPhoto({ quality:90, width:1536, height:1536,
           resultType:'uri', source:source === 'camera' ? 'CAMERA':'PHOTOS', correctOrientation:true,
@@ -657,13 +667,13 @@
     $('#moreCrystals').hidden=crystalsShown>=selectedCrystals.length;
     $('#moreCrystals').textContent=`查看更多 ${Math.min(5,selectedCrystals.length-crystalsShown)} 条记录`;
   }
-  function libraryCard(item){const detail=item.detail||{},kind=item.model?'模型候选':item.expanded?'扩展资料':'基础目录';return `<button type="button" class="mineral-card" data-detail="${html(item.key)}"><span class="mineral-symbol" aria-hidden="true">${html((item.formula || '◇').slice(0,4))}</span><strong>${html(item.title)}</strong>${item.title!==item.english?`<small>${html(item.english)}</small>`:''}<span class="card-formula">${item.formula?formulaMarkup(item.formula):'化学式未收录'}</span><span class="category">${html(types[item.key] || (detail.classification?category(detail,$('#classScheme').value):'分类未收录'))} · ${kind}</span></button>`;}
+  function libraryCard(item){const detail=item.detail||{},kind=item.model?'模型候选':item.expanded?'扩展资料':'基础目录';return `<button type="button" class="mineral-card" data-detail="${html(item.key)}"><span class="mineral-symbol" aria-hidden="true"><i data-lucide="gem"></i></span><strong>${html(item.title)}</strong>${item.title!==item.english?`<small>${html(item.english)}</small>`:''}<span class="card-formula">${item.formula?formulaMarkup(item.formula):'化学式未收录'}</span><span class="category">${html(types[item.key] || (detail.classification?category(detail,$('#classScheme').value):'分类未收录'))} · ${kind}</span></button>`;}
   function updateLibraryPageStatus(){
     $('#libraryStatus').textContent=`已展示 ${libraryShown} / ${libraryMatches.length} 项${libraryMatches.length?' · 每次加载 80 项':''}`;
     $('#libraryMore').hidden=libraryShown>=libraryMatches.length;
     $('#libraryMore').textContent=`加载更多 ${Math.min(libraryPageSize,libraryMatches.length-libraryShown)} 项`;
   }
-  function appendLibraryPage(){const next=libraryMatches.slice(libraryShown,libraryShown+libraryPageSize);if(next.length){$('#libraryList').insertAdjacentHTML('beforeend',next.map(libraryCard).join(''));libraryShown+=next.length;}updateLibraryPageStatus();}
+  function appendLibraryPage(){const next=libraryMatches.slice(libraryShown,libraryShown+libraryPageSize);if(next.length){$('#libraryList').insertAdjacentHTML('beforeend',next.map(libraryCard).join(''));libraryShown+=next.length;icons();}updateLibraryPageStatus();}
   function renderLibrary() {
     const query=normalizeSearch($('#librarySearch').value.trim()),filter=$('#classFilter').value,scheme=$('#classScheme').value,scope=$('#libraryScope').value||'all',fingerprint=JSON.stringify([query,filter,scheme,scope]);
     if(fingerprint===libraryFingerprint){updateLibraryPageStatus();return;}
