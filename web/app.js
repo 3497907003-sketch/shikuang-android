@@ -766,7 +766,7 @@
         if(controller.signal.aborted)throw new DOMException('准备已停止','AbortError');
         $('#offlineProgress').textContent=`正在准备资源 ${i+1}/${assets.length}${sizeHint}…`;
         const model=resources.find(m=>m.url===assets[i]),photo=photoAssets.find(p=>p.url===assets[i]),verified=model||photo;
-        const cache = await caches.open(model || new URL(assets[i],location.href).pathname.endsWith('.wasm') ? cacheNames.models:cacheNames.shell);
+        const cache = await caches.open(model ? cacheNames.models:cacheNames.shell);
         const request = new Request(new URL(assets[i],location.href),{cache:'reload'});
         await bounded(async signal=>{
           const cached=verified?await cache.match(request):null;
@@ -781,7 +781,7 @@
       await bounded(async signal=>{
         const shell=await caches.open(cacheNames.shell),models=await caches.open(cacheNames.models);
         const shellKeys=new Set((await shell.keys()).map(request=>request.url)),modelKeys=new Set((await models.keys()).map(request=>request.url));
-        for(const asset of assets){const url=new URL(asset,location.href),model=resources.some(item=>item.url===url.href);if(!(model||url.pathname.endsWith('.wasm')?modelKeys:shellKeys).has(url.href))throw new Error('资源未完整保存，请检查存储空间后重试');}
+        for(const asset of assets){const url=new URL(asset,location.href),model=resources.some(item=>item.url===url.href);if(!(model?modelKeys:shellKeys).has(url.href))throw new Error('资源未完整保存，请检查存储空间后重试');}
         await MineralCore.offlineWorkerIdentity(navigator.serviceWorker,location.href,signal,window.MessageChannel);
       },15000,'离线完整性检查超时，请刷新页面后重试',controller.signal);
       $('#offlineProgress').textContent='离线资源已准备。浏览器可能因空间不足回收缓存，重要现场任务建议使用 Android 安装版。';

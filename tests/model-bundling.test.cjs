@@ -25,14 +25,23 @@ test('build follows the active two-classifier manifest, excludes unused legacy f
     writeSource('models/mobilenet_int8.onnx','unused old weight');writeSource('models/efficientnet_legacy.onnx','unused old weight');write('web/dist/models/orphan.onnx','stale package');
     writeSource('gallery.js',fs.readFileSync(require.resolve(WEB+'gallery.js')));writeSource('data/reviewed-photo-assets.json',JSON.stringify({schema_version:1,assets:[]}));writeSource('data/image-sources.json',JSON.stringify({schema_version:1,records:[]}));
     writeSource('data/classes.js','window.MINERAL_CLASSES='+JSON.stringify(Object.fromEntries(data.manifest.labels.map(x=>[x,x]))));
+    const runtime=Buffer.from([0,97,115,109,1,0,0,0,0,2,0,1]);writeSource('vendor/ort-wasm-simd-threaded.wasm',runtime);
     writeSource('model-manifest.json',JSON.stringify(data.manifest));writeSource('core.js',fs.readFileSync(require.resolve(WEB+'core.js')));writeSource('sw.js',fs.readFileSync(require.resolve(WEB+'sw.js')));write('web/tools/onnx-contract.cjs',fs.readFileSync(require.resolve('../tools/onnx-contract.cjs')));write('web/tools/shell-release.cjs',fs.readFileSync(require.resolve('../web/tools/shell-release.cjs')));write('web/tools/build.cjs',build);
     const run=()=>spawnSync(process.execPath,['web/tools/build.cjs'],{cwd:dir,encoding:'utf8'});
     const result=run();assert.equal(result.status,0,result.stderr);
     assert.deepEqual(fs.readdirSync(path.join(dir,'web/dist/models')).sort(),['efficientnet.onnx','imagenet_gate.onnx','mobilenet.onnx']);
     const firstWorker=fs.readFileSync(path.join(dir,'web/dist/sw.js'),'utf8');
+    assert.deepEqual(JSON.parse(firstWorker.match(/const RUNTIME_WASM = Object\.freeze\((\{[^\n]+\})\);/)[1]),{path:'vendor/ort-wasm-simd-threaded.wasm',bytes:runtime.length,sha256:hash(runtime)});
+    const nextRuntime=Buffer.from(runtime);nextRuntime[nextRuntime.length-1]=2;writeSource('vendor/ort-wasm-simd-threaded.wasm',nextRuntime);assert.equal(run().status,0);
+    const nextWorker=fs.readFileSync(path.join(dir,'web/dist/sw.js'),'utf8');assert.notEqual(nextWorker,firstWorker);
+    assert.equal(JSON.parse(nextWorker.match(/const RUNTIME_WASM = Object\.freeze\((\{[^\n]+\})\);/)[1]).sha256,hash(nextRuntime));
     fs.appendFileSync(path.join(dir,'web/tools/shell-release.cjs'),'\n// Build-only revision regression\n');
     assert.equal(run().status,0);
-    assert.notEqual(fs.readFileSync(path.join(dir,'web/dist/sw.js'),'utf8'),firstWorker,'Build rules must invalidate an installed worker even when asset inputs are unchanged');
+    assert.notEqual(fs.readFileSync(path.join(dir,'web/dist/sw.js'),'utf8'),nextWorker,'Build rules must invalidate an installed worker even when asset inputs are unchanged');
+    const goodWorker=fs.readFileSync(path.join(dir,'web/dist/sw.js'),'utf8');
+    writeSource('vendor/ort-wasm-simd-threaded.wasm',runtime.subarray(0,8));assert.notEqual(run().status,0);
+    assert.equal(fs.readFileSync(path.join(dir,'web/dist/sw.js'),'utf8'),goodWorker,'Invalid runtime must not replace the previous complete build');
+    writeSource('vendor/ort-wasm-simd-threaded.wasm',nextRuntime);
     const good=fs.readFileSync(path.join(dir,'web/dist/model-manifest.json'),'utf8');
     writeSource(data.manifest.models[0].path,'corrupt');assert.notEqual(run().status,0);assert.equal(fs.readFileSync(path.join(dir,'web/dist/model-manifest.json'),'utf8'),good);
   } finally {fs.rmSync(dir,{recursive:true,force:true});}

@@ -30,8 +30,9 @@ const shellRelease=require('./shell-release.cjs');
 const inputs=files.map(file=>[file,fs.readFileSync(path.join(root,file))]);
 const buildInputs=['tools/build.cjs','tools/shell-release.cjs'].map(file=>['@build/'+file,fs.readFileSync(path.join(root,file))]);
 const shellRevision=shellRelease.revision([...inputs,...buildInputs]);
+const runtimeWasm=shellRelease.runtimeWasm(inputs);
 // Render and validate every transformed asset before replacing a prior build.
-const rendered=inputs.map(([file,bytes])=>[file,shellRelease.render(file,bytes,shellRevision)]);
+const rendered=inputs.map(([file,bytes])=>[file,shellRelease.render(file,bytes,shellRevision,runtimeWasm)]);
 const output = path.join(root, 'dist');
 fs.rmSync(output, { recursive: true, force: true });
 fs.mkdirSync(output, { recursive: true });

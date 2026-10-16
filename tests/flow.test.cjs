@@ -54,10 +54,12 @@ test('leaving identification cancels video extraction and refuses late frames',a
 
 test('prepared reference metadata and attribution remain available after the current service worker activates offline',async()=>{
   const fs=require('node:fs'),vm=require('node:vm'),stored=new Map();
-  const caches={open:async name=>{if(!stored.has(name))stored.set(name,new Map());const cache=stored.get(name);return {put:async(request,response)=>cache.set(typeof request==='string'?request:request.url,response),match:async request=>cache.get(typeof request==='string'?request:request.url),keys:async()=>[...cache.keys()].map(url=>new Request(url)),delete:async request=>cache.delete(typeof request==='string'?request:request.url)};},keys:async()=>[...stored.keys()],delete:async name=>stored.delete(name)};
+  const caches={open:async name=>{if(!stored.has(name))stored.set(name,new Map());const cache=stored.get(name);return {put:async(request,response)=>cache.set(typeof request==='string'?request:request.url,response.clone()),match:async request=>cache.get(typeof request==='string'?request:request.url)?.clone(),keys:async()=>[...cache.keys()].map(url=>new Request(url)),delete:async request=>cache.delete(typeof request==='string'?request:request.url)};},keys:async()=>[...stored.keys()],delete:async name=>stored.delete(name)};
   const f=fixture({register:async()=>({})});f.context.caches=caches;f.context.URL=URL;f.context.Request=Request;
   f.context.fetch=async request=>typeof request==='string'?(request.endsWith('reviewed-photo-assets.json')?new Response(JSON.stringify({schema_version:1,assets:[]})):{ok:true,json:async()=>({models:[]})}):new Response('prepared '+new URL(request.url).pathname);
   await f.click('offlineBtn');await f.until(()=>!f.node('offlineBtn').disabled);assert.match(f.node('offlineProgress').textContent,/离线资源已准备/);
+  const names=f.context.MineralCore.offlineCaches(f.context.location.href),wasmURL=new URL('vendor/ort-wasm-simd-threaded.wasm',f.context.location.href).href;
+  assert.equal(stored.get(names.shell).has(wasmURL),true);assert.equal(stored.get(names.models).has(wasmURL),false);
   const events={},scope=f.context.location.href,worker={addEventListener:(type,fn)=>{events[type]=fn;},registration:{scope},clients:{claim(){}}};
   const WEB=fs.existsSync(require('node:path').join(__dirname,'../web/sw.js'))?'../web/':'../';
   vm.runInNewContext(fs.readFileSync(require.resolve(WEB+'sw.js'),'utf8'),{self:worker,caches,MineralCore:f.context.MineralCore,URL,Request,Response,Headers,TextDecoder,AbortController,setTimeout,clearTimeout,importScripts(){},fetch:async()=>{throw new Error('offline');}});

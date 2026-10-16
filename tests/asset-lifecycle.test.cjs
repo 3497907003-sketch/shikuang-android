@@ -3,17 +3,39 @@ const WEB=fs.existsSync(require('node:path').join(__dirname,'../web/core.js'))?'
 const Core=require(WEB+'core.js'),{fixture,hash}=require('./helpers/model-contract.cjs');
 const swSource=fs.readFileSync(require.resolve(WEB+'sw.js'),'utf8');
 function cacheStorage() {
-  const stores=new Map();return {stores,keys:async()=>[...stores.keys()],delete:async key=>stores.delete(key),open:async key=>{
+  const stores=new Map(),storage={stores,keys:async()=>[...stores.keys()],delete:async key=>stores.delete(key),open:async key=>{
     if(!stores.has(key))stores.set(key,new Map());const data=stores.get(key),url=key=>typeof key==='string'?key:key.url;
-    return {match:async key=>data.get(url(key))?.clone(),put:async(key,value)=>data.set(url(key),value.clone()),delete:async key=>data.delete(url(key)),addAll:async()=>{}};
-  }};
+    return {match:async key=>data.get(url(key))?.clone(),put:async(key,value)=>data.set(url(key),value.clone()),delete:async key=>data.delete(url(key)),addAll:async requests=>{
+      const downloaded=await Promise.all(requests.map(async request=>{const response=await storage.fetch(request);if(!response.ok)throw Error('Static fixture installation failed');return [url(request),response];}));
+      for(const [key,response]of downloaded)data.set(key,response.clone());
+    }};
+  }};return storage;
 }
-function serviceWorker(scope='https://localhost/app/',caches=cacheStorage()) {
-  const listeners={},network={fetch:async()=>{throw Error('offline');}},context={MineralCore:Core,URL,Request,Response,Headers,TextDecoder,AbortController,DOMException,setTimeout,clearTimeout,crypto:require('node:crypto').webcrypto,caches,importScripts(){},fetch:(...args)=>network.fetch(...args),self:{registration:{scope},addEventListener:(name,callback)=>listeners[name]=callback,skipWaiting:async()=>{},clients:{claim:async()=>{}}}};
-  vm.runInNewContext(swSource,context);
-  return {caches,network,async request(path,cache='default'){
+function serviceWorker(scope='https://localhost/app/',caches=cacheStorage(),core=Core,runtime=wasm('new')) {
+  const listeners={},state={skipWaiting:0},network={fetch:async()=>{throw Error('offline');}},context={MineralCore:core,URL,Request,Response,Headers,TextDecoder,AbortController,DOMException,setTimeout,clearTimeout,crypto:require('node:crypto').webcrypto,caches,importScripts(){},fetch:(...args)=>network.fetch(...args),self:{registration:{scope},addEventListener:(name,callback)=>listeners[name]=callback,skipWaiting:async()=>{state.skipWaiting++;},clients:{claim:async()=>{}}}};
+  caches.fetch=(...args)=>network.fetch(...args);
+  // Unit releases explicitly pin a real compilable fixture module. The source
+  // pin itself is separately checked against the actual bundled vendor file.
+  const descriptor={path:'vendor/ort-wasm-simd-threaded.wasm',bytes:runtime.length,sha256:hash(runtime)};
+  vm.runInNewContext(swSource.replace(/const RUNTIME_WASM = Object\.freeze\(\{[^\n]+\}\);/,`const RUNTIME_WASM = Object.freeze(${JSON.stringify(descriptor)});`),context);
+  return {caches,network,state,async install(){let work;listeners.install({waitUntil:value=>work=value});await work;},async request(path,cache='default'){
     let reply;listeners.fetch({request:new Request(new URL(path,scope),{cache}),respondWith:value=>reply=value,waitUntil(){}});return reply;
   },async activate(){let work;listeners.activate({waitUntil:value=>work=value});await work;},async message(data){const work=[];let ack;listeners.message({data,ports:[{postMessage:value=>ack=value}],waitUntil:value=>work.push(value)});await Promise.all(work);return ack;}};
+}
+const wasm=tag=>{
+  const text=Buffer.from(tag);assert.ok(text.length<126);
+  const bytes=Buffer.concat([Buffer.from([0,97,115,109,1,0,0,0,0,text.length+1,0]),text]);
+  assert.doesNotThrow(()=>new WebAssembly.Module(bytes));return bytes;
+};
+function releaseCore(tag){return {...Core,offlineCaches(base){const names=Core.offlineCaches(base);return {...names,shell:names.prefix+'shikuang-static-'+tag};}};}
+function installationNetwork(tag,requests=[]) {
+  const data=fixture();return async request=>{
+    requests.push(request);const url=new URL(typeof request==='string'?request:request.url);
+    if(url.pathname.endsWith('/model-manifest.json'))return new Response(JSON.stringify(data.manifest));
+    if(url.pathname.endsWith('/index.html'))return new Response('<!doctype html><script src="./vendor/ort.min.js"></script>');
+    if(url.pathname.endsWith('.wasm'))return new Response(wasm(tag));
+    return new Response(tag+' '+url.pathname);
+  };
 }
 async function publish(sw,data=fixture()) {
   const bytes=Buffer.from(JSON.stringify(data.manifest));sw.network.fetch=async()=>new Response(bytes);
@@ -50,6 +72,83 @@ test('network model corruption never enters cache and repair permits a later val
   sw.network.fetch=async()=>new Response(Buffer.from([8]));assert.equal((await sw.request(key)).type,'error');
   const cache=await sw.caches.open(Core.offlineCaches('https://localhost/app/').models);assert.equal(await cache.match(key),undefined);
   sw.network.fetch=async()=>new Response(data.files[model.path]);assert.equal((await sw.request(key,'reload')).status,200);assert.ok(await cache.match(key));
+});
+test('a new ORT shell never reuses the former stable model-cache WASM',async()=>{
+  const sw=serviceWorker(),names=Core.offlineCaches('https://localhost/app/');
+  const url='https://localhost/app/vendor/ort-wasm-simd-threaded.wasm';
+  const legacy=await sw.caches.open(names.models),shell=await sw.caches.open(names.shell);
+  await legacy.put(url,new Response('old incompatible runtime'));
+  await shell.put('https://localhost/app/vendor/ort.min.js',new Response('new ORT glue'));
+  const current=wasm('new');
+  let requests=0;sw.network.fetch=async()=>{requests++;return new Response(current);};
+  assert.deepEqual(Buffer.from(await (await sw.request(url)).arrayBuffer()),current);
+  assert.equal(requests,1);assert.deepEqual(Buffer.from(await (await shell.match(url)).arrayBuffer()),current);
+  sw.network.fetch=async()=>{throw Error('offline');};
+  assert.deepEqual(Buffer.from(await (await sw.request(url)).arrayBuffer()),current);
+  assert.equal(await (await legacy.match(url)).text(),'old incompatible runtime');
+});
+test('current-release WASM corruption is removed and a valid retry stays offline without hiding HTTP or content failures',async()=>{
+  const sw=serviceWorker(),url='https://localhost/app/vendor/ort-wasm-simd-threaded.wasm';
+  const shell=await sw.caches.open(Core.offlineCaches('https://localhost/app/').shell),good=wasm('new');
+  await shell.put(url,new Response('truncated'));
+  sw.network.fetch=async()=>new Response(good);assert.deepEqual(Buffer.from(await (await sw.request(url)).arrayBuffer()),good);
+  sw.network.fetch=async()=>new Response('<html>bad runtime</html>',{headers:{'content-type':'text/html'}});
+  assert.equal((await sw.request(url,'reload')).type,'error');
+  sw.network.fetch=async()=>new Response('missing',{status:404});assert.equal((await sw.request(url,'reload')).status,404);
+  sw.network.fetch=async()=>{throw Error('offline');};
+  assert.deepEqual(Buffer.from(await (await sw.request(url,'reload')).arrayBuffer()),good);
+  assert.equal((await sw.request(url,'no-store')).type,'error');
+  assert.equal((await sw.request(url+'?different-release')).type,'error');
+});
+test('runtime release pin rejects a valid older module with the same size and an eight-byte empty module, then recovers',async()=>{
+  const sw=serviceWorker(),url='https://localhost/app/vendor/ort-wasm-simd-threaded.wasm',good=wasm('new'),old=wasm('old');
+  assert.equal(old.length,good.length);assert.notEqual(hash(old),hash(good));
+  const shell=await sw.caches.open(Core.offlineCaches('https://localhost/app/').shell);
+  await shell.put(url,new Response(old));sw.network.fetch=async()=>{throw Error('offline');};
+  assert.equal((await sw.request(url)).type,'error');assert.equal(await shell.match(url),undefined);
+  sw.network.fetch=async()=>new Response(old);assert.equal((await sw.request(url,'reload')).type,'error');
+  const empty=Buffer.from([0,97,115,109,1,0,0,0]);assert.doesNotThrow(()=>new WebAssembly.Module(empty));
+  sw.network.fetch=async()=>new Response(empty);assert.equal((await sw.request(url,'reload')).type,'error');
+  assert.equal(await shell.match(url),undefined);
+  sw.network.fetch=async()=>new Response(good);assert.deepEqual(Buffer.from(await (await sw.request(url,'reload')).arrayBuffer()),good);
+  sw.network.fetch=async()=>{throw Error('offline');};assert.deepEqual(Buffer.from(await (await sw.request(url)).arrayBuffer()),good);
+});
+test('source-development WASM pin matches actual vendor bytes rather than mutable network metadata',()=>{
+  const descriptor=JSON.parse(swSource.match(/const RUNTIME_WASM = Object\.freeze\((\{[^\n]+\})\);/)[1]);
+  const bytes=fs.readFileSync(require.resolve(WEB+descriptor.path));
+  assert.deepEqual(Object.keys(descriptor).sort(),['bytes','path','sha256']);
+  assert.equal(descriptor.bytes,bytes.length);assert.equal(descriptor.sha256,hash(bytes));
+});
+test('installation prepares matching WASM with reload before activating a new shell and preserves identity-keyed weights',async()=>{
+  const caches=cacheStorage(),old=releaseCore('old'),fresh=releaseCore('new'),scope='https://localhost/app/',url=scope+'vendor/ort-wasm-simd-threaded.wasm';
+  const oldNames=old.offlineCaches(scope),newNames=fresh.offlineCaches(scope),oldShell=await caches.open(oldNames.shell),models=await caches.open(newNames.models);
+  await oldShell.put(url,new Response(wasm('old')));await models.put(scope+'models/saved.onnx?model=old',new Response('saved weights'));
+  const sw=serviceWorker(scope,caches,fresh),requests=[];sw.network.fetch=installationNetwork('new',requests);
+  await sw.install();assert.equal(sw.state.skipWaiting,1);
+  assert.equal(requests.filter(request=>request.url===url).length,1);assert.equal(requests.find(request=>request.url===url).cache,'reload');
+  const newShell=await caches.open(newNames.shell);assert.match(await (await newShell.match(scope+'vendor/ort.min.js')).text(),/^new /);
+  assert.match(await (await newShell.match(scope+'vendor/ort-wasm-simd-threaded.mjs')).text(),/^new /);
+  assert.deepEqual(Buffer.from(await (await newShell.match(url)).arrayBuffer()),wasm('new'));
+  sw.network.fetch=async()=>{throw Error('offline');};assert.deepEqual(Buffer.from(await (await sw.request(url)).arrayBuffer()),wasm('new'));
+  assert.deepEqual(Buffer.from(await (await oldShell.match(url)).arrayBuffer()),wasm('old'));
+  await sw.activate();assert.equal(await (await models.match(scope+'models/saved.onnx?model=old')).text(),'saved weights');
+});
+test('missing or invalid new WASM cannot activate an upgrade or destroy the old offline shell; a later installation can recover',async()=>{
+  for(const failure of ['http','invalid','old-valid','empty-valid']){
+    const caches=cacheStorage(),scope='https://localhost/app/',old=releaseCore('old-'+failure),fresh=releaseCore('new-'+failure),url=scope+'vendor/ort-wasm-simd-threaded.wasm';
+    const oldShell=await caches.open(old.offlineCaches(scope).shell),models=await caches.open(old.offlineCaches(scope).models);
+    await oldShell.put(url,new Response(wasm('old')));await oldShell.put(scope+'index.html',new Response('old entry'));
+    await models.put(url,new Response(wasm('legacy old')));
+    const sw=serviceWorker(scope,caches,fresh),network=installationNetwork('new');
+    const bad=failure==='http'?new Response('missing',{status:503}):failure==='old-valid'?new Response(wasm('old')):failure==='empty-valid'?new Response(Buffer.from([0,97,115,109,1,0,0,0])):new Response('not a module');
+    sw.network.fetch=request=>request.url===url?Promise.resolve(bad.clone()):network(request);
+    await assert.rejects(sw.install());assert.equal(sw.state.skipWaiting,0);
+    assert.equal(await (await oldShell.match(scope+'index.html')).text(),'old entry');
+    assert.deepEqual(Buffer.from(await (await oldShell.match(url)).arrayBuffer()),wasm('old'));
+    assert.deepEqual(Buffer.from(await (await models.match(url)).arrayBuffer()),wasm('legacy old'));
+    const retry=serviceWorker(scope,caches,fresh);retry.network.fetch=installationNetwork('new');await retry.install();assert.equal(retry.state.skipWaiting,1);
+    retry.network.fetch=async()=>{throw Error('offline');};assert.deepEqual(Buffer.from(await (await retry.request(url)).arrayBuffer()),wasm('new'));
+  }
 });
 test('offline preparation retains the entry document exact versioned script and stylesheet URLs',()=>{
   const html=fs.readFileSync(require.resolve(WEB+'index.html'),'utf8'),base='https://localhost/app/';

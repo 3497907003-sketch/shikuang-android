@@ -1,5 +1,5 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
-const {revision,render}=require('../web/tools/shell-release.cjs');
+const {revision,render,runtimeWasm}=require('../web/tools/shell-release.cjs');
 const root=path.resolve(__dirname,'../web');
 test('offline content changes invalidate both worker and shell while repeat builds keep their identity',()=>{
   const base=['index.html','core.js','sw.js','data/sources.js'].map(name=>[name,fs.readFileSync(path.join(root,name))]);
@@ -8,6 +8,21 @@ test('offline content changes invalidate both worker and shell while repeat buil
   const b=revision(changed);assert.notEqual(a,b);
   for(const name of ['index.html','core.js','sw.js'])assert.notDeepEqual(render(name,base.find(x=>x[0]===name)[1],a),render(name,base.find(x=>x[0]===name)[1],b));
   assert.throws(()=>revision([...base,base[0]]),/Duplicate/);
+});
+test('runtime descriptor comes from bundled bytes and is injected after release identity without changing the input files',()=>{
+  const source=fs.readFileSync(path.join(root,'sw.js')),bytes=fs.readFileSync(path.join(root,'vendor/ort-wasm-simd-threaded.wasm'));
+  const entries=[['sw.js',source],['vendor/ort-wasm-simd-threaded.wasm',bytes]];
+  const id=revision(entries),descriptor=runtimeWasm(entries),output=render('sw.js',source,id,descriptor).toString();
+  assert.deepEqual(JSON.parse(output.match(/const RUNTIME_WASM = Object\.freeze\((\{[^\n]+\})\);/)[1]),descriptor);
+  const changed=Buffer.from(bytes);changed[changed.length-1]^=1;
+  const nextEntries=[entries[0],[entries[1][0],changed]],next=runtimeWasm(nextEntries),nextId=revision(nextEntries);
+  assert.notEqual(nextId,id);assert.notEqual(next.sha256,descriptor.sha256);assert.equal(next.bytes,descriptor.bytes);
+  const upgraded=render('sw.js',source,nextId,next).toString();assert.match(upgraded,new RegExp(next.sha256));assert.doesNotMatch(upgraded,new RegExp(descriptor.sha256));
+  assert.equal(revision(entries),id);assert.deepEqual(fs.readFileSync(path.join(root,'sw.js')),source);
+  assert.throws(()=>runtimeWasm([]),/Exactly one/);
+  assert.throws(()=>runtimeWasm([entries[1],entries[1]]),/Exactly one/);
+  assert.throws(()=>runtimeWasm([[entries[1][0],Buffer.from([0,97,115,109,1,0,0,0])]]),/invalid/);
+  assert.throws(()=>render('sw.js',source,id,{...descriptor,sha256:'bad'}),/descriptor/);
 });
 test('built HTML, application and worker share identity and preserve the model cache and script order',()=>{
   const id='a'.repeat(64),source=fs.readFileSync(path.join(root,'core.js'));

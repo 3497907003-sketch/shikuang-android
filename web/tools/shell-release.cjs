@@ -9,7 +9,15 @@ function revision(entries) {
   return crypto.createHash('sha256').update(JSON.stringify(rows)).digest('hex');
 }
 
-function render(name,bytes,id) {
+function runtimeWasm(entries) {
+  const path='vendor/ort-wasm-simd-threaded.wasm',matches=entries.filter(([name])=>name===path);
+  if(matches.length!==1)throw new Error('Exactly one bundled runtime WASM is required');
+  const bytes=matches[0][1];
+  if(bytes.length<=8||bytes.length>32*1024*1024||![0,97,115,109,1,0,0,0].every((value,i)=>bytes[i]===value))throw new Error('Bundled runtime WASM is invalid');
+  return {path,bytes:bytes.length,sha256:crypto.createHash('sha256').update(bytes).digest('hex')};
+}
+
+function render(name,bytes,id,wasm) {
   if(!/^[a-f0-9]{64}$/.test(id))throw new Error('Invalid shell content identity');
   if(!['index.html','core.js','sw.js'].includes(name))return bytes;
   let text=bytes.toString('utf8');
@@ -28,8 +36,14 @@ function render(name,bytes,id) {
     const marker=/importScripts\('\.\/core\.js(?:\?[^']*)?'\);/g;
     if([...text.matchAll(marker)].length!==1)throw new Error('Worker core import marker changed');
     text=text.replace(marker,`importScripts('./core.js?v=shell-${id}');`);
+    const runtimeMarker=/const RUNTIME_WASM = Object\.freeze\((\{[^\n]+\})\);/g;
+    const descriptors=[...text.matchAll(runtimeMarker)];
+    if(descriptors.length!==1)throw new Error('Worker runtime WASM descriptor marker changed');
+    const descriptor=wasm||JSON.parse(descriptors[0][1]);
+    if(descriptor.path!=='vendor/ort-wasm-simd-threaded.wasm'||!Number.isInteger(descriptor.bytes)||descriptor.bytes<=8||descriptor.bytes>32*1024*1024||!/^[a-f0-9]{64}$/.test(descriptor.sha256))throw new Error('Worker runtime WASM descriptor is invalid');
+    text=text.replace(runtimeMarker,`const RUNTIME_WASM = Object.freeze(${JSON.stringify(descriptor)});`);
   }
   return Buffer.from(text);
 }
 
-module.exports={revision,render};
+module.exports={revision,render,runtimeWasm};

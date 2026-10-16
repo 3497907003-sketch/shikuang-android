@@ -2,7 +2,10 @@ importScripts('./core.js?v=20261011-2.5.0-preview.1-r9');
 const CACHE_NAMES = MineralCore.offlineCaches(self.registration.scope);
 const STATIC = CACHE_NAMES.shell;
 const MODELS = CACHE_NAMES.models;
-const ASSETS = ['./', './index.html', './styles.css', './app.js', './native-assets.js', './core.js', './inference.js', './storage.js', './engine-worker.js', './media.js', './history.js', './icon-192.png', './icon-512.png', './icon-maskable.png', './version.json', './data/sources.js', './config.js', './icon.svg', './manifest.webmanifest', './data/classes.js', './data/minerals.js', './data/imagenet.js', './vendor/lucide.min.js', './vendor/ort.min.js', './vendor/ort-wasm-simd-threaded.mjs', './reference-loader.js', './gallery.js', './viewport.js', './data/reviewed-photo-assets.json', './data/licenses/reviewed-photos-v25.txt', './data/reference-manifest.json', './data/licenses/ima-cnmnc-2026-09.txt'];
+// Source-development pin. Build replaces it from the actual vendor bytes after
+// deriving the release identity, so future ORT updates cannot retain this hash.
+const RUNTIME_WASM = Object.freeze({"path":"vendor/ort-wasm-simd-threaded.wasm","bytes":11241642,"sha256":"704f51767fe3e11443aac6b5509c8654688e4cea3d988f96a069390b6eccbabc"});
+const ASSETS = ['./', './index.html', './styles.css', './app.js', './native-assets.js', './core.js', './inference.js', './storage.js', './engine-worker.js', './media.js', './history.js', './icon-192.png', './icon-512.png', './icon-maskable.png', './version.json', './data/sources.js', './config.js', './icon.svg', './manifest.webmanifest', './data/classes.js', './data/minerals.js', './data/imagenet.js', './vendor/lucide.min.js', './vendor/ort.min.js', './vendor/ort-wasm-simd-threaded.mjs', './vendor/ort-wasm-simd-threaded.wasm', './reference-loader.js', './gallery.js', './viewport.js', './data/reviewed-photo-assets.json', './data/licenses/reviewed-photos-v25.txt', './data/reference-manifest.json', './data/licenses/ima-cnmnc-2026-09.txt'];
 const scope = new URL(self.registration.scope);
 const manifestURL = new URL('model-manifest.json',scope);
 const hex = bytes => Array.from(new Uint8Array(bytes),b=>b.toString(16).padStart(2,'0')).join('');
@@ -63,6 +66,36 @@ async function checkedModel(response,model) {
   const headers=new Headers(response.headers);headers.set('Content-Type','application/octet-stream');
   return new Response(bytes,{status:200,headers});
 }
+async function checkedWasm(response,timeout=90000) {
+  const bytes=await MineralCore.readResource(response,32*1024*1024,RUNTIME_WASM.bytes,undefined,{timeout});
+  // Reject HTML, truncated responses and non-WASM bodies before making a new
+  // shell usable offline. ORT still validates/initializes the actual module.
+  if(bytes.length<8||![0,97,115,109,1,0,0,0].every((value,i)=>bytes[i]===value))throw new Error('Runtime WASM header is invalid');
+  if(await digest(bytes)!==RUNTIME_WASM.sha256)throw new Error('Runtime WASM checksum differs from this release');
+  const headers=new Headers(response.headers);headers.set('Content-Type','application/wasm');
+  return new Response(bytes,{status:200,headers});
+}
+async function cachedWasm(cache,request) {
+  const response=await cache.match(request);if(!response)return null;
+  try {return await checkedWasm(response,15000);}
+  catch(_){await cache.delete(request);return null;}
+}
+async function loadWasm(request) {
+  // ORT glue and its WASM are one release. Never migrate unversioned bytes from
+  // the stable weight cache: a valid old module can be incompatible with new JS.
+  const cache=await caches.open(STATIC),repair=['reload','no-store','no-cache'].includes(request.cache);
+  if(!repair){const old=await cachedWasm(cache,request);if(old)return old;}
+  let response;
+  try {response=await fetchBounded(request);}
+  catch(error) {
+    const old=request.cache==='no-store'?null:await cachedWasm(cache,request);
+    if(old)return old;throw error;
+  }
+  if(!response.ok)return response;
+  const verified=await checkedWasm(response);
+  if(request.cache!=='no-store')await boundedCheck(cache.put(request,verified.clone()),10000).catch(()=>{});
+  return verified;
+}
 async function loadModel(request,url) {
   const model=await expectedModel(url),cache=await caches.open(MODELS);
   const repair=['reload','no-store'].includes(request.cache);
@@ -97,7 +130,14 @@ self.addEventListener('install',event=>event.waitUntil((async()=>{
   const assets=[...new Set([...ASSETS.map(path=>new URL(path,scope).href),...MineralCore.shellAssets(html,scope)])];
   // A new shell must not inherit still-fresh HTTP cache bodies from the old
   // release, including unversioned worker imports and reference metadata.
-  await cache.addAll(assets.filter(url=>url!==scope.href&&url!==entryURL.href).map(url=>new Request(url,{cache:'reload'})));
+  const wasm=assets.filter(url=>new URL(url).pathname.endsWith('.wasm'));
+  await boundedCheck(cache.addAll(assets.filter(url=>url!==scope.href&&url!==entryURL.href&&!wasm.includes(url)).map(url=>new Request(url,{cache:'reload'}))),60000);
+  // Installation cannot activate a new ORT shell with the previous WASM or
+  // no matching module. Failure leaves the active old shell/cache untouched.
+  for(const url of wasm) {
+    const response=await fetchBounded(new Request(url,{cache:'reload'}),checkedWasm,90000);
+    await boundedCheck(cache.put(url,response),10000);
+  }
   await cache.put(entryURL.href,entry.clone());await cache.put(scope.href,entry);
   const response=await loadManifest(new Request(manifestURL,{cache:'no-cache'}));if(!response.ok)throw new Error('Model manifest installation failed');await self.skipWaiting();
 })()));
@@ -122,7 +162,11 @@ self.addEventListener('fetch',event=>{
     try {
       if(url.pathname===manifestURL.pathname)return await loadManifest(request);
       if(url.pathname.startsWith(scope.pathname+'models/') && url.pathname.endsWith('.onnx'))return await loadModel(request,url);
-      const cache=await caches.open(url.pathname.endsWith('.wasm')?MODELS:STATIC);
+      if(url.pathname.endsWith('.wasm')){
+        if(url.pathname!==new URL(RUNTIME_WASM.path,scope).pathname)throw new Error('Runtime is outside this release');
+        return await loadWasm(request);
+      }
+      const cache=await caches.open(STATIC);
       const repair=['reload','no-store','no-cache'].includes(request.cache);
       const cached=repair?null:await cache.match(request);
       if(cached)return cached;
