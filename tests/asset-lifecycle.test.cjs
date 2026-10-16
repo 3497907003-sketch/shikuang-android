@@ -1,5 +1,5 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
-const WEB=fs.existsSync(require('node:path').join(__dirname,'../web/core.js'))?'../web/':'../web/';
+const WEB=fs.existsSync(require('node:path').join(__dirname,'../web/core.js'))?'../web/':'../';
 const Core=require(WEB+'core.js'),{fixture,hash}=require('./helpers/model-contract.cjs');
 const swSource=fs.readFileSync(require.resolve(WEB+'sw.js'),'utf8');
 function cacheStorage() {

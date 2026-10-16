@@ -30,6 +30,36 @@ test('chemical scripts render with ordinary font glyphs while preserving accessi
   assert.match(f.node('detailBody').innerHTML,/<sub>4<\/sub>/);assert.doesNotMatch(f.node('detailBody').innerHTML,/<img/);
 });
 
+test('source occupancy decimals stay subscript while hydration and range decimals remain at baseline with exact accessible and copied formulas',async()=>{
+  const catalog=JSON.parse(fs.readFileSync(path.join(root,'data/catalog.json'),'utf8')),original=JSON.stringify(catalog),f=fixture({catalog}),copied=[];
+  await f.settle();f.context.navigator.clipboard={writeText:async text=>copied.push(text)};
+  for(const [name,formula,visible] of [
+    ['Allophane','Al₂O₃(SiO₂)₁.₃₋₂.₀·2.5-3.0H₂O','<sub>1.3</sub><sub>-2.0</sub>·2.5-3.0H<sub>2</sub>O'],
+    ['Gachingite','Au(Te₁₋ₓSeₓ) (0.2 ≈ x ≤ 0.5)','Au(Te<sub>1-x</sub>Se<sub>x</sub>) (0.2 ≈ x ≤ 0.5)'],
+    ['Abernathyite','K(UO₂)(AsO₄)·3H₂O','·3H<sub>2</sub>O']
+  ]){
+    const row=catalog.minerals.find(item=>item.name_en===name);assert.equal(row.formula,formula,name+' authoritative source');
+    await f.documentClick('[data-detail]',{detail:'catalog:'+row.id});const body=f.node('detailBody').innerHTML;
+    assert.ok(body.includes(visible),name+' decimal or hydration position');
+    assert.ok(body.includes('<span class="formula" aria-label="'+formula+'">'),name+' complete source accessibility');
+    const payload=body.match(/data-copy-formula="([^"]*)"/);assert.ok(payload,name+' copy action');assert.equal(payload[1],formula);
+    await f.documentClick('[data-copy-formula]',{copyFormula:payload[1]});assert.equal(copied.at(-1),formula,name+' exact source copy');
+  }
+  assert.equal(JSON.stringify(catalog),original);
+});
+
+test('a rendering-only numeric script boundary probe preserves superscript decimals and leaves ASCII or mixed-script periods unmerged',async()=>{
+  // This syntax probe is not a claimed mineral formula or a training example.
+  const formula='X₂.₅ Y².⁵ 0.25 ·2.5H₂O ₁.⁵',knowledge={quartz:{name_zh:'公式显示边界测试',formula}},copied=[],f=fixture({knowledge});
+  await f.settle();await f.photo();await f.click('predictBtn');const result=f.node('resultFormula').innerHTML;
+  assert.ok(result.includes('<sub>2.5</sub>'));assert.ok(result.includes('<sup>2.5</sup>'));
+  assert.ok(result.includes(' 0.25 ·2.5H<sub>2</sub>O <sub>1</sub>.<sup>5</sup>'));
+  assert.ok(result.includes('aria-label="'+formula+'"'));
+  await f.documentClick('[data-detail]',{detail:'quartz'});const payload=f.node('detailBody').innerHTML.match(/data-copy-formula="([^"]*)"/);
+  assert.ok(payload);assert.equal(payload[1],formula);f.context.navigator.clipboard={writeText:async text=>copied.push(text)};
+  await f.documentClick('[data-copy-formula]',{copyFormula:payload[1]});assert.deepEqual(copied,[formula]);assert.equal(f.context.MINERAL_KB.quartz.formula,formula);
+});
+
 test('simple physical terms show Chinese and their original source while qualified descriptions remain intact',async()=>{
   const facts={crystal_system:{value:'Cubic',raw:'Cubic.',status:'verified'},streak:{value:'White',raw:'White.',status:'verified'},luster:{value:'Vitreous; waxy to dull when massive',raw:'Vitreous; waxy to dull when massive.',status:'verified'}};
   const f=fixture({knowledge:{quartz:{name_zh:'石英',name_en:'Quartz',verified_properties:facts}}});await f.settle();await f.documentClick('[data-detail]',{detail:'quartz'});

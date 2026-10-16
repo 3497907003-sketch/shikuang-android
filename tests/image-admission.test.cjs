@@ -40,7 +40,7 @@ test('oversized file header is rejected before image decode or canvas allocation
 test('canceled old decode cannot fill a new specimen or unlock its later input task',async()=>{
   const first=deferred(),second=deferred();let calls=0;
   const f=fixture({engine:{image:async src=>{calls++;return calls===1?first.promise:calls===2?second.promise:picture(src);}}});
-  await f.photo();assert.equal(f.node('cancelInput').hidden,false);await f.click('newSample');
+  await f.photo();assert.equal(f.node('cancelInput').hidden,false);assert.equal(f.node('cancelInput').textContent,'停止照片读取');await f.click('newSample');
   await f.photo();assert.equal(f.node('galleryBtn').disabled,true);
   first.resolve(picture('old'));await f.settle();assert.equal(f.node('preview').hidden,true);assert.equal(f.node('galleryBtn').disabled,true);
   second.resolve(picture('new'));await f.settle();assert.match(f.node('inputSummary').textContent,/已提交 1 张/);assert.equal(f.node('galleryBtn').disabled,false);assert.equal(f.revoked.length,2);
@@ -70,6 +70,21 @@ test('invalid camera dimensions fail before canvas creation and release streams'
   f.node('cameraPreview').videoWidth=0;f.node('cameraPreview').videoHeight=480;await f.click('takePhoto');
   assert.equal(f.created.filter(el=>el.id==='canvas').length,0);assert.equal(stops,1);assert.equal(f.node('galleryBtn').disabled,false);
 });
+test('late close from a previous camera dialog does not stop the current open camera',async()=>{
+  let stops=0;const f=fixture();const stream={getTracks:()=>[{stop:()=>stops++}]};
+  f.context.navigator.mediaDevices={getUserMedia:async()=>stream};await f.click('cameraBtn');
+  assert.equal(f.node('cameraDialog').open,true);f.node('cameraDialog').fire('close');
+  assert.equal(stops,0);assert.equal(f.node('cameraPreview').srcObject,stream);assert.equal(f.node('galleryBtn').disabled,true);
+  f.node('cameraDialog').close();assert.equal(stops,1);assert.equal(f.node('galleryBtn').disabled,false);
+});
+test('late close from a previous video dialog preserves the active recording',async()=>{
+  let stops=0,recorder;const f=fixture();
+  f.context.navigator.mediaDevices={getUserMedia:async()=>({getTracks:()=>[{stop:()=>stops++}]})};
+  f.context.MediaRecorder=class{constructor(){recorder=this;this.state='inactive';}start(){this.state='recording';}stop(){this.state='inactive';}};
+  await f.click('videoBtn');await f.click('recordVideo');f.node('videoDialog').fire('close');
+  assert.equal(recorder.state,'recording');assert.equal(stops,0);assert.equal(f.node('stopVideo').hidden,false);
+  f.node('videoDialog').close();assert.equal(recorder.state,'inactive');assert.equal(stops,1);assert.equal(f.node('galleryBtn').disabled,false);
+});
 test('canceling a recording prevents its delayed onstop from starting extraction',async()=>{
   let recorder,extractions=0,stops=0;const f=fixture();f.context.navigator.mediaDevices={getUserMedia:async()=>({getTracks:()=>[{stop:()=>stops++}]})};
   f.context.MediaRecorder=class{constructor(){recorder=this;this.state='inactive';}start(){this.state='recording';}stop(){this.state='inactive';}};
@@ -92,10 +107,12 @@ test('finishing an old save after reset preserves the old record without binding
   await f.photo();await f.click('predictBtn');await f.click('saveBtn');await f.click('newSample');await f.photo();pending.resolve(picture('old-thumbnail'));await f.settle();
   assert.equal(f.saved.size,1);await f.click('predictBtn');await f.click('saveBtn');assert.equal(f.saved.size,2);
 });
-test('native external-camera backgrounding is expected, and canceled native returns cannot replace a new draft',async()=>{
-  const listeners={},pending=deferred();let decodes=0;const f=fixture({native:{Camera:{getPhoto:()=>pending.promise},App:{addListener:async(name,fn)=>{listeners[name]=fn;}}},engine:{image:async src=>{decodes++;return picture(src);}}});await f.settle();
-  await f.click('cameraBtn');listeners.appStateChange({isActive:false});pending.resolve({webPath:'native:photo'});await f.settle();assert.equal(decodes,1);assert.equal(f.node('preview').hidden,false);
-  const late=deferred();f.context.Capacitor.registerPlugin('Camera').getPhoto=()=>late.promise;await f.click('cameraBtn');await f.click('newSample');late.resolve({webPath:'native:old'});await f.settle();assert.equal(decodes,1);assert.equal(f.node('preview').hidden,true);
+test('native camera and photo picker stay distinct, while canceled native returns cannot replace a new draft',async()=>{
+  const listeners={},pending=deferred(),sources=[];let decodes=0;const f=fixture({native:{Camera:{getPhoto:options=>{sources.push(options.source);return pending.promise;}},App:{addListener:async(name,fn)=>{listeners[name]=fn;}}},engine:{image:async src=>{decodes++;return picture(src);}}});await f.settle();
+  await f.click('cameraBtn');assert.equal(f.node('cancelInput').textContent,'停止拍照');listeners.appStateChange({isActive:false});pending.resolve({webPath:'native:photo'});await f.settle();assert.equal(decodes,1);assert.equal(f.node('preview').hidden,false);
+  const late=deferred();f.context.Capacitor.registerPlugin('Camera').getPhoto=options=>{sources.push(options.source);return late.promise;};await f.click('galleryBtn');
+  assert.equal(f.node('cancelInput').textContent,'停止照片读取');assert.deepEqual(sources,['CAMERA','PHOTOS']);
+  await f.click('newSample');late.resolve({webPath:'native:old'});await f.settle();assert.equal(decodes,1);assert.equal(f.node('preview').hidden,true);
 });
 test('restored native camera results are refused after user input or reset',async()=>{
   const listeners={};const f=fixture({native:{App:{addListener:async(name,fn)=>{listeners[name]=fn;}}}});await f.settle();await f.photo();

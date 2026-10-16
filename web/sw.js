@@ -95,7 +95,9 @@ self.addEventListener('install',event=>event.waitUntil((async()=>{
   if(!entry.ok)throw new Error('Offline entry document installation failed');
   const html=await boundedCheck(entry.clone().text(),5000);
   const assets=[...new Set([...ASSETS.map(path=>new URL(path,scope).href),...MineralCore.shellAssets(html,scope)])];
-  await cache.addAll(assets.filter(url=>url!==scope.href&&url!==entryURL.href));
+  // A new shell must not inherit still-fresh HTTP cache bodies from the old
+  // release, including unversioned worker imports and reference metadata.
+  await cache.addAll(assets.filter(url=>url!==scope.href&&url!==entryURL.href).map(url=>new Request(url,{cache:'reload'})));
   await cache.put(entryURL.href,entry.clone());await cache.put(scope.href,entry);
   const response=await loadManifest(new Request(manifestURL,{cache:'no-cache'}));if(!response.ok)throw new Error('Model manifest installation failed');await self.skipWaiting();
 })()));

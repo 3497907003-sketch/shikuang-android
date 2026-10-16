@@ -1,5 +1,5 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os'),{spawnSync}=require('node:child_process');
-const WEB=fs.existsSync(path.join(__dirname,'../web/core.js'))?'../web/':'../web/';
+const WEB=fs.existsSync(path.join(__dirname,'../web/core.js'))?'../web/':'../';
 const {fixture,hash}=require('./helpers/model-contract.cjs');
 // Graph metadata only, not executable/training weights. Real packaged graphs have
 // their own metadata/checksum gate and instrumented ONNX inference tests.
@@ -15,21 +15,25 @@ test('build follows the active two-classifier manifest, excludes unused legacy f
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'shikuang-bundling-'));
   try {
     const write=(file,body)=>{const p=path.join(dir,file);fs.mkdirSync(path.dirname(p),{recursive:true});fs.writeFileSync(p,body);};
-    const build=fs.readFileSync(require.resolve('../tools/build.cjs'),'utf8');
+    const build=fs.readFileSync(require.resolve('../web/tools/build.cjs'),'utf8');
     // Populate literal shell assets; classifier paths are deliberately absent from this list.
     for(const match of build.matchAll(/'([\w./-]+\.(?:js|cjs|html|css|json|webmanifest|svg|png|mjs|wasm|txt))'/g))if(!match[1].startsWith('..'))write((WEB==='../web/'?'web/':'')+match[1],'asset');
     const sourcePrefix=WEB==='../web/'?'web/':'';
     const writeSource=(file,body)=>write(sourcePrefix+file,body);
     const data=fixture();data.manifest.models[0].path='models/mobilenet.onnx';
     for(const model of data.manifest.models){const bytes=graph(model.classes);model.bytes=bytes.length;model.sha256=hash(bytes);writeSource(model.path,bytes);}
-    writeSource('models/mobilenet_int8.onnx','unused old weight');writeSource('models/efficientnet_legacy.onnx','unused old weight');write('dist/models/orphan.onnx','stale package');
+    writeSource('models/mobilenet_int8.onnx','unused old weight');writeSource('models/efficientnet_legacy.onnx','unused old weight');write('web/dist/models/orphan.onnx','stale package');
     writeSource('gallery.js',fs.readFileSync(require.resolve(WEB+'gallery.js')));writeSource('data/reviewed-photo-assets.json',JSON.stringify({schema_version:1,assets:[]}));writeSource('data/image-sources.json',JSON.stringify({schema_version:1,records:[]}));
     writeSource('data/classes.js','window.MINERAL_CLASSES='+JSON.stringify(Object.fromEntries(data.manifest.labels.map(x=>[x,x]))));
-    writeSource('model-manifest.json',JSON.stringify(data.manifest));writeSource('core.js',fs.readFileSync(require.resolve(WEB+'core.js')));write('tools/onnx-contract.cjs',fs.readFileSync(require.resolve('../tools/onnx-contract.cjs')));write('tools/build.cjs',build);
-    const run=()=>spawnSync(process.execPath,['tools/build.cjs'],{cwd:dir,encoding:'utf8'});
+    writeSource('model-manifest.json',JSON.stringify(data.manifest));writeSource('core.js',fs.readFileSync(require.resolve(WEB+'core.js')));writeSource('sw.js',fs.readFileSync(require.resolve(WEB+'sw.js')));write('web/tools/onnx-contract.cjs',fs.readFileSync(require.resolve('../tools/onnx-contract.cjs')));write('web/tools/shell-release.cjs',fs.readFileSync(require.resolve('../web/tools/shell-release.cjs')));write('web/tools/build.cjs',build);
+    const run=()=>spawnSync(process.execPath,['web/tools/build.cjs'],{cwd:dir,encoding:'utf8'});
     const result=run();assert.equal(result.status,0,result.stderr);
-    assert.deepEqual(fs.readdirSync(path.join(dir,'dist/models')).sort(),['efficientnet.onnx','imagenet_gate.onnx','mobilenet.onnx']);
-    const good=fs.readFileSync(path.join(dir,'dist/model-manifest.json'),'utf8');
-    writeSource(data.manifest.models[0].path,'corrupt');assert.notEqual(run().status,0);assert.equal(fs.readFileSync(path.join(dir,'dist/model-manifest.json'),'utf8'),good);
+    assert.deepEqual(fs.readdirSync(path.join(dir,'web/dist/models')).sort(),['efficientnet.onnx','imagenet_gate.onnx','mobilenet.onnx']);
+    const firstWorker=fs.readFileSync(path.join(dir,'web/dist/sw.js'),'utf8');
+    fs.appendFileSync(path.join(dir,'web/tools/shell-release.cjs'),'\n// Build-only revision regression\n');
+    assert.equal(run().status,0);
+    assert.notEqual(fs.readFileSync(path.join(dir,'web/dist/sw.js'),'utf8'),firstWorker,'Build rules must invalidate an installed worker even when asset inputs are unchanged');
+    const good=fs.readFileSync(path.join(dir,'web/dist/model-manifest.json'),'utf8');
+    writeSource(data.manifest.models[0].path,'corrupt');assert.notEqual(run().status,0);assert.equal(fs.readFileSync(path.join(dir,'web/dist/model-manifest.json'),'utf8'),good);
   } finally {fs.rmSync(dir,{recursive:true,force:true});}
 });

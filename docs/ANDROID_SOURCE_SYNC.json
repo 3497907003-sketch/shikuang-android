@@ -1,7 +1,7 @@
 {
-  "source_commit": "c31b0137611155aa99976d8ce1f25978190ddb9b",
+  "source_commit": "ce6d8946699f1ae016ee9e1d9af4d73d0979e8f8",
   "source_repository": "https://github.com/3497907003-sketch/shikuang-app",
-  "source_method": "Local reviewed Web dist at exact immutable commit, including delayed-close session protection; no new APK or device acceptance for this sync",
+  "source_method": "Local source sync from exact reviewed Web commit; canonical builder and helper are preserved under web/tools and produce byte-identical content-addressed dist. Source/Capacitor sync only; no new APK, real API call, physical device or recognition-accuracy acceptance.",
   "applicationVersion": "2.5.0-preview.1",
   "androidVersionCode": 25001,
   "packageName": "com.shikuang.app.preview",
@@ -9,8 +9,8 @@
   "assets": [
     {
       "path": "app.js",
-      "bytes": 104986,
-      "sha256": "a6b1fff37f366c87bbbc883fa91a71ab94e45bacea63226ae43429924fd133d1"
+      "bytes": 108144,
+      "sha256": "321fe1ad93e37101a807c1aa9ee0cf86d95b9e8dccb6da804d356d1ed6659593"
     },
     {
       "path": "config.js",
@@ -19,8 +19,8 @@
     },
     {
       "path": "core.js",
-      "bytes": 26272,
-      "sha256": "0b19825d09d868e59b8e8c27558de743ececd8da7d6fd4bde1f5151588a28bea"
+      "bytes": 26324,
+      "sha256": "66e7e7f22b8b0b17e2af118747d0c035b02a54da4c599be7946226765b5722c3"
     },
     {
       "path": "data/catalog.json",
@@ -74,8 +74,8 @@
     },
     {
       "path": "data/sources.js",
-      "bytes": 3483,
-      "sha256": "2606a060895867b56f8ad0f4de6107ef2cc954dae18a51bb6b6d46fc434e5608"
+      "bytes": 4978,
+      "sha256": "fbf4be3a7c154f5e0caadf4b50aa1189ade0e24df56340eecf1458383dfc3aaf"
     },
     {
       "path": "engine-worker.js",
@@ -699,8 +699,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 27606,
-      "sha256": "aae414121e8e3ba6ba23409ce85fa110e141a0307e27cea9e93a259e606cd37c"
+      "bytes": 28604,
+      "sha256": "ea3357e897e4304950aa4ddff36af76feb7b755a35e3f977d0f0ec475e3af8df"
     },
     {
       "path": "inference.js",
@@ -764,8 +764,8 @@
     },
     {
       "path": "sw.js",
-      "bytes": 9431,
-      "sha256": "aec966403b73ba0fc514e409fead237ace9690f4b6e92aa94d5065fa8f23a2d1"
+      "bytes": 9670,
+      "sha256": "137abcdd7c7d04df66d140ba1d96a216bbec289ce2bef7d225df1e27cf10a3a8"
     },
     {
       "path": "vendor/lucide.min.js",
@@ -801,8 +801,22 @@
   "assetCount": 158,
   "publishedPhotos": 117,
   "scope": "Local preview source and packaged-asset identity; not field accuracy, new model training, CI, physical-device acceptance or a public release",
-  "local_sync_at": "2026-10-13T21:11:14.994335+08:00",
+  "local_sync_at": "2026-10-16T09:28:47.653991+08:00",
   "developmentRevision": "r9",
   "public_deployment_verified_for_this_sync": false,
-  "historical_production_web_merge": "95b4b4e4d1d9be561a18ed745c95eb60f0b6ab0f"
+  "historical_production_web_merge": "95b4b4e4d1d9be561a18ed745c95eb60f0b6ab0f",
+  "build_inputs": {
+    "tools/build.cjs": {
+      "bytes": 3840,
+      "sha256": "e26fb6e3fac0eece70cf7b72caf1efef5ad863f816187bf388e220eb88dcca64"
+    },
+    "tools/onnx-contract.cjs": {
+      "bytes": 3073,
+      "sha256": "89b0c1ffa4ab9b4f892eb47b6aadc2fc59214839ab5e2c4dc0b0eee24b84b81f"
+    },
+    "tools/shell-release.cjs": {
+      "bytes": 1681,
+      "sha256": "70cb85178d6af7476a61863e9af428c272bcb80de19cdfd30aa7bb59ee4e6823"
+    }
+  }
 }

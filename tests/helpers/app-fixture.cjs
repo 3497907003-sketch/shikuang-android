@@ -18,7 +18,7 @@ function fixture({ register, catalog, crystals, images, crystalSystems, loader, 
     focus(){} scrollIntoView(){} setAttribute(){} removeAttribute(){}
     showModal(){this.open=true;} close(){this.open=false;this.fire('close');}
     getContext(){return {drawImage:(...args)=>{this.drawn=args[0];this.drawArgs=args;}};}
-    toDataURL(){return 'data:image/jpeg;base64,'+Buffer.from(this.drawn?.src||'thumbnail').toString('base64');}
+    toDataURL(type='image/jpeg'){return `data:${type};base64,`+Buffer.from(this.drawn?.src||'thumbnail').toString('base64');}
   }
   const elements=new Map(),created=[],revoked=[], node=id=>{if(!elements.has(id))elements.set(id,new Element(id));return elements.get(id);};
   const groups={'.view':['view-identify','view-library','view-records','view-settings'].map(node),'[data-guide-title]':Array.from({length:6},(_,i)=>{const el=node('guide-'+i);el.dataset.guideTitle='指南 '+i;return el;}),'dialog':['guideDialog','cameraDialog','videoDialog','detailDialog','recordDialog','confirmDialog'].map(node)};

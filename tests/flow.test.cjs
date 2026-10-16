@@ -46,6 +46,7 @@ test('leaving identification cancels video extraction and refuses late frames',a
   f.context.MineralMedia={extractVideo:(_file,_report,options)=>{signal=options.signal;return new Promise(resolve=>{complete=resolve;});}};
   f.node('videoInput').files=[{name:'specimen.mp4',type:'video/mp4',size:100}];f.node('videoInput').fire('change');await f.settle();
   assert.equal(f.node('cancelInput').hidden,false);assert.equal(f.node('predictBtn').disabled,true);
+  assert.equal(f.node('cancelInput').textContent,'停止视频取帧');
   f.route('records');assert.equal(signal.aborted,true);
   complete({duration:4,frames:[{src:'data:image/jpeg;base64,TEFURQ==',time:2}]});await f.settle();
   assert.match(f.node('inputSummary').textContent,/已提交 1 张/);assert.equal(f.node('cancelInput').hidden,true);assert.equal(f.node('galleryBtn').disabled,false);
@@ -58,7 +59,7 @@ test('prepared reference metadata and attribution remain available after the cur
   f.context.fetch=async request=>typeof request==='string'?(request.endsWith('reviewed-photo-assets.json')?new Response(JSON.stringify({schema_version:1,assets:[]})):{ok:true,json:async()=>({models:[]})}):new Response('prepared '+new URL(request.url).pathname);
   await f.click('offlineBtn');await f.until(()=>!f.node('offlineBtn').disabled);assert.match(f.node('offlineProgress').textContent,/离线资源已准备/);
   const events={},scope=f.context.location.href,worker={addEventListener:(type,fn)=>{events[type]=fn;},registration:{scope},clients:{claim(){}}};
-  const WEB=fs.existsSync(require('node:path').join(__dirname,'../web/sw.js'))?'../web/':'../web/';
+  const WEB=fs.existsSync(require('node:path').join(__dirname,'../web/sw.js'))?'../web/':'../';
   vm.runInNewContext(fs.readFileSync(require.resolve(WEB+'sw.js'),'utf8'),{self:worker,caches,MineralCore:f.context.MineralCore,URL,Request,Response,Headers,TextDecoder,AbortController,setTimeout,clearTimeout,importScripts(){},fetch:async()=>{throw new Error('offline');}});
   let activation;events.activate({waitUntil:promise=>{activation=promise;}});await activation;
   for(const asset of ['data/catalog.json','data/crystals.json','data/image-sources.json','data/reference-manifest.json','data/licenses/ima-cnmnc-2026-09.txt']){

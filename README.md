@@ -89,4 +89,6 @@ Android 预览版 2.5.0-preview.1，versionCode 25001，包名仍为 com.shikuan
 
 最低 Android 7.0/API24，系统 WebView 需具备 Chrome83及以上的现代语法、Promise、URL、AbortController、crypto.subtle 与图片解码能力。旧组件显示可见更新指引并保留历史；首次更新组件需联网。使用 Node20+、JDK17、AndroidSDK：npm run sync 逐字节核对资源，然后 android/ 中运行 ./gradlew assembleDebug lintDebug。固定 ORT1.24.3、四 ABI 与压缩原生库；官方 SDK35 ZIP/ELF16KB 门与真实 16KB 模拟器分别验证。
 
+共享构建器及缓存标识 helper 按原路径保存在 `web/tools/`，与 `docs/ANDROID_SOURCE_SYNC.json` 的固定 Web 提交逐字节对应。`tools/build.cjs` 仅调用该构建器并移动已验证产物，保持 Android 与 Web 的完整资源字节及内容缓存标识一致；原生插件、应用身份和用户历史不由资源同步替换。本地源同步及测试通过不代表新版安装包、真机、联网模型回复质量或图像准确率已经验收。
+
 第二轮包含 API24 原厂 WebView 恢复页、API30/35 与 API35 真正16KB断网识别流程，全部117张JPEG的真实Android解码与SHA核对，以及WebView实际图库照片Blob核验、关闭释放、重新打开。测试结果按 head/run 记录；模拟器通过不等于实体ARM64、所有品牌、相机权限或低内存机型已经实测。源码同步身份见 docs/ANDROID_SOURCE_SYNC.json。
