@@ -31,13 +31,7 @@
   }
   const abort=signal=>{if(signal?.aborted)throw new DOMException('分析已停止','AbortError');};
   async function image(src,signal) {
-    abort(signal);
-    const img=new Image();img.src=src;
-    let timer,cancel;
-    try{await Promise.race([img.decode(),new Promise((_,reject)=>{timer=setTimeout(()=>{reject(new Error('图片读取超时，请换用 JPEG 或 PNG'));img.src='';},15000);cancel=()=>reject(new DOMException('分析已停止','AbortError'));signal?.addEventListener('abort',cancel,{once:true});if(signal?.aborted)cancel();})]);}
-    finally{clearTimeout(timer);signal?.removeEventListener('abort',cancel);if(signal?.aborted)img.src='';}
-    abort(signal);
-    if(!img.naturalWidth||!img.naturalHeight)throw new Error('无法读取图片，请重新拍摄');return img;
+    abort(signal);return window.MineralMedia.decodePhoto(src,{signal});
   }
   function cropCanvas(img,size=224,crop=1) {
     const canvas=document.createElement('canvas');canvas.width=canvas.height=size;

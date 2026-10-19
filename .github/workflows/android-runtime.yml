@@ -47,6 +47,9 @@ jobs:
         if: ${{ !inputs.network_probe }}
       - run: npm run sync
         if: ${{ !inputs.network_probe }}
+      - name: Check cold-process metadata and terminal contracts
+        if: ${{ !inputs.network_probe }}
+        run: python3 -B -m unittest discover -s tools -p test_android_cold_restart.py
       - name: Install official Android emulator image
         shell: bash
         run: |
@@ -186,6 +189,16 @@ jobs:
           -Pandroid.testInstrumentationRunnerArguments.expectedPageSize=${{ matrix.pageSize }}
           -Pandroid.testInstrumentationRunnerArguments.class=com.shikuang.app.MineralModelContractTest,com.shikuang.app.ReviewedPhotoAssetsInstrumentedTest,com.shikuang.app.MineralEngineInstrumentedTest
           connectedDebugAndroidTest
+      - name: Verify offline history after actual host force-stop and new App process
+        if: ${{ success() && !inputs.network_probe }}
+        shell: bash
+        run: >-
+          python3 -B tools/android_cold_restart.py
+          --expected-sdk ${{ matrix.api }}
+          --expected-page-size ${{ matrix.pageSize }}
+          --first-report-root android/app/build/outputs/connected_android_test_additional_output
+          --junit-root android/app/build/outputs/androidTest-results
+          --out runtime-artifacts/cold-process
       - name: Capture runtime diagnostics
         if: always()
         shell: bash
@@ -271,7 +284,8 @@ jobs:
           assert report['lastError']['message'] == '这不是矿物，请您放入清晰的矿物照片。'
           assert len(report['inputEntrypoints']) == 3 and {row['id'] for row in report['inputEntrypoints']} == {'cameraBtn', 'videoBtn', 'galleryBtn'}
           history = report['history']
-          assert history['recordUnchanged'] and history['searchPreserved'] and history['offlineRestartVerified'] and history['detailPhotoDecoded']
+          assert history['recordUnchanged'] and history['searchPreserved'] and history['activityRecreatePreserved'] and history['detailPhotoDecoded']
+          assert 'offlineRestartVerified' not in history
           assert history['records'] == 1 and history['photoCount'] == 1 and history['key'] == 'quartz'
           assert report['savedRecords'][0]['id'] == report['recordsAfterRejection'][0]['id'] == history['recordId']
           manifest = json.loads(Path('web/model-manifest.json').read_text())
@@ -347,14 +361,25 @@ jobs:
               assert row['sourceUrl'].startswith('https://') and row['licenseUrl'].startswith('https://')
           assert len(report['catalogPhotoFetches']) >= len(report['galleryPhotos'])
           assert all(row['local'] is True and row['status'] == 200 and '?image=' in row['url'] for row in report['catalogPhotoFetches'])
-          for field in ('network', 'networkAfterCatalog', 'networkAfterRestart'):
+          for field in ('network', 'networkAfterCatalog', 'networkAfterActivityRecreate'):
               assert report[field]['native']['activeNetwork'] is None
               assert report[field]['native']['connected'] is False
           assert report['photoGeometry']['exifOrientation'] == 6
           assert len(report['photoGeometry']['crops']) == 3
           assert len(report['screenshots']) == 6
           assert all(row['visualStateSynchronized'] for row in report['screenshots'])
+          # Cold process history is a separate host action and JUnit execution.
+          # The original three product tests above remain mandatory, unskipped.
+          import sys
+          sys.path.insert(0, 'tools')
+          from android_cold_restart import verify_artifacts
+          cold_folder = Path('runtime-artifacts/cold-process')
+          original = (cold_folder / 'first-phase-runtime-report.json').read_bytes()
+          assert original == (folder / 'runtime-report.json').read_bytes()
+          cold = verify_artifacts(cold_folder, original, ${{ matrix.api }}, ${{ matrix.pageSize }})
+          assert cold['forceStopColdProcessVerified'] is True
           print('Preserved native inference, offline catalog JSON and six genuine app screenshots.')
+          print('Verified actual host force-stop, absent PID, new App PID and unchanged offline record/photo/search UI.')
           PY
       - uses: actions/upload-artifact@v4
         if: always()

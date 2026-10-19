@@ -26,7 +26,7 @@ test('photo header read is bounded and the 20MB cap is enforced before any byte 
 });
 test('older Blob implementations use FileReader without an unbounded fallback or losing abort handling',async()=>{
   const fs=require('node:fs'),vm=require('node:vm');let reader;
-  const context={module:{exports:{}},FileReader:class{constructor(){reader=this;}readAsArrayBuffer(){queueMicrotask(()=>{this.result=png(400,300);this.onload?.();});}abort(){this.onabort?.();}}};
+  const context={module:{exports:{}},setTimeout,clearTimeout,AbortController,FileReader:class{constructor(){reader=this;}readAsArrayBuffer(){queueMicrotask(()=>{this.result=png(400,300);this.onload?.();});}abort(){this.onabort?.();}}};
   vm.runInNewContext(fs.readFileSync(require.resolve('../web/media.js'),'utf8'),context);
   const file={size:33,slice:()=>({})};const dimensions=await context.module.exports.validatePhotoFile(file);assert.equal(dimensions.width,400);assert.equal(dimensions.height,300);
   context.FileReader.prototype.readAsArrayBuffer=function(){};const controller=new AbortController(),pending=context.module.exports.validatePhotoFile(file,{signal:controller.signal});controller.abort();await assert.rejects(pending,{name:'AbortError'});assert.equal(reader.onload,null);

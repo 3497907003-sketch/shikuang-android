@@ -10,6 +10,7 @@ const manifestFixture=fixture().manifest;
 const raw=(payload)=>fixtureRaw(manifestFixture,payload);
 const pixels = new Uint8ClampedArray(224 * 224 * 4);
 for (let i=0;i<224*224;i++) { const n=i%2?180:65; pixels.set([n,n+10,n+20,255],i*4); }
+const photoHeader=Buffer.alloc(33);Buffer.from([137,80,78,71,13,10,26,10]).copy(photoHeader);photoHeader.writeUInt32BE(13,8);photoHeader.write('IHDR',12);photoHeader.writeUInt32BE(224,16);photoHeader.writeUInt32BE(224,20);
 function harness(plugin, native=true, Worker, bundledBridge=false, decode=()=>Promise.resolve(), migration={prepare:async()=>({native:true,restartRequired:false})}) {
   const window={MINERAL_KB:{quartz:{name_zh:'石英'},calcite:{}},IMAGENET_BLOCKED:Array(1000).fill(false),Worker,
     MineralNativeAssets:migration,
@@ -18,9 +19,10 @@ function harness(plugin, native=true, Worker, bundledBridge=false, decode=()=>Pr
   const context={window,MINERAL_KB:window.MINERAL_KB,MINERAL_CLASSES:Object.fromEntries(keys.map(k=>[k,k])),MineralCore:Core,
     document:{createElement:()=>({getContext:()=>({drawImage(){},getImageData:()=>({data:pixels})})})},
     Image:class {naturalWidth=224;naturalHeight=224;decode(){return decode();}},
-    URL,location:{href:'https://localhost/index.html'},Worker,setTimeout,clearTimeout,DOMException,
-    AbortController,TextDecoder,TextEncoder,fetch:async()=>response(Buffer.from(JSON.stringify(manifestFixture))),
+    URL,Blob,location:{href:'https://localhost/index.html'},Worker,setTimeout,clearTimeout,DOMException,
+    AbortController,TextDecoder,TextEncoder,fetch:async value=>String(value).endsWith('model-manifest.json')?response(Buffer.from(JSON.stringify(manifestFixture))):new Response(photoHeader),
     crypto:require('node:crypto').webcrypto,btoa:s=>Buffer.from(s,'binary').toString('base64')};
+  vm.runInNewContext(fs.readFileSync(require.resolve(WEB+'media.js'),'utf8'),context);
   vm.runInNewContext(source,context);
   return window.MineralEngine;
 }

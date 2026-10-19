@@ -35,9 +35,9 @@ import org.junit.runner.RunWith;
 public class MineralEngineInstrumentedTest {
     private static final String TAG = "ShikuangRuntimeSmoke";
     private static final String NON_MINERAL = "这不是矿物，请您放入清晰的矿物照片。";
-    private ActivityScenario<MainActivity> scenario;
+    ActivityScenario<MainActivity> scenario;
 
-    private static String script(String... lines) {
+    static String script(String... lines) {
         // java.lang.String.join is API26; this harness also runs on API24.
         StringBuilder source = new StringBuilder();
         for (String line : lines) {
@@ -48,7 +48,7 @@ public class MineralEngineInstrumentedTest {
     }
 
     /** evaluateJavascript callbacks run on the UI thread; wait only on the test thread. */
-    private String evaluate(String source) throws Exception {
+    String evaluate(String source) throws Exception {
         CountDownLatch returned = new CountDownLatch(1);
         AtomicReference<String> value = new AtomicReference<>();
         scenario.onActivity(activity -> activity.getBridge().getWebView().evaluateJavascript(source, result -> {
@@ -75,7 +75,7 @@ public class MineralEngineInstrumentedTest {
         }
     }
 
-    private JSONObject nativeNetworkState() throws Exception {
+    JSONObject nativeNetworkState() throws Exception {
         final long pageSize = Os.sysconf(OsConstants._SC_PAGESIZE);
         Context target=InstrumentationRegistry.getInstrumentation().getTargetContext();
         final android.content.pm.PackageInfo installed=target.getPackageManager().getPackageInfo(target.getPackageName(),0);
@@ -105,7 +105,7 @@ public class MineralEngineInstrumentedTest {
         return value.get();
     }
 
-    private JSONObject awaitPhase(String phase, long timeoutMillis) throws Exception {
+    JSONObject awaitPhase(String phase, long timeoutMillis) throws Exception {
         long end = SystemClock.elapsedRealtime() + timeoutMillis;
         JSONObject latest = new JSONObject();
         do {
@@ -118,7 +118,7 @@ public class MineralEngineInstrumentedTest {
         return latest;
     }
 
-    private void awaitPage() throws Exception {
+    void awaitPage() throws Exception {
         long end = SystemClock.elapsedRealtime() + 60000;
         do {
             if ("true".equals(evaluate("!!(window.__shikuangAppReady && window.MineralEngine && window.MINERAL_CLASSES && document.getElementById('predictBtn') && !document.getElementById('native-boot-recovery') && document.getElementById('launchCover').hidden)"))) return;
@@ -139,7 +139,7 @@ public class MineralEngineInstrumentedTest {
         return false;
     }
 
-    private void requireSupportedWebView() throws Exception {
+    void requireSupportedWebView() throws Exception {
         boolean supported = supportedWebView();
         if (!supported) evaluate("window.__shikuangRuntimeSmoke={phase:'failed',fullOfflineProductVerified:false,photoRecognitionVerified:false,failure:'Full offline product requires a supported boot; recovery cannot pass this test',boot:window.__shikuangBootCapabilities,userAgent:navigator.userAgent};");
         assertTrue("Required stock WebView must open the complete App, including API24: "
@@ -200,7 +200,7 @@ public class MineralEngineInstrumentedTest {
         }
     }
 
-    private void screenshot(String filename, String selector) throws Exception {
+    void screenshot(String filename, String selector) throws Exception {
         awaitUi("(() => {const e=document.querySelector(" + JSONObject.quote(selector) + ");if(!e)return false;const r=e.getBoundingClientRect();return r.width>0&&r.height>0&&r.bottom>0&&r.top<innerHeight&&r.right>0&&r.left<innerWidth;})()",
             "visible screenshot target " + selector,10000);
         awaitUi("!document.getElementById('toast') || document.getElementById('toast').hidden", "toast to finish naturally",10000);
@@ -269,7 +269,7 @@ public class MineralEngineInstrumentedTest {
         fail("Photo file UI remained unavailable: " + evaluate("document.getElementById('progress').textContent"));
     }
 
-    private void awaitUi(String predicate, String description, long timeoutMillis) throws Exception {
+    void awaitUi(String predicate, String description, long timeoutMillis) throws Exception {
         long end = SystemClock.elapsedRealtime() + timeoutMillis;
         do {
             if ("true".equals(evaluate("!!(" + predicate + ")"))) return;
@@ -297,9 +297,9 @@ public class MineralEngineInstrumentedTest {
     }
 
     /** Recreate the Activity offline and verify real IndexedDB and search history UI. */
-    private void checkHistoryAfterOfflineRestart(String recordId) throws Exception {
+    private void checkHistoryAfterActivityRecreate(String recordId) throws Exception {
         evaluate(script(
-            "(() => {const s=window.__shikuangRuntimeSmoke;s.phase='history-before-restart';document.getElementById('closeDetail').click();document.querySelector('[data-view=records]').click();",
+            "(() => {const s=window.__shikuangRuntimeSmoke;s.phase='history-before-activity-recreate';document.getElementById('closeDetail').click();document.querySelector('[data-view=records]').click();",
             " const input=document.getElementById('recordSearch');input.value='石英';input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}));})();"
         ));
         awaitUi("!document.getElementById('view-records').hidden && document.querySelectorAll('#recordList [data-record]').length===1 && document.getElementById('recordSearchHistory').textContent.includes('石英')",
@@ -311,27 +311,46 @@ public class MineralEngineInstrumentedTest {
         scenario.recreate();
         requireSupportedWebView();
         awaitPage();
-        evaluate("window.__shikuangRuntimeSmoke="+before+";window.__shikuangRuntimeSmoke.phase='history-restarting';");
+        evaluate("window.__shikuangRuntimeSmoke="+before+";window.__shikuangRuntimeSmoke.phase='history-activity-recreating';");
         evaluate(script(
             "(async()=>{const s=window.__shikuangRuntimeSmoke;try{const rows=await SpecimenStore.list(),row=rows.find(r=>r.id==="+JSONObject.quote(recordId)+");",
             " if(JSON.stringify(row)!=="+JSONObject.quote(snapshot)+")throw Error('Saved specimen changed after offline Activity restart');",
             " const search=SearchHistory.read().some(r=>r.kind==='records'&&r.query==='石英');if(!search)throw Error('Search history did not survive restart');",
-            " s.history={recordId:row.id,key:row.key,records:rows.length,photoCount:row.photoCount,recordUnchanged:true,searchPreserved:true,offlineRestartVerified:true};document.querySelector('[data-view=records]').click();s.phase='history-restarted';",
+            " s.history={recordId:row.id,key:row.key,records:rows.length,photoCount:row.photoCount,recordUnchanged:true,searchPreserved:true,activityRecreatePreserved:true};document.querySelector('[data-view=records]').click();s.phase='history-activity-recreated';",
             " }catch(e){s.phase='failed';s.failure=String(e);}})();"
         ));
-        JSONObject history = awaitPhase("history-restarted",15000).getJSONObject("history");
+        JSONObject history = awaitPhase("history-activity-recreated",15000).getJSONObject("history");
         assertEquals("quartz",history.getString("key"));
         assertEquals(1,history.getInt("records"));
         assertEquals(1,history.getInt("photoCount"));
         awaitUi("!document.getElementById('view-records').hidden && document.querySelectorAll('#recordList [data-record]').length===1 && document.getElementById('recordSearchHistory').textContent.includes('石英')",
-            "history and search chips after restart",15000);
+            "history and search chips after Activity recreate",15000);
         evaluate("document.querySelector('#recordList [data-record]').click();");
         awaitUi("document.getElementById('recordDialog').open && document.querySelector('#recordBody img') && document.querySelector('#recordBody img').complete && document.querySelector('#recordBody img').naturalWidth>0",
             "saved specimen photo in history detail",15000);
         JSONObject network = nativeNetworkState();
         assertTrue(network.isNull("activeNetwork"));assertFalse(network.getBoolean("connected"));
         assertEquals("false",evaluate("navigator.onLine"));
-        evaluate("document.getElementById('closeRecord').click();window.__shikuangRuntimeSmoke.networkAfterRestart={native:"+network+"};window.__shikuangRuntimeSmoke.history.detailPhotoDecoded=true;window.__shikuangRuntimeSmoke.fullOfflineProductVerified=true;window.__shikuangRuntimeSmoke.photoRecognitionVerified=true;window.__shikuangRuntimeSmoke.phase='passed';");
+        evaluate("document.getElementById('closeRecord').click();window.__shikuangRuntimeSmoke.networkAfterActivityRecreate={native:"+network+"};window.__shikuangRuntimeSmoke.history.detailPhotoDecoded=true;window.__shikuangRuntimeSmoke.fullOfflineProductVerified=true;window.__shikuangRuntimeSmoke.photoRecognitionVerified=true;window.__shikuangRuntimeSmoke.phase='passed';");
+    }
+
+    /** Metadata from the real UI-saved record, never a seeded persistence fixture. */
+    private void captureColdProcessBaseline(String recordId) throws Exception {
+        evaluate(script(
+            "(async()=>{const s=window.__shikuangRuntimeSmoke;s.phase='cold-baseline-reading';try{const rows=await SpecimenStore.list(),row=rows.find(r=>r.id==="+JSONObject.quote(recordId)+");",
+            " if(rows.length!==1||!row||row.key!=='quartz'||row.modelCount!==3||row.photoCount!==1)throw Error('Real UI saved-record baseline missing');",
+            " s.historySnapshot=JSON.stringify(row);s.searchHistorySnapshot=JSON.stringify(SearchHistory.read());s.phase='cold-baseline-read';",
+            " }catch(e){s.phase='failed';s.failure=String(e);}})();"
+        ));
+        JSONObject state = awaitPhase("cold-baseline-read",15000);
+        JSONObject row = new JSONObject(state.getString("historySnapshot"));
+        JSONObject baseline = RuntimeHistoryEvidence.identity(state.getString("historySnapshot"),state.getString("searchHistorySnapshot"));
+        assertEquals(recordId,row.getString("id"));
+        baseline.put("source", "real-ui-native-three-model-record")
+            .put("firstPhasePid",android.os.Process.myPid())
+            .put("firstPhaseElapsedRealtimeMs",SystemClock.elapsedRealtime())
+            .put("origin",evaluate("location.origin"));
+        evaluate("window.__shikuangRuntimeSmoke.coldProcessBaseline="+baseline+";window.__shikuangRuntimeSmoke.phase='passed';");
     }
 
     /** Exercise the real lazy loader, SHA-256 checks, searches and detail dialogs while disconnected. */
@@ -713,7 +732,8 @@ public class MineralEngineInstrumentedTest {
             assertEquals("quartz", preserved.getJSONObject(0).getString("key"));
             assertEquals(expectedModels, preserved.getJSONObject(0).getInt("modelCount"));
             checkOfflineReferenceCatalog();
-            checkHistoryAfterOfflineRestart(savedRecords.getJSONObject(0).getString("id"));
+            checkHistoryAfterActivityRecreate(savedRecords.getJSONObject(0).getString("id"));
+            captureColdProcessBaseline(savedRecords.getJSONObject(0).getString("id"));
         } finally {
             writeDiagnostics();
             scenario.close();
