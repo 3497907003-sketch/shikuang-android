@@ -844,7 +844,10 @@
         headers:{'Content-Type':'application/json',Authorization:`Bearer ${key}`},body:JSON.stringify({model:window.DEEPSEEK_MODEL || 'deepseek-flash',messages:[{role:'system',content:instructions},{role:'user',content}],max_tokens:1000,temperature:0.2,thinking:{type:'disabled'}})});
       if (!res.ok) throw new Error(res.status===401?'密钥无效，请检查后重试':`服务请求失败 (${res.status})`);
       const bytes=await MineralCore.readResource(res,1024*1024,undefined,()=>{if(signal.aborted)throw new DOMException('请求已停止','AbortError');},{signal,timeout:45000});
-      const body=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes)), text=body.choices?.[0]?.message?.content;
+      const body=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes)), choice=Array.isArray(body?.choices)?body.choices[0]:null;
+      if(choice?.finish_reason==='length')throw new Error('联网辅助说明未完整生成（回复达到长度上限），请重试或缩短观察描述。');
+      if(choice?.finish_reason!=='stop')throw new Error('联网辅助说明未完整生成，请稍后重试。本机候选仍可查看和保存。');
+      const text=choice.message?.content;
       if (typeof text!=='string' || !text.trim()) throw new Error('服务未返回文字说明');
       return text;
       },45000,'联网辅助超过 45 秒，已停止，请稍后重试',controller.signal);

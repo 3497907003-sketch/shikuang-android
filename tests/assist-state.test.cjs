@@ -1,6 +1,6 @@
 const test=require('node:test'),assert=require('node:assert/strict'),{fixture}=require('./helpers/app-fixture.cjs');
 const deferred=()=>{let resolve;const promise=new Promise(yes=>{resolve=yes;});return {promise,resolve};};
-const response=text=>new Response(JSON.stringify({choices:[{message:{content:text}}]}));
+const response=(text,finishReason='stop')=>new Response(JSON.stringify({choices:[{finish_reason:finishReason,message:{content:text}}]}));
 async function ready(f){await f.photo();await f.click('predictBtn');f.node('mode-online').fire('click');f.route('settings');f.node('apiKey').value='unit-test-placeholder';}
 function realCrop(f){
   const fs=require('node:fs'),vm=require('node:vm'),context={window:{},document:f.context.document};
@@ -8,6 +8,26 @@ function realCrop(f){
   f.context.MineralEngine.cropCanvas=context.window.MineralEngine.cropCanvas;
 }
 function requestSnapshot(body){const content=body.messages.find(row=>row.role==='user').content,text=Array.isArray(content)?content[0].text:content;return JSON.parse(text.slice(text.indexOf('\n')+1));}
+
+test('incomplete assistance is never shown as a complete reference and retains local candidates for retry and save',async()=>{
+  for(const reason of ['length','aborted','insufficient_system_resource','content_filter','tool_calls','unrecognized']){
+    const f=fixture();await ready(f);const heading=f.node('resultHeading').textContent,score=f.node('resultScore').textContent;
+    f.context.fetch=async()=>response('这段未完整生成的内容不得展示',reason);await f.click('assistBtn');
+    assert.doesNotMatch(f.node('assistText').textContent,/^AI |这段未完整生成的内容不得展示/);
+    assert.match(f.node('assistText').textContent,/未完整生成/);assert.equal(f.node('assistBtn').disabled,false);
+    assert.equal(f.node('result').hidden,false);assert.equal(f.node('resultHeading').textContent,heading);assert.equal(f.node('resultScore').textContent,score);
+    await f.click('saveBtn');assert.equal(f.saved.size,1);assert.equal([...f.saved.values()][0].confirmedKey,'');
+    f.context.fetch=async()=>response('重试后已完整生成的参考');await f.click('assistBtn');assert.match(f.node('assistText').textContent,/^AI 纯文字资料比较/);assert.match(f.node('assistText').textContent,/重试后已完整生成的参考/);
+  }
+});
+
+test('missing completion status or empty text cannot become an assistance reference',async()=>{
+  for(const body of [null,{choices:[]},{choices:[null]},{choices:[{message:{content:'缺少完成状态'}}]},{choices:[{finish_reason:'stop',message:{content:'   '}}]}]){
+    const f=fixture();await ready(f);f.context.fetch=async()=>new Response(JSON.stringify(body));await f.click('assistBtn');
+    assert.doesNotMatch(f.node('assistText').textContent,/^AI /);assert.ok(f.node('assistText').textContent.length>0);
+    assert.equal(f.node('assistBtn').disabled,false);assert.equal(f.node('result').hidden,false);
+  }
+});
 
 test('assistance compares the real three or first five candidates and cannot promote a disputed top1 or confirm a specimen',async()=>{
   const keys=['quartz','calcite','fluorite','gypsum','beryl','pyrite'];
