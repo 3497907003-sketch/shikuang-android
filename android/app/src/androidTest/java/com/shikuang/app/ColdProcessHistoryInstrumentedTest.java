@@ -72,9 +72,10 @@ public class ColdProcessHistoryInstrumentedTest {
         requireInside(dialog.getJSONObject("rect"),bounds); requireInside(body.getJSONObject("rect"),bounds);
         requireInside(body.getJSONObject("rect"),dialog.getJSONObject("rect"));
         for (JSONObject box : new JSONObject[]{dialog,body}) {
-            assertTrue(box.getDouble("clientHeight")>0 && box.getDouble("scrollHeight")>=box.getDouble("clientHeight")
+            // Old WebViews can round clientHeight one pixel above scrollHeight.
+            assertTrue(box.getDouble("clientHeight")>0 && box.getDouble("scrollHeight")+2>=box.getDouble("clientHeight")
                 && box.getDouble("clientHeight")<=box.getJSONObject("rect").getDouble("height")+2
-                && box.getDouble("scrollTop")>=0 && box.getDouble("scrollTop")<=box.getDouble("scrollHeight")-box.getDouble("clientHeight")+2);
+                && box.getDouble("scrollTop")>=0 && box.getDouble("scrollTop")<=Math.max(0,box.getDouble("scrollHeight")-box.getDouble("clientHeight"))+2);
         }
         requireControl(geometry.getJSONObject("close"),"closeRecord",bounds,dialog.getJSONObject("rect"));
         if (end) {

@@ -186,7 +186,8 @@ def verify_detail_geometry(geometry, stage):
         rect = geometry_rect(box.get('rect'), 'cold_detail_' + name + '_rect')
         inside_rect(rect, viewport, 'cold_detail_' + name + '_outside_viewport')
         top, height, client = [finite_number(box.get(k), 'cold_detail_scroll_metrics') for k in ('scrollTop', 'scrollHeight', 'clientHeight')]
-        need(client > 0 and client <= rect['height'] + 2 and height >= client and 0 <= top <= height - client + 2,
+        # Preserve raw metrics; old WebView integer rounding may differ by <=2 CSS px.
+        need(client > 0 and client <= rect['height'] + 2 and height >= client - 2 and 0 <= top <= max(0, height - client) + 2,
              'cold_detail_scroll_metrics')
         boxes[name] = rect
     inside_rect(boxes['body'], boxes['dialog'], 'cold_detail_body_outside_dialog')

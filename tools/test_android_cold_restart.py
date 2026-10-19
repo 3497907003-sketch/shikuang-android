@@ -250,6 +250,25 @@ class ColdRestartContractTests(unittest.TestCase):
             UNIT_ONLY_replace_bound_cold_report(folder, host, no_overflow)
             self.assertTrue(verify_artifacts(folder, source, 24, 4096)['forceStopColdProcessVerified'])
 
+    def test_dialog_integer_rounding_allows_actual_API30_one_pixel_difference(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp); source, host = UNIT_ONLY_artifact_bundle(folder)
+            def rounding(c):
+                # Run39245582069: actual dialog scrollHeight565/clientHeight566.
+                for stage in ('recordDetailLayout', 'recordDetailEnd'):
+                    c[stage]['dialog']['scrollHeight'] = c[stage]['dialog']['clientHeight'] - 1
+            UNIT_ONLY_replace_bound_cold_report(folder, host, rounding)
+            self.assertTrue(verify_artifacts(folder, source, 24, 4096)['forceStopColdProcessVerified'])
+
+    def test_scroll_metrics_beyond_two_pixel_rounding_remain_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp); source, host = UNIT_ONLY_artifact_bundle(folder)
+            def invalid(c):
+                c['recordDetailLayout']['dialog']['scrollHeight'] = c['recordDetailLayout']['dialog']['clientHeight'] - 3
+            UNIT_ONLY_replace_bound_cold_report(folder, host, invalid)
+            with self.assertRaisesRegex(ValueError, 'cold_detail_scroll_metrics'):
+                verify_artifacts(folder, source, 24, 4096)
+
     def test_host_timeout_preserves_partial_bytes_and_cannot_pass(self):
         with tempfile.TemporaryDirectory() as tmp:
             host = Host('emulator-5554',Path(tmp))
