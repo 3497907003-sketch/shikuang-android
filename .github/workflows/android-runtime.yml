@@ -49,7 +49,9 @@ jobs:
         if: ${{ !inputs.network_probe }}
       - name: Check cold-process metadata and terminal contracts
         if: ${{ !inputs.network_probe }}
-        run: python3 -B -m unittest discover -s tools -p test_android_cold_restart.py
+        run: |
+          python3 -B -m unittest discover -s tools -p test_android_cold_restart.py
+          python3 -B -m unittest discover -s tools -p test_android_offline_setup.py
       - name: Install official Android emulator image
         shell: bash
         run: |
@@ -134,6 +136,10 @@ jobs:
           adb shell 'for device in eth0 eth1 wlan0; do if ip link show "$device" >/dev/null 2>&1; then ip link set "$device" down; fi; done'
           test "$(timeout 20 adb get-state | tr -d '\r')" = device
           timeout 60 bash -c 'until [[ "$(adb shell dumpsys connectivity)" == *"Active default network: none"* ]]; do sleep 2; done'
+          # AOSP's dedicated dummy0 table has drop-only default routes. Remove
+          # only the exact known system forms during environment setup, keeping
+          # the full-table zero-default cold-process gate unchanged.
+          python3 -B tools/android_offline_setup.py --out runtime-artifacts/offline-network-setup
           adb shell ip route show > runtime-artifacts/ipv4-routes.txt
           adb shell ip -6 route show > runtime-artifacts/ipv6-routes.txt
           adb shell ip route show table all > runtime-artifacts/ipv4-all-route-tables.txt
