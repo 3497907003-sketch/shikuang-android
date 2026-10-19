@@ -15,6 +15,7 @@ import android.system.Os;
 import android.system.OsConstants;
 import android.util.Base64;
 import android.util.Log;
+import android.view.accessibility.AccessibilityNodeInfo;
 import android.webkit.WebView;
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -24,6 +25,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -200,6 +202,108 @@ public class MineralEngineInstrumentedTest {
         }
     }
 
+    /** Native system overlays are invisible to WebView DOM/visual-state checks. */
+    private JSONObject requireNativeScreenshotWindow(String filename, String stage) throws Exception {
+        String expected = InstrumentationRegistry.getInstrumentation().getTargetContext().getPackageName();
+        long deadline = SystemClock.elapsedRealtime() + 10000;
+        JSONArray attempts = new JSONArray();
+        JSONObject evidence = new JSONObject().put("filename",filename).put("stage",stage)
+            .put("expectedPackage",expected).put("passed",false).put("attempts",attempts);
+        boolean passed = false;
+        do {
+            long started = SystemClock.elapsedRealtime();
+            AtomicReference<String> active = new AtomicReference<>();
+            AtomicReference<Boolean> focused = new AtomicReference<>();
+            AtomicReference<String> error = new AtomicReference<>();
+            CountDownLatch returned = new CountDownLatch(1);
+            // Bound even a stuck accessibility IPC or main-thread dispatch. This
+            // daemon only observes; a late return cannot alter UI or evidence.
+            Thread observer = new Thread(() -> {
+                AccessibilityNodeInfo root = null;
+                try {
+                    root = InstrumentationRegistry.getInstrumentation().getUiAutomation().getRootInActiveWindow();
+                    if (root != null && root.getPackageName() != null) active.set(root.getPackageName().toString());
+                    scenario.onActivity(activity -> focused.set(activity.getBridge().getWebView().hasWindowFocus()));
+                } catch (Exception failure) {
+                    error.set(failure.toString());
+                } catch (AssertionError failure) {
+                    error.set(failure.toString());
+                } finally {
+                    if (root != null) root.recycle();
+                    returned.countDown();
+                }
+            }, "shikuang-native-window-observer");
+            observer.setDaemon(true);
+            observer.start();
+            boolean completed = returned.await(Math.max(1,deadline-SystemClock.elapsedRealtime()),TimeUnit.MILLISECONDS);
+            JSONObject attempt = new JSONObject().put("startedElapsedRealtimeMs",started)
+                .put("finishedElapsedRealtimeMs",SystemClock.elapsedRealtime()).put("completed",completed)
+                .put("actualActiveRootPackage",active.get()==null?JSONObject.NULL:active.get())
+                .put("webViewHasWindowFocus",focused.get()==null?JSONObject.NULL:focused.get())
+                .put("failure",error.get()==null?JSONObject.NULL:error.get());
+            passed = completed && error.get()==null && expected.equals(active.get()) && Boolean.TRUE.equals(focused.get());
+            attempt.put("passed",passed); attempts.put(attempt);
+            if (passed || !completed || error.get()!=null) break;
+            long remaining = deadline-SystemClock.elapsedRealtime();
+            if (remaining>0) SystemClock.sleep(Math.min(100,remaining));
+        } while (SystemClock.elapsedRealtime()<deadline);
+        evidence.put("passed",passed).put("finishedElapsedRealtimeMs",SystemClock.elapsedRealtime());
+        String stem = filename.substring(0,filename.length()-4)+"-native-window-"+stage;
+        // Persist the failed observation before another accessibility IPC.
+        try (OutputStream output=RuntimeTestOutput.open(stem+".json")) {
+            output.write(evidence.toString(2).getBytes(StandardCharsets.UTF_8));
+        }
+        if (!passed) {
+            // Keep the actual obstructed display. Never dismiss a crash dialog,
+            // alter the screenshot or infer that a different package is safe.
+            AtomicReference<Bitmap> captured = new AtomicReference<>();
+            AtomicReference<String> captureError = new AtomicReference<>();
+            AtomicBoolean acceptCapture = new AtomicBoolean(true);
+            Object captureLock = new Object();
+            CountDownLatch captureReturned = new CountDownLatch(1);
+            Thread capture = new Thread(() -> {
+                Bitmap image = null;
+                try {
+                    image = InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
+                    synchronized(captureLock) {
+                        if (acceptCapture.get()) { captured.set(image); image=null; }
+                    }
+                } catch (Exception failure) {
+                    captureError.set(failure.toString());
+                } catch (AssertionError failure) {
+                    captureError.set(failure.toString());
+                } finally {
+                    if (image!=null) image.recycle();
+                    captureReturned.countDown();
+                }
+            },"shikuang-obstructed-display-capture");
+            capture.setDaemon(true);capture.start();
+            boolean captureCompleted = captureReturned.await(2,TimeUnit.SECONDS);
+            Bitmap failureImage;
+            synchronized(captureLock) { acceptCapture.set(false); failureImage=captured.getAndSet(null); }
+            try {
+                assertTrue("Failure screenshot capture exceeded two seconds",captureCompleted);
+                assertNull("Failure screenshot capture failed: "+captureError.get(),captureError.get());
+                assertNotNull("Failure screenshot unavailable",failureImage);
+                try (OutputStream output=RuntimeTestOutput.open(stem+"-failure.png")) {
+                    assertTrue(failureImage.compress(Bitmap.CompressFormat.PNG,100,output));
+                }
+                evidence.put("failureScreenshot",stem+"-failure.png");
+            } catch (Exception failure) {
+                evidence.put("failureScreenshotError",failure.toString());
+            } catch (AssertionError failure) {
+                evidence.put("failureScreenshotError",failure.toString());
+            } finally {
+                if (failureImage!=null) failureImage.recycle();
+            }
+        }
+        try (OutputStream output=RuntimeTestOutput.open(stem+".json")) {
+            output.write(evidence.toString(2).getBytes(StandardCharsets.UTF_8));
+        }
+        assertTrue("Native screenshot window is obstructed or unverified: "+evidence,passed);
+        return evidence;
+    }
+
     void screenshot(String filename, String selector) throws Exception {
         awaitUi("(() => {const e=document.querySelector(" + JSONObject.quote(selector) + ");if(!e)return false;const r=e.getBoundingClientRect();return r.width>0&&r.height>0&&r.bottom>0&&r.top<innerHeight&&r.right>0&&r.left<innerWidth;})()",
             "visible screenshot target " + selector,10000);
@@ -217,7 +321,7 @@ public class MineralEngineInstrumentedTest {
         // Chromium's visual callback precedes the display compositor on some
         // emulator images. Await stable genuine display pixels as well.
         SystemClock.sleep(750);
-        evaluate("(() => {const e=document.querySelector(" + JSONObject.quote(selector) + "),r=e.getBoundingClientRect(),s=window.__shikuangRuntimeSmoke;s.screenshots=s.screenshots||[];s.screenshots.push({filename:" + JSONObject.quote(filename) + ",selector:" + JSONObject.quote(selector) + ",text:e.textContent.slice(0,600),rect:{top:r.top,bottom:r.bottom,left:r.left,right:r.right},viewport:{width:innerWidth,height:innerHeight},visualStateSynchronized:true});})()");
+        JSONObject nativeBefore = requireNativeScreenshotWindow(filename,"before");
         Bitmap bitmap = InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
         assertNotNull("Screenshot unavailable", bitmap);
         boolean stable = false;
@@ -236,6 +340,8 @@ public class MineralEngineInstrumentedTest {
         } finally {
             bitmap.recycle();
         }
+        JSONObject nativeAfter = requireNativeScreenshotWindow(filename,"after");
+        evaluate("(() => {const e=document.querySelector(" + JSONObject.quote(selector) + "),r=e.getBoundingClientRect(),s=window.__shikuangRuntimeSmoke;s.screenshots=s.screenshots||[];s.screenshots.push({filename:" + JSONObject.quote(filename) + ",selector:" + JSONObject.quote(selector) + ",text:e.textContent.slice(0,600),rect:{top:r.top,bottom:r.bottom,left:r.left,right:r.right},viewport:{width:innerWidth,height:innerHeight},visualStateSynchronized:true,nativeWindowBefore:"+nativeBefore+",nativeWindowAfter:"+nativeAfter+"});})()");
     }
 
     private void writeDiagnostics() {

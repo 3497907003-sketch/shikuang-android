@@ -69,6 +69,19 @@ public class ColdProcessHistoryInstrumentedTest {
             ui.evaluate("document.querySelector('[data-view=records]').click();");
             ui.awaitUi("!document.getElementById('view-records').hidden && document.querySelectorAll('#recordList [data-record]').length===1 && document.getElementById('recordSearchHistory').textContent.includes('石英')","previous history/search UI after cold process launch",15000);
             ui.screenshot("cold-process-records.png","#recordList");
+            // Check the real legacy WebView, not only a desktop CSS simulation.
+            JSONObject navigation = new JSONObject(ui.evaluate(MineralEngineInstrumentedTest.script(
+                "JSON.stringify((()=>{const nav=document.querySelector('.bottom-nav');if(!nav)throw Error('Navigation missing');",
+                " const bounds=e=>{const r=e.getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height};};",
+                " const r=bounds(nav),css=getComputedStyle(nav),links=Array.from(nav.querySelectorAll('a')),expected=Math.min(innerWidth,1120);",
+                " if(css.display==='none'||links.length!==4||Math.abs(r.width-expected)>2||Math.abs(r.left-(innerWidth-expected)/2)>2||r.bottom>innerHeight+2)throw Error('Navigation width or placement differs');",
+                " const columns=links.map(a=>{const q=bounds(a),label=a.querySelector('span');if(!label)throw Error('Navigation label missing');const t=bounds(label);if(q.width<44||q.height<44||t.left<q.left-1||t.right>q.right+1)throw Error('Navigation target or label clipped');return {href:a.getAttribute('href'),label:label.textContent.trim(),rect:q,labelRect:t};});",
+                " if(Math.max(...columns.map(c=>c.rect.width))-Math.min(...columns.map(c=>c.rect.width))>2)throw Error('Navigation columns unequal');",
+                " for(let i=1;i<columns.length;i++)if(columns[i].rect.left<columns[i-1].rect.right-1)throw Error('Navigation columns overlap');",
+                " return {passed:true,viewport:{width:innerWidth,height:innerHeight},rect:r,columns};})())"
+            )));
+            assertTrue(navigation.getBoolean("passed"));
+            report.put("navigationLayout",navigation);
             ui.evaluate("Array.from(document.querySelectorAll('#recordList [data-record]')).find(e=>e.dataset.record==="+JSONObject.quote(baseline.getString("recordId"))+").click();");
             ui.awaitUi("document.getElementById('recordDialog').open && document.querySelector('#recordBody img') && document.querySelector('#recordBody img').complete && document.querySelector('#recordBody img').naturalWidth>0","actual persisted photo after cold process launch",15000);
             ui.evaluate(MineralEngineInstrumentedTest.script(

@@ -109,6 +109,64 @@ jobs:
             sleep 2
           done
           test "$SHIKUANG_ROOT_READY" = true
+          # Only this workflow's fresh official API24 emulator: prevent the
+          # confirmed Google Messenger boot crash, never hide any crash dialog.
+          if (( ${{ matrix.api }} == 24 )); then
+            python3 -B - <<'PYMESSENGER'
+          import hashlib, json, os, subprocess, time
+          from pathlib import Path
+          folder = Path('runtime-artifacts/external-messenger-setup')
+          folder.mkdir(parents=True, exist_ok=True)
+          serial, package = 'emulator-5554', 'com.google.android.apps.messaging'
+          commands = []
+          report = {'schema':'android-CI-external-messenger-setup-v1','passed':False,
+                    'serial':serial,'package':package,'api':24,'temporaryOfficialEmulatorOnly':True,
+                    'appDataTouched':False,'globalErrorDialogsChanged':False}
+          def command(label, tail, allowed=(0,), global_command=False):
+              argv = ['adb'] + ([] if global_command else ['-s',serial]) + tail
+              started = time.monotonic()
+              code, stdout, stderr, timed_out = None, b'', b'', False
+              try:
+                  result = subprocess.run(argv,capture_output=True,timeout=10)
+                  code, stdout, stderr = result.returncode, result.stdout, result.stderr
+              except subprocess.TimeoutExpired as error:
+                  stdout, stderr, timed_out = error.stdout or b'', error.stderr or b'', True
+              finally:
+                  (folder/(label+'.stdout.bin')).write_bytes(stdout)
+                  (folder/(label+'.stderr.bin')).write_bytes(stderr)
+                  commands.append({'label':label,'argv':argv,'return_code':code,'timed_out':timed_out,
+                                   'started_monotonic_seconds':started,'finished_monotonic_seconds':time.monotonic(),
+                                   'stdout_sha256':hashlib.sha256(stdout).hexdigest(),'stderr_sha256':hashlib.sha256(stderr).hexdigest()})
+                  (folder/'command-receipts.json').write_text(json.dumps(commands,indent=2)+'\n')
+              assert not timed_out and code in allowed and len(stdout)<=65536 and len(stderr)<=65536, label
+              return stdout.decode('utf-8',errors='strict').strip()
+          try:
+              assert os.environ.get('GITHUB_ACTIONS') == 'true', 'CI-only setup'
+              assert '${{ matrix.api }}' == '24' and '${{ matrix.tag }}' == 'google_apis'
+              assert package == 'com.google.android.apps.messaging' and not package.startswith('com.shikuang.')
+              devices = command('devices',['devices'],global_command=True).splitlines()[1:]
+              assert [line.split() for line in devices if line.strip()] == [[serial,'device']], 'one exact emulator transport'
+              assert command('qemu',['shell','getprop','ro.kernel.qemu']) == '1'
+              assert command('sdk',['shell','getprop','ro.build.version.sdk']) == '24'
+              assert command('root',['shell','id','-u']) == '0'
+              avd = command('avd',['emu','avd','name']).splitlines()
+              assert avd == ['shikuang-api24','OK'], 'fresh workflow-owned AVD only'
+              report['packagePathBefore'] = command('package-path',['shell','pm','path',package])
+              assert report['packagePathBefore'].startswith('package:/'), 'exact external package must exist'
+              report['disabledStateBefore'] = command('disabled-before',['shell','pm','list','packages','-d',package])
+              command('disable-exact-external-package',['shell','pm','disable-user','--user','0',package])
+              command('stop-exact-external-package',['shell','am','force-stop',package])
+              report['disabledStateAfter'] = command('disabled-after',['shell','pm','list','packages','-d',package])
+              assert report['disabledStateAfter'].splitlines() == ['package:'+package]
+              assert command('external-pid-after',['shell','pidof',package],allowed=(1,)) == ''
+              report['passed'] = True
+          except Exception as error:
+              report['failure'] = str(error)
+              raise
+          finally:
+              (folder/'setup-report.json').write_text(json.dumps(report,indent=2)+'\n')
+          PYMESSENGER
+          fi
           # The Google API image carries MOBILE[LTE] on eth0. Wait for SIM setup
           # before disabling its radio, so first-boot telephony cannot restore it.
           if (( ${{ matrix.api }} < 29 )); then

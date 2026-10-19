@@ -10,12 +10,19 @@
 /* Android WebView 83 supports grid gaps, but not flex gaps, aspect-ratio or dvh.
    Use the same explicit spacing on every browser so compatibility is predictable. */
 .app-shell{min-height:100vh;min-height:100dvh}
+/* Chrome 69 drops min(); keep fixed navigation full width before any enhancement.
+   Flex is also the four-column fallback when CSS Grid is unavailable. */
+.bottom-nav{width:100%;max-width:1120px;display:flex;display:grid;padding:10px 16px;padding-bottom:calc(10px + env(safe-area-inset-bottom));padding-left:calc(16px + env(safe-area-inset-left));padding-right:calc(16px + env(safe-area-inset-right))}
+.bottom-nav>a{flex:1 1 0%;min-width:0;text-align:center}
+.bottom-nav>a>span{display:block;line-height:1.4;white-space:nowrap}
 .stage{height:0;padding-bottom:100%;aspect-ratio:auto}
 .stage>img,.capture-empty{position:absolute;top:0;right:0;bottom:0;left:0}
 .capture-empty{height:auto}
 .crop-frame,.analyzing:after,.launch-cover{top:0;right:0;bottom:0;left:0}
 .launch-grid{top:-20%;right:-20%;bottom:-20%;left:-20%}
 dialog{max-height:86vh;max-height:86dvh}
+/* Keep native dialog bounds on modern engines; old engines need a plain width. */
+@supports not (width:min(92vw,560px)){dialog{width:92vw;max-width:560px}}
 #cameraPreview,#videoPreview{max-height:48vh;max-height:48dvh}
 .result-sub,.evidence-summary,.candidate-meta,.brand,.connection,.page-heading,
 .photo-strip,.precision-option,.bottom-nav a,.header-tools,.mode-switch,
@@ -49,6 +56,7 @@ dialog{max-height:86vh;max-height:86dvh}
 .guide-features dt>svg.lucide,summary>span>svg.lucide{margin-right:8px}
 .capture-guidance>svg.lucide{margin-right:10px}
 .result-actions,.guide-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.guide-actions{padding:18px 0 18px;padding-bottom:max(18px,env(safe-area-inset-bottom))}
 .result-actions>button,.guide-actions>button{min-width:0}
 .library-tools{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .library-tools>select{width:100%;max-width:none}.library-tools>.field-hint{grid-column:1/-1}
@@ -85,6 +93,7 @@ dialog{max-height:86vh;max-height:86dvh}
 #detailDialog>.dialog-head,#recordDialog>.dialog-head{flex:0 0 auto}
 #detailBody,#recordBody{min-height:0;overflow-y:auto;overscroll-behavior:contain}
 @media(max-width:720px){
+  .bottom-nav{padding:8px 12px;padding-bottom:calc(8px + env(safe-area-inset-bottom));padding-left:calc(12px + env(safe-area-inset-left));padding-right:calc(12px + env(safe-area-inset-right))}
   .stage{padding-bottom:88.4956%}
   .library-tools{grid-template-columns:repeat(2,minmax(0,1fr))}
   .library-tools #libraryScope{grid-column:1/-1}
