@@ -7,7 +7,36 @@ import unittest
 import subprocess
 from unittest.mock import patch
 from pathlib import Path
-from android_cold_restart import CLASS, METHOD, Host, first_phase, identity, instrumentation_command, required_original_junit, sha, terminal, verify_artifacts, verify_cold
+from android_cold_restart import CLASS, METHOD, COLD_SCREENSHOTS, Host, first_phase, identity, instrumentation_command, required_original_junit, sha, terminal, verify_artifacts, verify_cold
+
+
+def UNIT_ONLY_ui_geometry():
+    """Synthetic geometry only. No browser, screenshot, device, or action is exercised."""
+    def rect(left, top, width, height):
+        return dict(left=left, top=top, right=left + width, bottom=top + height, width=width, height=height)
+
+    def target(name, box):
+        return dict(id=name, rect=box, enabled=True, visible=True, hitWithinTarget=True, hitButtonId=name,
+                    center=dict(x=(box['left'] + box['right']) / 2, y=(box['top'] + box['bottom']) / 2))
+
+    viewport = dict(width=412, height=660)
+    initial = dict(schema='android-cold-record-dialog-geometry-v1', stage='initial', passed=True, dialogOpen=True,
+                   viewport=viewport, dialog=dict(rect=rect(16, 50, 380, 560), scrollTop=0, scrollHeight=558, clientHeight=558),
+                   body=dict(rect=rect(32, 140, 348, 450), scrollTop=0, scrollHeight=900, clientHeight=450),
+                   close=target('closeRecord', rect(336, 66, 44, 44)), actions={})
+    end = copy.deepcopy(initial); end.update(stage='end', scrollStart=0, animationFramesWaited=2)
+    end['body']['scrollTop'] = 450
+    end['actions'] = dict(save=target('updateRecord', rect(40, 530, 150, 44)),
+                          delete=target('deleteRecord', rect(200, 530, 150, 44)))
+    navigation = dict(passed=True, viewport=viewport, rect=rect(0, 596, 412, 64), columns=[])
+    for i, (href, label) in enumerate(zip(('#identify', '#library', '#records', '#settings'), ('识别', '图鉴', '标本', '设置'))):
+        navigation['columns'].append(dict(href=href, label=label, rect=rect(12 + i * 97, 605, 97, 47),
+                                          labelRect=rect(50 + i * 97, 634, 20, 14)))
+    shots = [{'filename': COLD_SCREENSHOTS[0], 'visualStateSynchronized': True}]
+    for filename, geometry in ((COLD_SCREENSHOTS[1], initial), (COLD_SCREENSHOTS[2], end)):
+        shots.append(dict(filename=filename, visualStateSynchronized=True, selector='#recordBody',
+                          viewport=copy.deepcopy(viewport), rect={k: geometry['body']['rect'][k] for k in ('left', 'right', 'top', 'bottom')}))
+    return dict(navigationLayout=navigation, recordDetailLayout=initial, recordDetailEnd=end, screenshots=shots)
 
 
 def UNIT_ONLY_metadata():
@@ -57,8 +86,7 @@ def UNIT_ONLY_artifact_bundle(folder):
             'afterUiIdentity': baseline, 'recordUnchanged': True, 'searchHistoryUnchanged': True,
             'photoDecodedInActualUi': True, 'displayedPhotoSha256': baseline['photoByteSha256s'][0],
             'networkBefore': net, 'networkAfter': net, 'navigatorOnlineBefore': False, 'navigatorOnlineAfter': False,
-            'screenshots': [{'filename': 'cold-process-' + name + '.png', 'visualStateSynchronized': True}
-                            for name in ('records', 'record-detail')]}
+            **UNIT_ONLY_ui_geometry()}
     cold_raw = json.dumps(cold).encode()
     receipts = []
 
@@ -87,7 +115,8 @@ def UNIT_ONLY_artifact_bundle(folder):
     for name, label, output in (
             ('cold-process-report.json', 'cold-native-report', cold_raw),
             ('cold-process-records.png', 'cold-process-records', b'\x89PNG\r\n\x1a\n' + b'UNIT_ONLY_NOT_A_SCREENSHOT' * 50),
-            ('cold-process-record-detail.png', 'cold-process-record-detail', b'\x89PNG\r\n\x1a\n' + b'UNIT_ONLY_NOT_A_SCREENSHOT' * 51)):
+            ('cold-process-record-detail.png', 'cold-process-record-detail', b'\x89PNG\r\n\x1a\n' + b'UNIT_ONLY_NOT_A_SCREENSHOT' * 51),
+            ('cold-process-record-detail-end.png', 'cold-process-record-detail-end', b'\x89PNG\r\n\x1a\n' + b'UNIT_ONLY_NOT_A_SCREENSHOT' * 52)):
         receipt(label, ['exec-out', 'content', 'read', '--uri',
                         'content://androidx.test.services.storage.outputfiles/' + name], output)
         (folder / name).write_bytes(output)
@@ -110,6 +139,20 @@ def UNIT_ONLY_artifact_bundle(folder):
     return raw_source, host
 
 
+def UNIT_ONLY_replace_bound_cold_report(folder, host, mutate):
+    """Keep raw/copy hashes consistent to test geometry rejection, not copy corruption."""
+    cold = json.loads((folder / 'cold-process-report.json').read_bytes()); mutate(cold)
+    raw = json.dumps(cold).encode()
+    (folder / 'cold-process-report.json').write_bytes(raw)
+    (folder / 'cold-native-report.stdout.bin').write_bytes(raw)
+    receipts = json.loads((folder / 'command-receipts.json').read_bytes())
+    next(r for r in receipts if r['label'] == 'cold-native-report')['stdout_sha256'] = sha(raw)
+    (folder / 'command-receipts.json').write_text(json.dumps(receipts))
+    host['actualColdNativeReportSha256'] = sha(raw)
+    host['contentReadArtifacts']['cold-process-report.json'].update(bytes=len(raw), sha256=sha(raw))
+    (folder / 'host-cold-process-report.json').write_text(json.dumps(host))
+
+
 class ColdRestartContractTests(unittest.TestCase):
     def test_final_gate_accepts_bound_UNIT_ONLY_copies_without_reading_photos(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -117,7 +160,7 @@ class ColdRestartContractTests(unittest.TestCase):
             self.assertIs(verify_artifacts(folder, source, 24, 4096)['forceStopColdProcessVerified'], True)
 
     def test_final_gate_rejects_replaced_copies_even_with_updated_copy_hashes(self):
-        for name in ('cold-process-records.png', 'cold-process-record-detail.png', 'cold-process-report.json'):
+        for name in (*COLD_SCREENSHOTS, 'cold-process-report.json'):
             with self.subTest(name=name), tempfile.TemporaryDirectory() as tmp:
                 folder = Path(tmp); source, host = UNIT_ONLY_artifact_bundle(folder)
                 original = (folder / name).read_bytes()
@@ -130,6 +173,82 @@ class ColdRestartContractTests(unittest.TestCase):
                 (folder / 'host-cold-process-report.json').write_text(json.dumps(host))
                 with self.assertRaisesRegex(ValueError, 'cold_content_read_copy_changed'):
                     verify_artifacts(folder, source, 24, 4096)
+
+    def test_final_gate_rejects_actual_API24_body_overflow_even_with_true_passed_and_consistent_hashes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp); source, host = UNIT_ONLY_artifact_bundle(folder)
+            def overflow(cold):
+                # Exact recorded API24 top/bottom/viewport from run39242587275.
+                cold['recordDetailLayout']['body']['rect'].update(top=390, bottom=833.59375, height=443.59375)
+            UNIT_ONLY_replace_bound_cold_report(folder, host, overflow)
+            with self.assertRaisesRegex(ValueError, 'cold_detail_body_outside_viewport'):
+                verify_artifacts(folder, source, 24, 4096)
+
+    def test_final_gate_requires_end_screenshot_metadata_binding_and_original_bytes(self):
+        cases = ('metadata', 'binding', 'original-stdout')
+        for case in cases:
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as tmp:
+                folder = Path(tmp); source, host = UNIT_ONLY_artifact_bundle(folder)
+                if case == 'metadata':
+                    UNIT_ONLY_replace_bound_cold_report(folder, host, lambda c: c['screenshots'].pop())
+                    reason = 'cold_drawn_UI_evidence_missing'
+                elif case == 'binding':
+                    del host['contentReadArtifacts'][COLD_SCREENSHOTS[2]]
+                    (folder / 'host-cold-process-report.json').write_text(json.dumps(host))
+                    reason = 'cold_content_read_bindings_missing'
+                else:
+                    (folder / 'cold-process-record-detail-end.stdout.bin').write_bytes(b'UNIT_ONLY_CORRUPTED')
+                    reason = 'raw_host_receipt_hash'
+                with self.assertRaisesRegex(ValueError, reason): verify_artifacts(folder, source, 24, 4096)
+
+    def test_geometry_gate_recomputes_targets_scroll_and_navigation_despite_passed_true(self):
+        mutations = [
+            ('missing-layout', lambda c: c.update(recordDetailLayout=None), 'cold_detail_geometry_missing'),
+            ('missing-end', lambda c: c.update(recordDetailEnd=None), 'cold_detail_geometry_missing'),
+            ('false-layout', lambda c: c['recordDetailLayout'].update(passed=False), 'cold_detail_geometry_missing'),
+            ('false-end', lambda c: c['recordDetailEnd'].update(passed=False), 'cold_detail_geometry_missing'),
+            ('dialog-offscreen', lambda c: c['recordDetailLayout']['dialog']['rect'].update(top=-100, bottom=460), 'cold_detail_dialog_outside_viewport'),
+            ('end-body-offscreen', lambda c: c['recordDetailEnd']['body']['rect'].update(top=390, bottom=840), 'cold_detail_body_outside_viewport'),
+            ('close-disabled', lambda c: c['recordDetailLayout']['close'].update(enabled=False), 'cold_detail_control_unreachable'),
+            ('close-covered', lambda c: c['recordDetailEnd']['close'].update(hitWithinTarget=False), 'cold_detail_control_unreachable'),
+            ('close-too-small', lambda c: c['recordDetailLayout']['close']['rect'].update(right=379, width=43), 'cold_detail_small_target'),
+            ('save-disabled', lambda c: c['recordDetailEnd']['actions']['save'].update(enabled=False), 'cold_detail_control_unreachable'),
+            ('delete-covered', lambda c: c['recordDetailEnd']['actions']['delete'].update(hitWithinTarget=False), 'cold_detail_control_unreachable'),
+            ('save-invisible', lambda c: c['recordDetailEnd']['actions']['save'].update(visible=False), 'cold_detail_control_unreachable'),
+            ('wrong-hit-button', lambda c: c['recordDetailEnd']['actions']['save'].update(hitButtonId='closeRecord'), 'cold_detail_control_unreachable'),
+            ('offscreen-save', lambda c: c['recordDetailEnd']['actions']['save']['rect'].update(top=670, bottom=714), 'cold_detail_control_outside_viewport'),
+            ('wrong-center', lambda c: c['recordDetailEnd']['actions']['save']['center'].update(y=1), 'cold_detail_control_center'),
+            ('not-at-end', lambda c: c['recordDetailEnd']['body'].update(scrollTop=30), 'cold_detail_end_not_reached'),
+            ('no-real-frames', lambda c: c['recordDetailEnd'].update(animationFramesWaited=0), 'cold_detail_actual_frames_or_start_missing'),
+            ('wrong-scroll-start', lambda c: c['recordDetailEnd'].update(scrollStart=10), 'cold_detail_actual_frames_or_start_missing'),
+            ('nonfinite-rect', lambda c: c['recordDetailLayout']['body']['rect'].update(top=float('nan')), 'cold_detail_body_rect'),
+            ('boolean-scroll', lambda c: c['recordDetailEnd']['body'].update(scrollTop=True), 'cold_detail_scroll_metrics'),
+            ('fake-nav-pass', lambda c: c['navigationLayout']['rect'].update(width=80, right=80), 'cold_navigation_width_placement'),
+            ('false-nav', lambda c: c['navigationLayout'].update(passed=False), 'cold_navigation_missing'),
+            ('wrong-nav-label', lambda c: c['navigationLayout']['columns'][0].update(label='other'), 'cold_navigation_labels'),
+            ('snapshot-mismatch', lambda c: c['screenshots'][2]['rect'].update(bottom=500), 'cold_detail_screenshot_geometry_changed'),
+        ]
+        for case, mutate, reason in mutations:
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as tmp:
+                folder = Path(tmp); source, host = UNIT_ONLY_artifact_bundle(folder)
+                UNIT_ONLY_replace_bound_cold_report(folder, host, mutate)
+                with self.assertRaisesRegex(ValueError, reason): verify_artifacts(folder, source, 24, 4096)
+
+    def test_overflow_must_actually_advance_but_nonoverflow_need_not_scroll(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp); source, host = UNIT_ONLY_artifact_bundle(folder)
+            def already_at_end(c):
+                c['recordDetailLayout']['body']['scrollTop'] = 450
+                c['recordDetailEnd']['scrollStart'] = 450
+            UNIT_ONLY_replace_bound_cold_report(folder, host, already_at_end)
+            with self.assertRaisesRegex(ValueError, 'cold_detail_scroll_not_advanced'): verify_artifacts(folder, source, 24, 4096)
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp); source, host = UNIT_ONLY_artifact_bundle(folder)
+            def no_overflow(c):
+                for field in ('recordDetailLayout', 'recordDetailEnd'):
+                    c[field]['body'].update(scrollHeight=450, clientHeight=450, scrollTop=0)
+            UNIT_ONLY_replace_bound_cold_report(folder, host, no_overflow)
+            self.assertTrue(verify_artifacts(folder, source, 24, 4096)['forceStopColdProcessVerified'])
 
     def test_host_timeout_preserves_partial_bytes_and_cannot_pass(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -194,7 +313,7 @@ class ColdRestartContractTests(unittest.TestCase):
                   'recordUnchanged': True, 'searchHistoryUnchanged': True, 'photoDecodedInActualUi': True,
                   'displayedPhotoSha256': baseline['photoByteSha256s'][0], 'networkBefore': net, 'networkAfter': net,
                   'navigatorOnlineBefore': False, 'navigatorOnlineAfter': False,
-                  'screenshots': [{'filename': f'cold-process-{name}.png', 'visualStateSynchronized': True} for name in ('records', 'record-detail')]}
+                  **UNIT_ONLY_ui_geometry()}
         verify_cold(report, expected, 300)
         for key, value in [('nonce', 'e' * 32), ('actualProcessPid', 200), ('displayedPhotoSha256', '0' * 64), ('navigatorOnlineAfter', True), ('phase', 'failed')]:
             altered = copy.deepcopy(report); altered[key] = value

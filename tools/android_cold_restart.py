@@ -7,6 +7,7 @@ import argparse
 import base64
 import hashlib
 import json
+import math
 import re
 import secrets
 import subprocess
@@ -20,6 +21,8 @@ METHOD = 'existingUiRecordAfterHostForceStop'
 PHASE = 'verify-existing-after-force-stop'
 IDENTITY_KEYS = ('recordId', 'recordSnapshotSha256', 'searchSnapshotSha256', 'photoDataUrlSha256s',
                  'photoByteSha256s', 'photoCount', 'modelCount', 'modelVersion', 'manifestSha256')
+COLD_SCREENSHOTS = ('cold-process-records.png', 'cold-process-record-detail.png',
+                    'cold-process-record-detail-end.png')
 
 
 def need(condition, reason):
@@ -113,6 +116,101 @@ def instrumentation_command(serial, expected):
             PACKAGE + '.test/androidx.test.runner.AndroidJUnitRunner']
 
 
+def finite_number(value, reason):
+    need(type(value) in (int, float) and math.isfinite(value), reason)
+    return value
+
+
+def geometry_rect(rect, reason):
+    need(isinstance(rect, dict), reason)
+    values = {k: finite_number(rect.get(k), reason) for k in ('left', 'right', 'top', 'bottom', 'width', 'height')}
+    need(values['width'] > 0 and values['height'] > 0
+         and abs(values['right'] - values['left'] - values['width']) <= 0.1
+         and abs(values['bottom'] - values['top'] - values['height']) <= 0.1, reason)
+    return values
+
+
+def inside_rect(rect, container, reason):
+    need(rect['left'] >= container['left'] - 2 and rect['right'] <= container['right'] + 2
+         and rect['top'] >= container['top'] - 2 and rect['bottom'] <= container['bottom'] + 2, reason)
+
+
+def viewport_rect(viewport, reason):
+    need(isinstance(viewport, dict), reason)
+    width = finite_number(viewport.get('width'), reason); height = finite_number(viewport.get('height'), reason)
+    return geometry_rect({'left': 0, 'top': 0, 'right': width, 'bottom': height, 'width': width, 'height': height}, reason)
+
+
+def verify_navigation(layout):
+    need(isinstance(layout, dict) and layout.get('passed') is True, 'cold_navigation_missing')
+    viewport = viewport_rect(layout.get('viewport'), 'cold_navigation_viewport')
+    rect = geometry_rect(layout.get('rect'), 'cold_navigation_rect'); columns = layout.get('columns')
+    expected = min(viewport['width'], 1120)
+    need(abs(rect['width'] - expected) <= 2 and abs(rect['left'] - (viewport['width'] - expected) / 2) <= 2,
+         'cold_navigation_width_placement')
+    inside_rect(rect, viewport, 'cold_navigation_outside_viewport')
+    need(isinstance(columns, list) and len(columns) == 4, 'cold_navigation_columns')
+    widths, previous = [], None
+    for column, href, label in zip(columns, ('#identify', '#library', '#records', '#settings'), ('识别', '图鉴', '标本', '设置')):
+        need(isinstance(column, dict) and column.get('href') == href and column.get('label') == label, 'cold_navigation_labels')
+        target = geometry_rect(column.get('rect'), 'cold_navigation_target')
+        text = geometry_rect(column.get('labelRect'), 'cold_navigation_label_rect')
+        need(target['width'] >= 44 and target['height'] >= 44, 'cold_navigation_small_target')
+        inside_rect(target, rect, 'cold_navigation_target_clipped'); inside_rect(text, target, 'cold_navigation_label_clipped')
+        need(previous is None or target['left'] >= previous['right'] - 1, 'cold_navigation_overlap')
+        widths.append(target['width']); previous = target
+    need(max(widths) - min(widths) <= 2, 'cold_navigation_unequal_columns')
+
+
+def verify_detail_control(control, target_id, viewport, clip):
+    need(isinstance(control, dict) and control.get('id') == target_id, 'cold_detail_control_identity')
+    rect = geometry_rect(control.get('rect'), 'cold_detail_control_rect')
+    inside_rect(rect, viewport, 'cold_detail_control_outside_viewport')
+    inside_rect(rect, clip, 'cold_detail_control_clipped')
+    need(rect['width'] >= 44 and rect['height'] >= 44, 'cold_detail_small_target')
+    need(control.get('enabled') is True and control.get('visible') is True and control.get('hitWithinTarget') is True
+         and control.get('hitButtonId') == target_id, 'cold_detail_control_unreachable')
+    center = control.get('center'); need(isinstance(center, dict), 'cold_detail_control_center')
+    need(abs(finite_number(center.get('x'), 'cold_detail_control_center') - (rect['left'] + rect['right']) / 2) <= 0.1
+         and abs(finite_number(center.get('y'), 'cold_detail_control_center') - (rect['top'] + rect['bottom']) / 2) <= 0.1,
+         'cold_detail_control_center')
+
+
+def verify_detail_geometry(geometry, stage):
+    need(isinstance(geometry, dict) and geometry.get('schema') == 'android-cold-record-dialog-geometry-v1'
+         and geometry.get('stage') == stage and geometry.get('passed') is True and geometry.get('dialogOpen') is True,
+         'cold_detail_geometry_missing')
+    viewport = viewport_rect(geometry.get('viewport'), 'cold_detail_viewport'); boxes = {}
+    for name in ('dialog', 'body'):
+        box = geometry.get(name); need(isinstance(box, dict), 'cold_detail_' + name + '_missing')
+        rect = geometry_rect(box.get('rect'), 'cold_detail_' + name + '_rect')
+        inside_rect(rect, viewport, 'cold_detail_' + name + '_outside_viewport')
+        top, height, client = [finite_number(box.get(k), 'cold_detail_scroll_metrics') for k in ('scrollTop', 'scrollHeight', 'clientHeight')]
+        need(client > 0 and client <= rect['height'] + 2 and height >= client and 0 <= top <= height - client + 2,
+             'cold_detail_scroll_metrics')
+        boxes[name] = rect
+    inside_rect(boxes['body'], boxes['dialog'], 'cold_detail_body_outside_dialog')
+    verify_detail_control(geometry.get('close'), 'closeRecord', viewport, boxes['dialog'])
+    if stage == 'end':
+        actions = geometry.get('actions'); need(isinstance(actions, dict), 'cold_detail_actions_missing')
+        verify_detail_control(actions.get('save'), 'updateRecord', viewport, boxes['body'])
+        verify_detail_control(actions.get('delete'), 'deleteRecord', viewport, boxes['body'])
+
+
+def verify_detail_end(initial, end):
+    verify_detail_geometry(initial, 'initial'); verify_detail_geometry(end, 'end')
+    need(initial['viewport'] == end['viewport'], 'cold_detail_viewport_changed')
+    before, after = initial['body'], end['body']
+    start = finite_number(end.get('scrollStart'), 'cold_detail_scroll_start')
+    need(abs(start - before['scrollTop']) <= 0.1 and type(end.get('animationFramesWaited')) is int
+         and end['animationFramesWaited'] >= 2, 'cold_detail_actual_frames_or_start_missing')
+    need(abs(before['scrollHeight'] - after['scrollHeight']) <= 1 and abs(before['clientHeight'] - after['clientHeight']) <= 1,
+         'cold_detail_scroll_dimensions_changed')
+    maximum = after['scrollHeight'] - after['clientHeight']
+    need(abs(after['scrollTop'] - maximum) <= 2, 'cold_detail_end_not_reached')
+    need(maximum <= 2 or after['scrollTop'] > start + 1, 'cold_detail_scroll_not_advanced')
+
+
 def verify_cold(report, expected, after_pid):
     need(report.get('schema') == 'android-cold-process-ui-history-v1' and report.get('phase') == 'cold-process-history-passed'
          and report.get('passed') is True and report.get('coldProcessUiReadVerified') is True, 'cold_actual_UI_not_passed')
@@ -131,8 +229,18 @@ def verify_cold(report, expected, after_pid):
              and network['packageName'] == PACKAGE, 'cold_platform_changed')
     need(report.get('navigatorOnlineBefore') is False and report.get('navigatorOnlineAfter') is False, 'cold_WebView_not_offline')
     shots = report['screenshots']
-    need(len(shots) == 2 and {s['filename'] for s in shots} == {'cold-process-records.png', 'cold-process-record-detail.png'}
+    need(len(shots) == 3 and {s['filename'] for s in shots} == set(COLD_SCREENSHOTS)
          and all(s.get('visualStateSynchronized') is True for s in shots), 'cold_drawn_UI_evidence_missing')
+    verify_navigation(report.get('navigationLayout'))
+    verify_detail_end(report.get('recordDetailLayout'), report.get('recordDetailEnd'))
+    for filename, geometry in ((COLD_SCREENSHOTS[1], report['recordDetailLayout']),
+                               (COLD_SCREENSHOTS[2], report['recordDetailEnd'])):
+        shot = next(s for s in shots if s['filename'] == filename)
+        need(shot.get('selector') == '#recordBody' and shot.get('viewport') == geometry['viewport'],
+             'cold_detail_screenshot_geometry_changed')
+        rect = shot.get('rect'); need(isinstance(rect, dict), 'cold_detail_screenshot_geometry_changed')
+        need(all(abs(finite_number(rect.get(k), 'cold_detail_screenshot_geometry_changed') - geometry['body']['rect'][k]) <= 0.1
+                 for k in ('left', 'right', 'top', 'bottom')), 'cold_detail_screenshot_geometry_changed')
 
 
 def verify_artifacts(folder, source_raw, sdk, page):
@@ -186,7 +294,8 @@ def verify_artifacts(folder, source_raw, sdk, page):
     # cannot satisfy the final gate while the original read says otherwise.
     artifact_labels = {'cold-process-report.json': 'cold-native-report',
                        'cold-process-records.png': 'cold-process-records',
-                       'cold-process-record-detail.png': 'cold-process-record-detail'}
+                       'cold-process-record-detail.png': 'cold-process-record-detail',
+                       'cold-process-record-detail-end.png': 'cold-process-record-detail-end'}
     bindings = host['contentReadArtifacts']
     need(set(bindings) == set(artifact_labels), 'cold_content_read_bindings_missing')
     serial = host['instrumentation']['argv'][2]
@@ -199,7 +308,7 @@ def verify_artifacts(folder, source_raw, sdk, page):
         copy = (folder / name).read_bytes(); binding = bindings[name]
         need(binding == {'receiptLabel': label, 'bytes': len(original), 'sha256': sha(original)}
              and copy == original, 'cold_content_read_copy_changed')
-    for name in ('cold-process-records.png', 'cold-process-record-detail.png'):
+    for name in COLD_SCREENSHOTS:
         image = (folder / name).read_bytes(); need(image.startswith(b'\x89PNG\r\n\x1a\n') and 1024 < len(image) <= 16 * 1024 * 1024, 'cold_PNG_missing')
     return {'forceStopColdProcessVerified': True, 'sourceReportSha256': sha(source_raw),
             'firstPhasePid': baseline['firstPhasePid'], 'beforePid': expected['beforePid'],
@@ -301,7 +410,7 @@ def main():
         result['contentReadArtifacts'] = {'cold-process-report.json': {
             'receiptLabel': 'cold-native-report', 'bytes': len(cold_raw), 'sha256': sha(cold_raw)}}
         (args.out / 'cold-process-report.json').write_bytes(cold_raw); verify_cold(cold, expected, after)
-        for filename in ('cold-process-records.png', 'cold-process-record-detail.png'):
+        for filename in COLD_SCREENSHOTS:
             image = host.command(filename[:-4], ['exec-out', 'content', 'read', '--uri', 'content://androidx.test.services.storage.outputfiles/' + filename])
             need(image.startswith(b'\x89PNG\r\n\x1a\n') and 1024 < len(image) <= 16 * 1024 * 1024, 'cold_actual_PNG_missing')
             result['contentReadArtifacts'][filename] = {
