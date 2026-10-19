@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "targets": {"chrome": "69"},
+  "preset": "env",
+  "modules": false,
+  "ignoreBrowserslistConfig": true,
+  "comments": true,
+  "compact": false,
+  "minified": false,
+  "sourceMaps": false,
+  "automaticRuntimePolyfills": false,
+  "compiler": {
+    "name": "@babel/standalone",
+    "version": "8.0.7",
+    "path": "tools/vendor/babel-standalone-8.0.7.cjs",
+    "bytes": 2342327,
+    "sha256": "1eda1f8ef4611cf301094fe1559ff6c65426481c8fe210011cb574f32d53bbf2",
+    "license": "tools/vendor/babel-standalone-8.0.7.LICENSE",
+    "package": "tools/vendor/babel-standalone-8.0.7.package.json",
+    "provenance": "tools/vendor/babel-standalone-8.0.7.provenance.json"
+  }
+}

@@ -1,0 +1,12 @@
+[
+  "tools/build.cjs",
+  "tools/onnx-contract.cjs",
+  "tools/shell-release.cjs",
+  "tools/compat-js.cjs",
+  "tools/compat-target.json",
+  "tools/build-inputs.json",
+  "tools/vendor/babel-standalone-8.0.7.cjs",
+  "tools/vendor/babel-standalone-8.0.7.LICENSE",
+  "tools/vendor/babel-standalone-8.0.7.package.json",
+  "tools/vendor/babel-standalone-8.0.7.provenance.json"
+]

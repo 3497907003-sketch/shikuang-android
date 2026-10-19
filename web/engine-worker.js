@@ -1,6 +1,10 @@
 'use strict';
-let bootError;
-try { importScripts('./vendor/ort.min.js','./core.js'); } catch(error) { bootError=error.message||String(error); }
+let bootError,bootStage='compat';
+try {
+  importScripts('./compat.js');
+  bootStage='ort';importScripts('./vendor/ort.min.js');
+  bootStage='core';importScripts('./core.js');
+} catch(error) { bootError=bootStage+': '+(error.message||String(error)); }
 const sessions=new Map();
 let currentManifestHash='',busy=false,releaseFailed=false;
 const send=(type,value)=>postMessage({type,...value});
@@ -68,7 +72,7 @@ onmessage=async({data})=>{
     const {base,inputs,labels,mode,modelIds,blocked,manifestSha256}=data;
     const origin=new URL(base);
     if(!['https:','http:'].includes(origin.protocol)||origin.origin!==self.location.origin)throw new Error('模型资源必须来自当前应用');
-    ort.env.wasm.wasmPaths=new URL('vendor/',base).href;ort.env.wasm.numThreads=1;ort.env.wasm.proxy=false;
+    ort.env.wasm.wasmPaths={mjs:MineralCore.shellResourceURL('vendor/ort-wasm-simd-threaded.mjs',base),wasm:MineralCore.shellResourceURL('vendor/ort-wasm-simd-threaded.wasm',base)};ort.env.wasm.numThreads=1;ort.env.wasm.proxy=false;
     const bytes=await MineralCore.readResource(await fetch(new URL('model-manifest.json',base),{cache:'no-cache'}),100000);
     if(!crypto.subtle)throw new Error('当前环境无法校验模型，请使用安装版或 HTTPS 地址');
     const actualHash=hex(await crypto.subtle.digest('SHA-256',bytes));

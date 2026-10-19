@@ -1,0 +1,44 @@
+{
+  "package": "@babel/standalone",
+  "version": "8.0.7",
+  "license": "MIT",
+  "registry_metadata_url": "https://registry.npmjs.org/@babel%2fstandalone/8.0.7",
+  "registry_metadata_bytes": 7170,
+  "registry_metadata_sha256": "470e5e35fbd7c772a7be15295d1c349abc3fca5e6d0d22fadedf5caa6af37f46",
+  "tarball_url": "https://registry.npmjs.org/@babel/standalone/-/standalone-8.0.7.tgz",
+  "registry_integrity": "sha512-Dz1O7HeZW2YvQ/NPDXQZ90NKp0MnQ1ed3a2FqXoi8ikkOMS4VIcE1Ouldp2S6gTatMZqqrTsR8om21B3Umrh4w==",
+  "registry_shasum": "b69fc3be317c8d92f71795f77d977f2572b352ad",
+  "tarball_observed_bytes": 1290455,
+  "tarball_observed_sha256": "2ed5c1eb221c14d460627556c779a49075664b03844af6601f3c9cb8fe603e63",
+  "registry_sha512_and_sha1_verified": true,
+  "npm_signatures_and_attestations_not_independently_verified": true,
+  "files": [
+    {
+      "path": "tools/vendor/babel-standalone-8.0.7.cjs",
+      "bytes": 2342327,
+      "sha256": "1eda1f8ef4611cf301094fe1559ff6c65426481c8fe210011cb574f32d53bbf2",
+      "upstream_member": "package/babel.min.js"
+    },
+    {
+      "path": "tools/vendor/babel-standalone-8.0.7.LICENSE",
+      "bytes": 1106,
+      "sha256": "117da2af0d4ce0fe1c8e19b5cff9dcd806adf973d328d27b11d4448c4ff24f76",
+      "upstream_member": "package/LICENSE"
+    },
+    {
+      "path": "tools/vendor/babel-standalone-8.0.7.package.json",
+      "bytes": 6742,
+      "sha256": "fb7b35b3425212c861e9d86637adbc61934684e8465e5857fdf96b3677d030c6",
+      "upstream_member": "package/package.json"
+    }
+  ],
+  "official_docs": [
+    "https://babeljs.io/docs/babel-standalone",
+    "https://babeljs.io/docs/babel-preset-env"
+  ],
+  "scope": "Build-time vendored compiler only. Never shipped to runtime or loaded from CDN. Upstream bundle and LICENSE unchanged.",
+  "retrieved_at_UTC": "2026-10-19T07:03:23.313379+00:00",
+  "TLS_hostname_and_CA_verification": true,
+  "GET_count": 2,
+  "retries": 0
+}

@@ -733,7 +733,7 @@
     try {
       const file = input.files?.[0]; if (!file) return;
       MineralCore.checkBackupSize(file.size);
-      const records = MineralCore.parseImport(await file.text());
+      const records = MineralCore.parseImport(await (typeof file.text==='function'?file.text():MineralCompat.readText(file)));
       if (records.some(r=>!MINERAL_KB[r.key] || (r.confirmedKey && !MINERAL_KB[r.confirmedKey]))) throw new Error('文件包含未收录的候选或确认名称');
       const added = await SpecimenStore.merge(records); await renderRecords(); toast(`已导入 ${added} 条新记录，原记录保留`);
     } catch (e) { toast(e.message || '导入失败，请使用识矿导出的 JSON 文件'); }
@@ -745,9 +745,10 @@
     if(state.offlineController)return;
     const controller=new AbortController();state.offlineController=controller;
     $('#offlineBtn').disabled=true;$('#cancelOffline').hidden=false;
-    const assets = ['./','./index.html','./styles.css','./app.js','./native-assets.js','./core.js','./inference.js','./engine-worker.js','./history.js','./media.js','./storage.js','./reference-loader.js','./gallery.js','./data/reviewed-photo-assets.json','./data/licenses/reviewed-photos-v25.txt','./config.js','./manifest.webmanifest','./model-manifest.json','./icon.svg','./icon-192.png','./icon-512.png','./icon-maskable.png','./version.json','./data/classes.js','./data/minerals.js','./data/sources.js','./data/imagenet.js','./data/catalog.json','./data/crystals.json','./data/image-sources.json','./data/reference-manifest.json','./data/licenses/ima-cnmnc-2026-09.txt','./vendor/lucide.min.js','./vendor/ort.min.js','./vendor/ort-wasm-simd-threaded.mjs','./vendor/ort-wasm-simd-threaded.wasm'];
+    const assets = ['./','./index.html','./styles.css','./app.js','./compat.js','./native-assets.js','./core.js','./inference.js','./engine-worker.js','./history.js','./media.js','./storage.js','./reference-loader.js','./gallery.js','./data/reviewed-photo-assets.json','./data/licenses/reviewed-photos-v25.txt','./config.js','./manifest.webmanifest','./model-manifest.json','./icon.svg','./icon-192.png','./icon-512.png','./icon-maskable.png','./version.json','./data/classes.js','./data/minerals.js','./data/sources.js','./data/imagenet.js','./data/catalog.json','./data/crystals.json','./data/image-sources.json','./data/reference-manifest.json','./data/licenses/ima-cnmnc-2026-09.txt','./vendor/lucide.min.js','./vendor/ort.min.js'];
     try {
-      assets.push(...MineralCore.shellAssets(document.documentElement.outerHTML,location.href).filter(url=>!assets.some(asset=>new URL(asset,location.href).href===url)));
+      const derived=new Set([...MineralCore.shellAssets(document.documentElement.outerHTML,location.href),...MineralCore.workerAssets(location.href)]);
+      assets.push(...[...derived].filter(url=>!assets.some(asset=>new URL(asset,location.href).href===url)));
       await bounded(()=>navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}),15000,'离线服务启动超时',controller.signal);
       const cacheNames=await bounded(signal=>MineralCore.offlineWorkerIdentity(navigator.serviceWorker,location.href,signal,window.MessageChannel),15000,'离线服务检查超时，请刷新页面后重试',controller.signal);
       const manifest=await bounded(async signal=>{if(MineralEngine.prepare)return MineralEngine.prepare({signal});const response=await fetch('./model-manifest.json',{signal,cache:'reload'});if(!response.ok)throw new Error(`模型目录下载失败 (${response.status})`);return response.json();},30000,'模型目录读取超时',controller.signal);

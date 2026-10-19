@@ -17,7 +17,7 @@
     document.body.style.cssText = 'display:block;margin:0;background:#eef4f4;color:#143f40;min-height:100vh;font-family:Arial,sans-serif;';
     document.body.innerHTML = '<main id="native-boot-recovery" style="box-sizing:border-box;max-width:34rem;padding:28px 22px;margin:0 auto;line-height:1.8">'
       + '<h1 style="font-size:26px">识矿 · 系统组件需要更新</h1><p id="native-boot-message"></p>'
-      + '<p>安装版适用于 Android 7 及以上。请安装支持现代 JavaScript 的系统 WebView（Chrome 83 及以上），然后重新打开 App。本机标本和历史记录会保留。</p>'
+      + '<p>安装版适用于 Android 7 及以上。系统组件缺少上述必要能力时，请更新系统 WebView，然后重新打开 App。本机标本和历史记录会保留。</p>'
       + '<p>更新后，可分别拍照、选择照片文件或从视频取帧；每次分析同一个矿物主体，结合实测物性复核候选。</p>'
       + '<a href="https://play.google.com/store/apps/details?id=com.google.android.webview" style="color:#096e6a">更新系统 WebView</a>'
       + '<p>也可在手机应用商店或系统设置中更新 Android System WebView / Chrome；首次更新需要联网。</p>'
@@ -33,8 +33,8 @@
     if (typeof root.AbortController !== 'function') missing.push('AbortController');
     if (!root.crypto || !root.crypto.subtle) missing.push('SHA-256');
     if (!root.Image || !root.Image.prototype.decode) missing.push('图片解码');
-    try { var Syntax = root.Function || Function; new Syntax('var x={}; return x?.value ?? 0;'); new Syntax('return async function(){return 1;};'); }
-    catch (_) { missing.push('现代 JavaScript 语法'); }
+    // Shipped JS is built for Chrome69. Testing modern source syntax here would
+    // reject a compatible compiled app; still require the actual platform APIs.
     var result = { active: true, supported: missing.length === 0, missing: missing };
     root.__shikuangBootCapabilities = result;
     if (!result.supported) { recovery('系统 WebView 过旧或缺少必要能力：' + missing.join('、') + '。'); return result; }

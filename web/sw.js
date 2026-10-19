@@ -1,3 +1,4 @@
+importScripts('./compat.js');
 importScripts('./core.js?v=20261011-2.5.0-preview.1-r9');
 const CACHE_NAMES = MineralCore.offlineCaches(self.registration.scope);
 const STATIC = CACHE_NAMES.shell;
@@ -5,7 +6,7 @@ const MODELS = CACHE_NAMES.models;
 // Source-development pin. Build replaces it from the actual vendor bytes after
 // deriving the release identity, so future ORT updates cannot retain this hash.
 const RUNTIME_WASM = Object.freeze({"path":"vendor/ort-wasm-simd-threaded.wasm","bytes":11241642,"sha256":"704f51767fe3e11443aac6b5509c8654688e4cea3d988f96a069390b6eccbabc"});
-const ASSETS = ['./', './index.html', './styles.css', './app.js', './native-assets.js', './core.js', './inference.js', './storage.js', './engine-worker.js', './media.js', './history.js', './icon-192.png', './icon-512.png', './icon-maskable.png', './version.json', './data/sources.js', './config.js', './icon.svg', './manifest.webmanifest', './data/classes.js', './data/minerals.js', './data/imagenet.js', './vendor/lucide.min.js', './vendor/ort.min.js', './vendor/ort-wasm-simd-threaded.mjs', './vendor/ort-wasm-simd-threaded.wasm', './reference-loader.js', './gallery.js', './viewport.js', './data/reviewed-photo-assets.json', './data/licenses/reviewed-photos-v25.txt', './data/reference-manifest.json', './data/licenses/ima-cnmnc-2026-09.txt'];
+const ASSETS = ['./', './index.html', './styles.css', './app.js', './compat.js', './native-assets.js', './core.js', './inference.js', './storage.js', './engine-worker.js', './media.js', './history.js', './icon-192.png', './icon-512.png', './icon-maskable.png', './version.json', './data/sources.js', './config.js', './icon.svg', './manifest.webmanifest', './data/classes.js', './data/minerals.js', './data/imagenet.js', './vendor/lucide.min.js', './vendor/ort.min.js', './reference-loader.js', './gallery.js', './viewport.js', './data/reviewed-photo-assets.json', './data/licenses/reviewed-photos-v25.txt', './data/reference-manifest.json', './data/licenses/ima-cnmnc-2026-09.txt'];
 const scope = new URL(self.registration.scope);
 const manifestURL = new URL('model-manifest.json',scope);
 const hex = bytes => Array.from(new Uint8Array(bytes),b=>b.toString(16).padStart(2,'0')).join('');
@@ -127,7 +128,7 @@ self.addEventListener('install',event=>event.waitUntil((async()=>{
   const entry=await fetchBounded(new Request(entryURL,{cache:'no-cache'}));
   if(!entry.ok)throw new Error('Offline entry document installation failed');
   const html=await boundedCheck(entry.clone().text(),5000);
-  const assets=[...new Set([...ASSETS.map(path=>new URL(path,scope).href),...MineralCore.shellAssets(html,scope)])];
+  const assets=[...new Set([...ASSETS.map(path=>new URL(path,scope).href),...MineralCore.shellAssets(html,scope),...MineralCore.workerAssets(scope)])];
   // A new shell must not inherit still-fresh HTTP cache bodies from the old
   // release, including unversioned worker imports and reference metadata.
   const wasm=assets.filter(url=>new URL(url).pathname.endsWith('.wasm'));

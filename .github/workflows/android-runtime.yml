@@ -232,10 +232,48 @@ jobs:
         shell: bash
         run: |
           python3 - <<'PY'
-          import hashlib, json
+          import hashlib, json, re
+          import xml.etree.ElementTree as ET
           from pathlib import Path
           folder = Path('runtime-artifacts/runtime-smoke')
           report = json.loads((folder / 'runtime-report.json').read_text())
+          # Every matrix entry, including API24's stock Chrome69, must exercise
+          # the complete product. Recovery and skipped tests are not success.
+          assert report['phase'] == 'passed', report.get('phase')
+          assert report['fullOfflineProductVerified'] is True and report['photoRecognitionVerified'] is True
+          assert report['boot']['supported'] is True and report['boot']['missing'] == []
+          required_tests = {
+              'offlinePackagedNativeRecognitionAndRecovery',
+              'legacyNativeAssetMigrationPreservesSpecimens',
+              'explicitlyMissingCapabilityRecoveryDoesNotReplaceProductAcceptance',
+          }
+          cases = [case for path in Path('android/app/build/outputs/androidTest-results').rglob('*.xml')
+                   for case in ET.parse(path).getroot().iter('testcase')
+                   if case.get('classname') == 'com.shikuang.app.MineralEngineInstrumentedTest']
+          assert required_tests <= {case.get('name') for case in cases}, 'Missing full product test results'
+          assert all(case.find('skipped') is None and case.find('failure') is None and case.find('error') is None
+                     for case in cases), 'A required runtime test failed or skipped'
+          major = re.search(r'Chrome/(\d+)\.', report['userAgent'])
+          assert major, 'Actual stock WebView user-agent was not recorded'
+          if ${{ matrix.api }} in (24, 30):
+              assert int(major.group(1)) == {24: 69, 30: 83}[${{ matrix.api }}], 'Legacy provider changed; review the engine coverage instead of updating WebView to pass'
+          worker = report['workerProbe']
+          assert worker['status'] == 'message' and worker['message']['type'] == 'ready', worker
+          assert worker['bootstrapOnly'] is True and worker['wasmInferenceVerified'] is False
+          platform = report['wasmPlatform']
+          assert platform['inferenceVerified'] is False
+          assert all(type(platform[key]) is bool for key in ('webAssembly', 'sharedArrayBuffer', 'bigInt', 'simd', 'sharedMemory'))
+          # Bootstrap syntax/import success is required independently. Missing
+          # real SIMD/shared-memory capability is recorded, never polyfilled or
+          # reported as browser-WASM model inference; photos use native ONNX.
+          assert report['uiCancelRetry'] == {'cancelled': True, 'photoRetained': True, 'retried': True}
+          assert report['cancelTrigger'] == 'native-progress' and report['cancelError']['name'] == 'AbortError'
+          assert report['lastError']['message'] == '这不是矿物，请您放入清晰的矿物照片。'
+          assert len(report['inputEntrypoints']) == 3 and {row['id'] for row in report['inputEntrypoints']} == {'cameraBtn', 'videoBtn', 'galleryBtn'}
+          history = report['history']
+          assert history['recordUnchanged'] and history['searchPreserved'] and history['offlineRestartVerified'] and history['detailPhotoDecoded']
+          assert history['records'] == 1 and history['photoCount'] == 1 and history['key'] == 'quartz'
+          assert report['savedRecords'][0]['id'] == report['recordsAfterRejection'][0]['id'] == history['recordId']
           manifest = json.loads(Path('web/model-manifest.json').read_text())
           reference = json.loads(Path('web/data/reference-manifest.json').read_text())
           images = json.loads(Path('web/data/image-sources.json').read_text())
@@ -258,15 +296,12 @@ jobs:
           assert native['sdk'] == ${{ matrix.api }} and native['pageSize'] == ${{ matrix.pageSize }}
           assert {row['id']: row['sha256'] for row in native['graphs']} == {row['id']: row['sha256'] for row in manifest['models']}
           assert all(row['finiteOutput'] for row in native['graphs'])
-          if report['phase'] == 'unsupported-webview-recovery-passed':
-              assert ${{ matrix.api }} == 24 and report['photoRecognitionVerified'] is False
-              assert report['boot']['supported'] is False and report['boot']['missing']
-              assert report['network']['native']['activeNetwork'] is None and report['network']['native']['connected'] is False
-              assert '本机标本和历史记录会保留' in report['recovery']
-              content = (folder / 'legacy-webview-recovery.png').read_bytes()
-              assert content.startswith(b'\x89PNG\r\n\x1a\n') and len(content) > 1024
-              print('API24 factory WebView recovery UI and actual Java ONNX graph compatibility verified; photo UI recognition not claimed.')
-              raise SystemExit(0)
+          negative = json.loads((folder / 'missing-capability-recovery-report.json').read_text())
+          assert negative['phase'] == 'expected-missing-capability-recovery-verified'
+          assert negative['intentionalMissingCapability'] == 'AbortController' and negative['historyPreserved'] is True
+          assert negative['fullProductAcceptance'] is False
+          content = (folder / 'expected-missing-capability-recovery.png').read_bytes()
+          assert content.startswith(b'\x89PNG\r\n\x1a\n') and len(content) > 1024
           migration = json.loads((folder / 'asset-migration-report.json').read_text())
           assert migration['phase'] == 'migration-passed' and migration['historyPreserved'] is True
           assert migration['controller'] is False and migration['registrationCount'] == 0 and migration['poisonedPage'] is False
@@ -312,7 +347,7 @@ jobs:
               assert row['sourceUrl'].startswith('https://') and row['licenseUrl'].startswith('https://')
           assert len(report['catalogPhotoFetches']) >= len(report['galleryPhotos'])
           assert all(row['local'] is True and row['status'] == 200 and '?image=' in row['url'] for row in report['catalogPhotoFetches'])
-          for field in ('network', 'networkAfterCatalog'):
+          for field in ('network', 'networkAfterCatalog', 'networkAfterRestart'):
               assert report[field]['native']['activeNetwork'] is None
               assert report[field]['native']['connected'] is False
           assert report['photoGeometry']['exifOrientation'] == 6

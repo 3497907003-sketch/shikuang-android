@@ -13,6 +13,15 @@
     const prefix = 'shikuang-scope-' + encodeURIComponent(scope.href) + '::';
     return Object.freeze({ scope:scope.href, prefix, shell:prefix+OFFLINE_CACHES.shell, models:prefix+OFFLINE_CACHES.models });
   }
+  function shellResourceURL(name, base) {
+    const scope=new URL('./',base),url=new URL(name,scope);
+    if(url.origin!==scope.origin||!url.pathname.startsWith(scope.pathname)||url.username||url.password||url.hash)throw new Error('应用资源超出当前范围');
+    url.searchParams.set('v',OFFLINE_CACHES.shell.replace(/^shikuang-static-/,''));
+    return url.href;
+  }
+  function workerAssets(base) {
+    return ['compat.js','engine-worker.js','core.js','vendor/ort.min.js','vendor/ort-wasm-simd-threaded.mjs','vendor/ort-wasm-simd-threaded.wasm'].map(name=>shellResourceURL(name,base));
+  }
   async function offlineWorkerIdentity(serviceWorker, base, signal, Channel) {
     const expected = offlineCaches(base), scriptURL = new URL('sw.js', expected.scope).href;
     const stopped = () => new DOMException('离线准备已停止','AbortError');
@@ -81,7 +90,9 @@
     if (typeof html !== 'string' || html.length > 1000000) throw new Error('离线页面内容无效');
     const scope = new URL('./', base), urls = new Set();
     const attribute = (tag, name) => tag.match(new RegExp('(?:^|\\s)'+name+'\\s*=\\s*(?:"([^"]*)"|\'([^\']*)\')','i'))?.slice(1).find(value => value !== undefined);
-    for (const match of html.matchAll(/<(script|link)\b[^>]*>/gi)) {
+    const tags=/<(script|link)\b[^>]*>/gi;
+    let match;
+    while ((match=tags.exec(html)) !== null) {
       const tag = match[0], script = match[1].toLowerCase() === 'script';
       if (!script && !/\b(?:stylesheet|manifest|icon)\b/i.test(attribute(tag,'rel') || '')) continue;
       const value = attribute(tag, script ? 'src' : 'href');
@@ -344,5 +355,5 @@
     if (new Set(records.map(r => r.id)).size !== records.length) throw new Error('导入文件包含重复记录编号');
     return records;
   }
-  return { POLICY, OFFLINE_CACHES, offlineCaches, offlineWorkerIdentity, shellAssets, NON_MINERAL, BACKUP_LIMIT_BYTES, MODEL_MAX_BYTES, validateManifest, selectedModels, modelResourceURL, readResource, pixelsToInput, validateAnalysis, checkBackupSize, screen, softmax, probabilities, average, argmax, hardnessRange, evidenceFor, summarize, quality, qualityWarnings, sanitizeRecord, parseImport };
+  return { POLICY, OFFLINE_CACHES, offlineCaches, shellResourceURL, workerAssets, offlineWorkerIdentity, shellAssets, NON_MINERAL, BACKUP_LIMIT_BYTES, MODEL_MAX_BYTES, validateManifest, selectedModels, modelResourceURL, readResource, pixelsToInput, validateAnalysis, checkBackupSize, screen, softmax, probabilities, average, argmax, hardnessRange, evidenceFor, summarize, quality, qualityWarnings, sanitizeRecord, parseImport };
 });

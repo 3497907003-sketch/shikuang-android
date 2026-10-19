@@ -19,7 +19,7 @@ function runtimeWasm(entries) {
 
 function render(name,bytes,id,wasm) {
   if(!/^[a-f0-9]{64}$/.test(id))throw new Error('Invalid shell content identity');
-  if(!['index.html','core.js','sw.js'].includes(name))return bytes;
+  if(!['index.html','core.js','sw.js','engine-worker.js'].includes(name))return bytes;
   let text=bytes.toString('utf8');
   if(name==='index.html') {
     text=text.replace(/\b(src|href)="(\.\/[^"#]+)"/g,(whole,attr,value)=>{
@@ -32,7 +32,16 @@ function render(name,bytes,id,wasm) {
     const marker=/shell:'shikuang-static-[^']+'/g;
     if([...text.matchAll(marker)].length!==1)throw new Error('Shell cache identity marker changed');
     text=text.replace(marker,`shell:'shikuang-static-shell-${id}'`);
+  } else if(name==='engine-worker.js') {
+    for(const dependency of ['compat.js','vendor/ort.min.js','core.js']) {
+      const marker="importScripts('./"+dependency+"');";
+      if(text.split(marker).length!==2)throw new Error('Engine dependency import marker changed: '+dependency);
+      text=text.replace(marker,"importScripts('./"+dependency+"?v=shell-"+id+"');");
+    }
   } else {
+    const compat="importScripts('./compat.js');";
+    if(text.split(compat).length!==2)throw new Error('Worker compatibility import marker changed');
+    text=text.replace(compat,"importScripts('./compat.js?v=shell-"+id+"');");
     const marker=/importScripts\('\.\/core\.js(?:\?[^']*)?'\);/g;
     if([...text.matchAll(marker)].length!==1)throw new Error('Worker core import marker changed');
     text=text.replace(marker,`importScripts('./core.js?v=shell-${id}');`);

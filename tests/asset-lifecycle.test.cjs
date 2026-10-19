@@ -120,14 +120,15 @@ test('source-development WASM pin matches actual vendor bytes rather than mutabl
   assert.equal(descriptor.bytes,bytes.length);assert.equal(descriptor.sha256,hash(bytes));
 });
 test('installation prepares matching WASM with reload before activating a new shell and preserves identity-keyed weights',async()=>{
-  const caches=cacheStorage(),old=releaseCore('old'),fresh=releaseCore('new'),scope='https://localhost/app/',url=scope+'vendor/ort-wasm-simd-threaded.wasm';
+  const caches=cacheStorage(),old=releaseCore('old'),fresh=releaseCore('new'),scope='https://localhost/app/',url=fresh.shellResourceURL('vendor/ort-wasm-simd-threaded.wasm',scope);
   const oldNames=old.offlineCaches(scope),newNames=fresh.offlineCaches(scope),oldShell=await caches.open(oldNames.shell),models=await caches.open(newNames.models);
   await oldShell.put(url,new Response(wasm('old')));await models.put(scope+'models/saved.onnx?model=old',new Response('saved weights'));
   const sw=serviceWorker(scope,caches,fresh),requests=[];sw.network.fetch=installationNetwork('new',requests);
   await sw.install();assert.equal(sw.state.skipWaiting,1);
-  assert.equal(requests.filter(request=>request.url===url).length,1);assert.equal(requests.find(request=>request.url===url).cache,'reload');
+  assert.equal(requests.filter(request=>new URL(request.url).pathname.endsWith('.wasm')).length,1);assert.equal(requests.find(request=>request.url===url).cache,'reload');
+  assert.equal(requests.filter(request=>new URL(request.url).pathname.endsWith('.mjs')).length,1);
   const newShell=await caches.open(newNames.shell);assert.match(await (await newShell.match(scope+'vendor/ort.min.js')).text(),/^new /);
-  assert.match(await (await newShell.match(scope+'vendor/ort-wasm-simd-threaded.mjs')).text(),/^new /);
+  assert.match(await (await newShell.match(fresh.shellResourceURL('vendor/ort-wasm-simd-threaded.mjs',scope))).text(),/^new /);
   assert.deepEqual(Buffer.from(await (await newShell.match(url)).arrayBuffer()),wasm('new'));
   sw.network.fetch=async()=>{throw Error('offline');};assert.deepEqual(Buffer.from(await (await sw.request(url)).arrayBuffer()),wasm('new'));
   assert.deepEqual(Buffer.from(await (await oldShell.match(url)).arrayBuffer()),wasm('old'));
@@ -135,7 +136,7 @@ test('installation prepares matching WASM with reload before activating a new sh
 });
 test('missing or invalid new WASM cannot activate an upgrade or destroy the old offline shell; a later installation can recover',async()=>{
   for(const failure of ['http','invalid','old-valid','empty-valid']){
-    const caches=cacheStorage(),scope='https://localhost/app/',old=releaseCore('old-'+failure),fresh=releaseCore('new-'+failure),url=scope+'vendor/ort-wasm-simd-threaded.wasm';
+    const caches=cacheStorage(),scope='https://localhost/app/',old=releaseCore('old-'+failure),fresh=releaseCore('new-'+failure),url=fresh.shellResourceURL('vendor/ort-wasm-simd-threaded.wasm',scope);
     const oldShell=await caches.open(old.offlineCaches(scope).shell),models=await caches.open(old.offlineCaches(scope).models);
     await oldShell.put(url,new Response(wasm('old')));await oldShell.put(scope+'index.html',new Response('old entry'));
     await models.put(url,new Response(wasm('legacy old')));

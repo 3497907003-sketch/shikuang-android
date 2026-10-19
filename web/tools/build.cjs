@@ -22,23 +22,18 @@ for (const model of manifest.models) {
   if(bytes.length!==model.bytes || crypto.createHash('sha256').update(bytes).digest('hex')!==model.sha256) throw new Error('Model file does not match manifest: '+model.path);
   require('./onnx-contract.cjs').validate(bytes,model);
 }
-const files = ['index.html', 'styles.css', 'app.js', 'native-assets.js', 'core.js', 'inference.js', 'engine-worker.js', 'media.js', 'history.js', 'storage.js', 'config.js', 'sw.js', 'version.json', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png', 'icon-maskable.png', 'model-manifest.json', 'data/classes.js', 'data/minerals.js', 'data/sources.js', 'data/imagenet.js', 'vendor/lucide.min.js', 'vendor/ort.min.js', 'vendor/ort-wasm-simd-threaded.mjs', 'vendor/ort-wasm-simd-threaded.wasm', ...manifest.models.map(model=>model.path), 'reference-loader.js', 'gallery.js', 'viewport.js', 'data/catalog.json', 'data/crystals.json', 'data/image-sources.json', 'data/reference-manifest.json', 'data/reviewed-photo-assets.json', 'data/licenses/ima-cnmnc-2026-09.txt', 'data/licenses/reviewed-photos-v25.txt', ...photos.map(row=>row.path)];
+const files = ['index.html', 'styles.css', 'app.js', 'compat.js', 'native-assets.js', 'core.js', 'inference.js', 'engine-worker.js', 'media.js', 'history.js', 'storage.js', 'config.js', 'sw.js', 'version.json', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png', 'icon-maskable.png', 'model-manifest.json', 'data/classes.js', 'data/minerals.js', 'data/sources.js', 'data/imagenet.js', 'vendor/lucide.min.js', 'vendor/ort.min.js', 'vendor/ort-wasm-simd-threaded.mjs', 'vendor/ort-wasm-simd-threaded.wasm', ...manifest.models.map(model=>model.path), 'reference-loader.js', 'gallery.js', 'viewport.js', 'data/catalog.json', 'data/crystals.json', 'data/image-sources.json', 'data/reference-manifest.json', 'data/reviewed-photo-assets.json', 'data/licenses/ima-cnmnc-2026-09.txt', 'data/licenses/reviewed-photos-v25.txt', ...photos.map(row=>row.path)];
 // A missing optional-looking attribution or reference asset is still a broken
 // installable package. Check the complete set before replacing the prior build.
 for(const file of files)if(!fs.statSync(path.join(root,file)).isFile())throw new Error('Offline asset is not a file: '+file);
 const shellRelease=require('./shell-release.cjs');
 const inputs=files.map(file=>[file,fs.readFileSync(path.join(root,file))]);
-const buildInputs=['tools/build.cjs','tools/shell-release.cjs'].map(file=>['@build/'+file,fs.readFileSync(path.join(root,file))]);
+const compat=require('./compat-js.cjs');
+const buildInputs=compat.BUILD_INPUT_PATHS.map(file=>['@build/'+file,fs.readFileSync(path.join(root,file))]);
+const compile=compat.transformer();
 const shellRevision=shellRelease.revision([...inputs,...buildInputs]);
 const runtimeWasm=shellRelease.runtimeWasm(inputs);
 // Render and validate every transformed asset before replacing a prior build.
-const rendered=inputs.map(([file,bytes])=>[file,shellRelease.render(file,bytes,shellRevision,runtimeWasm)]);
-const output = path.join(root, 'dist');
-fs.rmSync(output, { recursive: true, force: true });
-fs.mkdirSync(output, { recursive: true });
-for (const [file,bytes] of rendered) {
-  const target = path.join(output, file);
-  fs.mkdirSync(path.dirname(target), { recursive: true });
-  fs.writeFileSync(target,bytes);
-}
+const rendered=inputs.map(([file,bytes])=>[file,compile(file,shellRelease.render(file,bytes,shellRevision,runtimeWasm))]);
+compat.replaceDist(root,rendered);
 console.log(`Built ${files.length} offline assets in dist/; shell ${shellRevision}`);

@@ -155,7 +155,7 @@ test('main engine terminates a genuine software Worker on release rejection, can
       postMessage(payload){this.thread.postMessage(payload);}
       terminate(){this.terminationCalls++;this.termination=this.thread.terminate();}
     }
-    const context={URL,DOMException,Worker:WorkerBridge,location:{href:'https://localhost/index.html'},
+    const context={URL,DOMException,MineralCore:Core,Worker:WorkerBridge,location:{href:'https://localhost/index.html'},
       window:{Worker:WorkerBridge,IMAGENET_BLOCKED:Array(1000).fill(false),MINERAL_KB:{}},
       setTimeout:(fn,ms)=>ms===120000?(deadlines.push(fn),{softwareOverallDeadline:true}):setTimeout(fn,ms),
       clearTimeout:id=>{if(!id?.softwareOverallDeadline)clearTimeout(id);}};

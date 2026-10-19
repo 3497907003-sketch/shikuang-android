@@ -47,7 +47,7 @@
   function workerRun(inputs,keys,{signal,report,models,manifestHash}) {
     abort(signal);
     if(!window.Worker)throw new Error('当前 WebView 不支持后台识别，请更新系统 WebView');
-    if(!worker){workerReady=false;worker=new Worker(new URL('./engine-worker.js',location.href));}
+    if(!worker){workerReady=false;worker=new Worker(MineralCore.shellResourceURL('./engine-worker.js',location.href));}
     const current=worker;
     return new Promise((resolve,reject)=>{
       let settled=false,repairPending=Promise.resolve();
