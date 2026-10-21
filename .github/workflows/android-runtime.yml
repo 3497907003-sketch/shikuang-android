@@ -500,7 +500,9 @@ jobs:
       - run: npm ci
       - run: npm run sync
       - name: Check diagnostic terminal and evidence contracts
-        run: python3 -B -m unittest discover -s tools -p test_android_lifecycle_diagnostic.py
+        run: |
+          python3 -B -m unittest discover -s tools -p test_android_lifecycle_diagnostic.py
+          python3 -B -m unittest discover -s tools -p test_android_compiled_layout.py
       - name: Compile debug, test and release without running instrumentation
         run: ./android/gradlew -p android --no-daemon --max-workers=2 assembleDebug assembleDebugAndroidTest assembleRelease
       - name: Verify built manifests and exact helper
@@ -509,8 +511,8 @@ jobs:
           SHIKUANG_ANDROID_SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
           "$SHIKUANG_ANDROID_SDK/cmdline-tools/latest/bin/apkanalyzer" manifest print android/app/build/outputs/apk/debug/app-debug.apk > lifecycle-artifacts/build/debug-manifest.xml
           "$SHIKUANG_ANDROID_SDK/cmdline-tools/latest/bin/apkanalyzer" manifest print android/app/build/outputs/apk/release/app-release-unsigned.apk > lifecycle-artifacts/build/release-manifest.xml
-          "$SHIKUANG_ANDROID_SDK/cmdline-tools/latest/bin/apkanalyzer" resources xml --file /res/layout/bridge_layout_main.xml android/app/build/outputs/apk/debug/app-debug.apk > lifecycle-artifacts/build/debug-bridge-layout.xml
-          "$SHIKUANG_ANDROID_SDK/cmdline-tools/latest/bin/apkanalyzer" resources xml --file /res/layout/bridge_layout_main.xml android/app/build/outputs/apk/release/app-release-unsigned.apk > lifecycle-artifacts/build/release-bridge-layout.xml
+          python3 -B tools/android_compiled_layout.py --apkanalyzer "$SHIKUANG_ANDROID_SDK/cmdline-tools/latest/bin/apkanalyzer" --apk android/app/build/outputs/apk/debug/app-debug.apk --out lifecycle-artifacts/build/debug-layout-inspection --xml-out lifecycle-artifacts/build/debug-bridge-layout.xml
+          python3 -B tools/android_compiled_layout.py --apkanalyzer "$SHIKUANG_ANDROID_SDK/cmdline-tools/latest/bin/apkanalyzer" --apk android/app/build/outputs/apk/release/app-release-unsigned.apk --out lifecycle-artifacts/build/release-layout-inspection --xml-out lifecycle-artifacts/build/release-bridge-layout.xml
           "$SHIKUANG_ANDROID_SDK/cmdline-tools/latest/bin/apkanalyzer" dex packages --defined-only android/app/build/outputs/apk/release/app-release-unsigned.apk > lifecycle-artifacts/build/release-defined-classes.txt
           python3 -B - <<'PY'
           import xml.etree.ElementTree as E
