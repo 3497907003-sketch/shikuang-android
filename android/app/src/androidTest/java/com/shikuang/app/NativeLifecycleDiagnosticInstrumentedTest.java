@@ -36,7 +36,7 @@ import org.junit.runner.RunWith;
 public final class NativeLifecycleDiagnosticInstrumentedTest {
     private static final AtomicBoolean STARTED = new AtomicBoolean();
 
-    private interface Probe { void run() throws Throwable; }
+    private interface Probe { void run(JSONObject proof) throws Throwable; }
 
     private JSONObject requireExactEnvironment(String arm) throws Exception {
         Bundle args = InstrumentationRegistry.getArguments();
@@ -66,7 +66,7 @@ public final class NativeLifecycleDiagnosticInstrumentedTest {
     }
 
     private void runAndRecord(String arm, Probe probe) throws Throwable {
-        JSONObject proof = new JSONObject().put("schema", "shikuang-native-lifecycle-diagnostic-v1")
+        JSONObject proof = new JSONObject().put("schema", "shikuang-native-lifecycle-diagnostic-v2")
             .put("arm", arm).put("startedElapsedRealtimeNanos", SystemClock.elapsedRealtimeNanos())
             .put("nonce", InstrumentationRegistry.getArguments().getString("diagnosticNonce", "missing"))
             .put("fullProductAcceptance", false).put("originalFailureRemainsRecorded", true)
@@ -74,7 +74,7 @@ public final class NativeLifecycleDiagnosticInstrumentedTest {
         Throwable primary = null;
         try {
             proof.put("environment", requireExactEnvironment(arm));
-            probe.run();
+            probe.run(proof);
             proof.put("completed", true);
         } catch (Throwable failure) {
             primary = failure;
@@ -82,8 +82,17 @@ public final class NativeLifecycleDiagnosticInstrumentedTest {
             throw failure;
         } finally {
             try {
+                JSONObject snapshot = new JSONObject(RuntimeLifecycleDiagnostics.snapshot());
+                proof.put("lifecycle", snapshot);
+                try {
+                    proof.put("ownership", ownershipSummary(snapshot, "plain".equals(arm) ? "plain-" : "", "packaged".equals(arm)));
+                } catch (Throwable ownershipFailure) {
+                    proof.put("completed", false);
+                    proof.put("ownership", new JSONObject().put("schema", "shikuang-direct-WebView-ownership-v2")
+                        .put("ownershipComplete", false).put("evaluationFailureType", ownershipFailure.getClass().getName()));
+                    if (primary != null) primary.addSuppressed(ownershipFailure);
+                }
                 proof.put("endedElapsedRealtimeNanos", SystemClock.elapsedRealtimeNanos());
-                proof.put("lifecycle", new JSONObject(RuntimeLifecycleDiagnostics.snapshot()));
                 try (OutputStream output = RuntimeTestOutput.open("native-lifecycle-" + arm + ".json")) {
                     output.write(proof.toString(2).getBytes(StandardCharsets.UTF_8));
                 }
@@ -115,58 +124,101 @@ public final class NativeLifecycleDiagnosticInstrumentedTest {
         fail("Inline control did not become ready");
     }
 
-    private boolean lifecycleComplete(String prefix, boolean requirePlugin) throws Exception {
-        JSONObject snapshot = new JSONObject(RuntimeLifecycleDiagnostics.snapshot());
-        assertEquals("Lifecycle evidence must not be truncated", 0L, snapshot.getLong("droppedEvents"));
+    private JSONObject ownershipSummary(JSONObject snapshot, String prefix, boolean requirePlugin) throws Exception {
         JSONArray events = snapshot.getJSONArray("events");
-        Set<Integer> created = new HashSet<>(), destroyed = new HashSet<>(), detached = new HashSet<>();
-        Set<Integer> pluginEntered = new HashSet<>(), pluginCompleted = new HashSet<>();
-        Set<Integer> viewIdentities = new HashSet<>();
-        Map<Integer, Map<String, Integer>> activityPhases = new HashMap<>();
-        Map<Integer, Map<String, Integer>> pluginPhases = new HashMap<>();
+        Map<Integer, JSONObject> created = new HashMap<>(), viewCreated = new HashMap<>();
+        Map<Integer, Map<String, Integer>> activities = new HashMap<>(), views = new HashMap<>(), plugins = new HashMap<>();
+        Map<Integer, Map<String, Long>> viewSequences = new HashMap<>();
+        Set<Integer> destroyed = new HashSet<>(), activityDetached = new HashSet<>(), decorDetached = new HashSet<>();
+        Set<Integer> pluginActivities = new HashSet<>();
         long previousSequence = 0, previousTime = 0;
+        boolean integrity = snapshot.getLong("droppedEvents") == 0;
+        JSONObject lastCreated = null;
         for (int i = 0; i < events.length(); i++) {
             JSONObject event = events.getJSONObject(i);
-            String phase = event.getString("phase");
+            long sequence = event.getLong("sequence"), tick = event.getLong("elapsedRealtimeNanos");
+            integrity &= sequence == previousSequence + 1 && tick >= previousTime;
+            previousSequence = sequence; previousTime = tick;
+            String phase = event.getString("phase"), kind = event.getString("ownerKind");
             int owner = event.getInt("ownerIdentity");
-            assertTrue("Receipt sequence must strictly increase", event.getLong("sequence") > previousSequence);
-            assertTrue("Receipt time must be monotonic", event.getLong("elapsedRealtimeNanos") >= previousTime);
-            previousSequence = event.getLong("sequence"); previousTime = event.getLong("elapsedRealtimeNanos");
-            Map<Integer, Map<String, Integer>> owners = phase.startsWith("plugin-") ? pluginPhases : activityPhases;
+            if ("decor".equals(kind)) {
+                if ("decor-detach".equals(phase)) decorDetached.add(event.getInt("decorIdentity"));
+                continue;
+            }
+            Map<Integer, Map<String, Integer>> owners;
+            if ("activity".equals(kind)) owners = activities;
+            else if ("view".equals(kind)) owners = views;
+            else if ("plugin".equals(kind)) owners = plugins;
+            else { integrity = false; continue; }
             Map<String, Integer> phases = owners.get(owner);
             if (phases == null) { phases = new HashMap<>(); owners.put(owner, phases); }
             phases.put(phase, phases.containsKey(phase) ? phases.get(phase) + 1 : 1);
-            if (phase.equals(prefix + "create-exit")) { created.add(owner); viewIdentities.add(event.getInt("webViewIdentity")); }
-            if (phase.equals(prefix + "destroy-exit")) destroyed.add(owner);
-            if (phase.equals(prefix + "detach-exit")) detached.add(owner);
-            if (phase.equals("plugin-destroy-enter")) pluginEntered.add(owner);
-            if (phase.equals("plugin-cleanup-complete")) pluginCompleted.add(owner);
-        }
-        if (created.size() != 2 || viewIdentities.size() != 2 || viewIdentities.contains(0)
-                || !created.equals(destroyed) || !created.equals(detached)) return false;
-        for (int owner : created) {
-            Map<String, Integer> phases = activityPhases.get(owner);
-            for (String stage : new String[] {"create", "destroy", "detach"}) {
-                assertEquals("No duplicate " + stage + " enter per Activity", Integer.valueOf(1), phases.get(prefix + stage + "-enter"));
-                assertEquals("No duplicate " + stage + " exit per Activity", Integer.valueOf(1), phases.get(prefix + stage + "-exit"));
-            }
-            for (String stage : new String[] {"resume", "pause", "stop"}) {
-                if (!phases.containsKey(prefix + stage + "-enter") || !phases.get(prefix + stage + "-enter").equals(phases.get(prefix + stage + "-exit"))) return false;
+            if ("plugin".equals(kind) && "plugin-destroy-enter".equals(phase)) pluginActivities.add(event.getInt("activityIdentity"));
+            if ("activity".equals(kind)) {
+                if (phase.equals(prefix + "create-exit")) { created.put(owner, event); lastCreated = event; }
+                if (phase.equals(prefix + "destroy-exit")) destroyed.add(owner);
+                if (phase.equals(prefix + "detach-exit")) activityDetached.add(owner);
+            } else if ("view".equals(kind)) {
+                if ("view-create".equals(phase)) viewCreated.put(owner, event);
+                Map<String, Long> positions = viewSequences.get(owner);
+                if (positions == null) { positions = new HashMap<>(); viewSequences.put(owner, positions); }
+                positions.put(phase, sequence);
             }
         }
-        if (!requirePlugin) {
-            assertTrue("Plain control must not create the mineral plugin", pluginEntered.isEmpty());
-            return true;
+        Set<Integer> expectedViews = new HashSet<>();
+        boolean activityComplete = created.size() == 2 && created.keySet().equals(destroyed);
+        for (Map.Entry<Integer, JSONObject> entry : created.entrySet()) {
+            JSONObject birth = entry.getValue(); expectedViews.add(birth.getInt("webViewIdentity"));
+            integrity &= birth.getInt("windowIdentity") != 0 && birth.getInt("decorIdentity") != 0;
+            Map<String, Integer> phases = activities.get(entry.getKey());
+            for (String stage : new String[] {"create", "destroy"})
+                activityComplete &= Integer.valueOf(1).equals(phases.get(prefix + stage + "-enter"))
+                    && Integer.valueOf(1).equals(phases.get(prefix + stage + "-exit"));
+            for (String stage : new String[] {"resume", "pause", "stop"})
+                activityComplete &= phases.containsKey(prefix + stage + "-enter")
+                    && phases.get(prefix + stage + "-enter").equals(phases.get(prefix + stage + "-exit"));
         }
-        if (pluginEntered.size() != 2 || !pluginEntered.equals(pluginCompleted)) return false;
-        for (int owner : pluginEntered) for (String phase : new String[] {
-                "plugin-destroy-enter", "plugin-cancel-complete", "plugin-cleanup-enter",
-                "plugin-cleanup-complete", "plugin-shutdown-requested", "plugin-destroy-exit"}) {
-            Integer count = pluginPhases.get(owner).get(phase);
-            if (count == null) return false;
-            assertEquals("No duplicate plugin lifecycle phase", Integer.valueOf(1), count);
+        boolean twoViews = expectedViews.size() == 2 && !expectedViews.contains(0) && viewCreated.keySet().equals(expectedViews);
+        JSONArray dispatch = new JSONArray(), missing = new JSONArray();
+        boolean destroyedBothViews = twoViews;
+        for (int view : expectedViews) {
+            Map<String, Integer> phases = views.get(view);
+            Map<String, Long> positions = viewSequences.get(view);
+            int enters = phases != null && phases.containsKey("view-destroy-enter") ? phases.get("view-destroy-enter") : 0;
+            int exits = phases != null && phases.containsKey("view-destroy-exit") ? phases.get("view-destroy-exit") : 0;
+            JSONObject birth = viewCreated.get(view);
+            boolean ownerKnown = birth != null && created.containsKey(birth.getInt("activityIdentity"))
+                && created.get(birth.getInt("activityIdentity")).getInt("webViewIdentity") == view;
+            boolean complete = enters == 1 && exits == 1 && ownerKnown
+                && Integer.valueOf(1).equals(phases.get("view-create"))
+                && positions.get("view-create") < positions.get("view-destroy-enter")
+                && positions.get("view-destroy-enter") < positions.get("view-destroy-exit");
+            destroyedBothViews &= complete;
+            if (!complete) missing.put(view);
+            dispatch.put(new JSONObject().put("viewIdentity", view).put("destroyEnters", enters)
+                .put("destroyExits", exits).put("ownerKnown", ownerKnown).put("complete", complete));
         }
-        return true;
+        boolean pluginComplete = !requirePlugin ? plugins.isEmpty() : plugins.size() == 2 && pluginActivities.equals(created.keySet());
+        if (requirePlugin) for (Map<String, Integer> phases : plugins.values())
+            for (String phase : new String[] {"plugin-destroy-enter", "plugin-cancel-complete", "plugin-cleanup-enter",
+                    "plugin-cleanup-complete", "plugin-shutdown-requested", "plugin-destroy-exit"})
+                pluginComplete &= Integer.valueOf(1).equals(phases.get(phase));
+        boolean finalDetach = lastCreated != null && activityDetached.contains(lastCreated.getInt("ownerIdentity"))
+            && decorDetached.contains(lastCreated.getInt("decorIdentity"));
+        // Activity recreation can preserve Decor and replace its Window callback.
+        // One final Activity detach never substitutes for the first view's destroy.
+        return new JSONObject().put("schema", "shikuang-direct-WebView-ownership-v2")
+            .put("integrity", integrity).put("activityDestroyedComplete", activityComplete)
+            .put("twoDistinctCreatedViews", twoViews).put("finalWindowAndDecorDetached", finalDetach)
+            .put("activityDetachExitCount", activityDetached.size()).put("pluginCleanupComplete", pluginComplete)
+            .put("viewDestroyDispatch", dispatch).put("missingWebViewDestroyIds", missing)
+            .put("ownershipComplete", integrity && activityComplete && twoViews && destroyedBothViews && pluginComplete && finalDetach)
+            .put("nativeMemoryFullyReleased", JSONObject.NULL);
+    }
+
+    private boolean lifecycleComplete(String prefix, boolean requirePlugin) throws Exception {
+        return ownershipSummary(new JSONObject(RuntimeLifecycleDiagnostics.snapshot()), prefix, requirePlugin)
+            .getBoolean("ownershipComplete");
     }
 
     private void awaitLifecycleCompletion(String prefix, boolean requirePlugin) throws Exception {
@@ -179,21 +231,25 @@ public final class NativeLifecycleDiagnosticInstrumentedTest {
     }
 
     @Test public void plainWebViewSingleRecreateAndClose() throws Throwable {
-        runAndRecord("plain", () -> {
+        runAndRecord("plain", proof -> {
             try (ActivityScenario<PlainWebViewDiagnosticActivity> scenario = ActivityScenario.launch(PlainWebViewDiagnosticActivity.class)) {
                 awaitPlainPage(scenario);
+                proof.put("initialPageReady", true);
                 scenario.recreate();
                 awaitPlainPage(scenario);
+                proof.put("recreatedPageReady", true);
             }
+            proof.put("scenarioCloseReturned", true);
             awaitLifecycleCompletion("plain-", false);
         });
     }
 
     @Test public void packagedMigrationSingleRecreateAndClose() throws Throwable {
-        runAndRecord("packaged", () -> {
+        runAndRecord("packaged", proof -> {
             // Invoke the existing exact migration test, including every original
             // fixture, migration assertion and cleanup. No duplicate substitute.
             new MineralEngineInstrumentedTest().legacyNativeAssetMigrationPreservesSpecimens();
+            proof.put("legacyMethodReturned", true);
             awaitLifecycleCompletion("", true);
         });
     }

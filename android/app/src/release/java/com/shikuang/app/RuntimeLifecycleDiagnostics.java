@@ -4,7 +4,9 @@ package com.shikuang.app;
 public final class RuntimeLifecycleDiagnostics {
     public static final boolean ENABLED = false;
     private RuntimeLifecycleDiagnostics() {}
-    public static void activity(String phase, Object owner, int webViewIdentity) {}
+    public static void activity(String phase, Object owner, int webViewIdentity,
+                                int windowIdentity, int decorIdentity, boolean changingConfigurations) {}
+    public static void observeDecor(android.view.View decor, int activityIdentity, int windowIdentity, int decorIdentity) {}
     public static void plugin(String phase, Object owner, int activityIdentity, int webViewIdentity,
                               int jobs, int sessions, Boolean environmentPresent) {}
 }

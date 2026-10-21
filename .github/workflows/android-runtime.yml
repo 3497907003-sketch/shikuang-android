@@ -509,6 +509,9 @@ jobs:
           SHIKUANG_ANDROID_SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
           "$SHIKUANG_ANDROID_SDK/cmdline-tools/latest/bin/apkanalyzer" manifest print android/app/build/outputs/apk/debug/app-debug.apk > lifecycle-artifacts/build/debug-manifest.xml
           "$SHIKUANG_ANDROID_SDK/cmdline-tools/latest/bin/apkanalyzer" manifest print android/app/build/outputs/apk/release/app-release-unsigned.apk > lifecycle-artifacts/build/release-manifest.xml
+          "$SHIKUANG_ANDROID_SDK/cmdline-tools/latest/bin/apkanalyzer" resources xml --file /res/layout/bridge_layout_main.xml android/app/build/outputs/apk/debug/app-debug.apk > lifecycle-artifacts/build/debug-bridge-layout.xml
+          "$SHIKUANG_ANDROID_SDK/cmdline-tools/latest/bin/apkanalyzer" resources xml --file /res/layout/bridge_layout_main.xml android/app/build/outputs/apk/release/app-release-unsigned.apk > lifecycle-artifacts/build/release-bridge-layout.xml
+          "$SHIKUANG_ANDROID_SDK/cmdline-tools/latest/bin/apkanalyzer" dex packages --defined-only android/app/build/outputs/apk/release/app-release-unsigned.apk > lifecycle-artifacts/build/release-defined-classes.txt
           python3 -B - <<'PY'
           import xml.etree.ElementTree as E
           from pathlib import Path
@@ -519,6 +522,18 @@ jobs:
               assert len(rows) == expected
               assert not rows or rows[0].get(ns+'exported') == 'false'
               assert root.get('package') == 'com.shikuang.app' + ('.preview' if mode == 'debug' else '')
+          debug = E.parse('lifecycle-artifacts/build/debug-bridge-layout.xml').getroot()
+          release = E.parse('lifecycle-artifacts/build/release-bridge-layout.xml').getroot()
+          expected = 'com.shikuang.app.DiagnosticCapacitorWebView'
+          nodes = [n for n in debug.iter() if n.tag == expected]
+          assert len(nodes) == 1
+          nodes[0].tag = 'com.getcapacitor.CapacitorWebView'
+          def shape(node):
+              attrs = {k: v.replace('@com.shikuang.app.preview:', '@com.shikuang.app:') for k, v in node.attrib.items()}
+              return (node.tag, attrs, [shape(child) for child in node])
+          assert shape(debug) == shape(release), 'Debug layout changed more than the one observer class'
+          classes = Path('lifecycle-artifacts/build/release-defined-classes.txt').read_text()
+          assert not any(name in classes for name in ['DiagnosticCapacitorWebView', 'DiagnosticPlainWebView', 'DiagnosticViewIdentity', 'PlainWebViewDiagnosticActivity'])
           PY
           curl --fail --silent --show-error --max-time 90 --output lifecycle-artifacts/build/test-services-1.4.2.apk https://dl.google.com/dl/android/maven2/androidx/test/services/test-services/1.4.2/test-services-1.4.2.apk
           echo 'c6bc74268b29bdabad8da962e00e2f6fd613c24b42c69e81b258397b4819f156  lifecycle-artifacts/build/test-services-1.4.2.apk' | sha256sum --check

@@ -11,9 +11,13 @@ import android.widget.FrameLayout;
 public final class PlainWebViewDiagnosticActivity extends Activity {
     private WebView webView;
     private int webViewIdentity;
+    private int windowIdentity;
+    private int decorIdentity;
+    private boolean changingConfigurations;
 
     private void receipt(String phase) {
-        RuntimeLifecycleDiagnostics.activity("plain-" + phase, this, webViewIdentity);
+        RuntimeLifecycleDiagnostics.activity("plain-" + phase, this, webViewIdentity,
+            windowIdentity, decorIdentity, changingConfigurations);
     }
 
     public WebView liveWebView() {
@@ -26,8 +30,15 @@ public final class PlainWebViewDiagnosticActivity extends Activity {
         super.onCreate(savedInstanceState);
         FrameLayout container = new FrameLayout(this);
         setContentView(container);
-        webView = new WebView(this);
+        webView = new DiagnosticPlainWebView(this);
         webViewIdentity = System.identityHashCode(webView);
+        if (RuntimeLifecycleDiagnostics.ENABLED) {
+            android.view.Window window = getWindow();
+            android.view.View decor = window == null ? null : window.peekDecorView();
+            windowIdentity = System.identityHashCode(window);
+            decorIdentity = System.identityHashCode(decor);
+            RuntimeLifecycleDiagnostics.observeDecor(decor, System.identityHashCode(this), windowIdentity, decorIdentity);
+        }
         container.addView(webView, new FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         webView.getSettings().setJavaScriptEnabled(true);
@@ -52,6 +63,7 @@ public final class PlainWebViewDiagnosticActivity extends Activity {
     }
 
     @Override public void onDestroy() {
+        if (RuntimeLifecycleDiagnostics.ENABLED) changingConfigurations = isChangingConfigurations();
         receipt("destroy-enter"); super.onDestroy(); receipt("destroy-exit");
     }
 

@@ -69,65 +69,147 @@ def environment(host, label, expected_boot=None, expected_fingerprint=None):
     return boot
 
 
-def verify_report(report, arm, nonce, actual_pid):
-    need(report.get('schema') == 'shikuang-native-lifecycle-diagnostic-v1' and report.get('arm') == arm,
-         'correct_current_report')
-    need(report.get('nonce') == nonce and report.get('completed') is True and report.get('plannedAttempts') == 1,
-         'stale_failed_or_duplicate_report')
+def evidence_report(report, arm, nonce, actual_pid):
+    """Validate current partial evidence without turning a failed probe green."""
+    need(report.get('schema') == 'shikuang-native-lifecycle-diagnostic-v2' and report.get('arm') == arm,
+         'correct_current_v2_report')
+    need(report.get('nonce') == nonce and type(report.get('completed')) is bool and report.get('plannedAttempts') == 1,
+         'stale_or_duplicate_report')
     need(report.get('fullProductAcceptance') is False and report.get('originalFailureRemainsRecorded') is True,
          'diagnostic_not_acceptance')
-    env = report['environment']
-    need(env == {'sdk': 35, 'pageSize': 16384, 'providerPackage': 'com.google.android.webview',
+    need(report['environment'] == {'sdk': 35, 'pageSize': 16384, 'providerPackage': 'com.google.android.webview',
         'providerVersion': '124.0.6367.219', 'providerVersionCode': 636771938,
         'pid': actual_pid, 'activeNetwork': None}, 'actual_native_environment_or_PID_mismatch')
     start, end = report['startedElapsedRealtimeNanos'], report['endedElapsedRealtimeNanos']
     need(type(start) is int and type(end) is int and 0 < start < end, 'native_monotonic_time')
     snap = report['lifecycle']; events = snap['events']
-    need(snap.get('pid') == actual_pid and snap.get('droppedEvents') == 0 and 0 < len(events) <= 256,
-         'untruncated_current_process_receipts')
+    need(snap.get('schema') == 'shikuang-debug-lifecycle-snapshot-v2' and snap.get('pid') == actual_pid
+         and snap.get('droppedEvents') == 0 and 0 < len(events) <= 256, 'untruncated_current_process_receipts')
     last_seq, last_time = 0, start
-    phases, plugin_owners, created, destroyed, detached, views = {}, set(), set(), set(), set(), set()
-    activity_views = {}
-    prefix = 'plain-' if arm == 'plain' else ''
     for row in events:
         seq, tick = row['sequence'], row['elapsedRealtimeNanos']
-        need(type(seq) is int and seq > last_seq and type(tick) is int and last_time <= tick <= end,
-             'monotonic_ordered_event_receipts')
+        need(row.get('schema') == 'shikuang-debug-lifecycle-v2' and type(seq) is int and seq == last_seq + 1
+             and type(tick) is int and last_time <= tick <= end, 'monotonic_ordered_event_receipts')
         need(row['pid'] == actual_pid and type(row['tid']) is int and row['tid'] > 0, 'event_process_thread')
+        need(row['ownerKind'] in ('activity', 'view', 'plugin', 'decor'), 'known_observer_kind')
+        for key in ('ownerIdentity', 'activityIdentity', 'webViewIdentity', 'windowIdentity', 'decorIdentity'):
+            need(type(row.get(key)) is int, 'cached_identity_number')
+        need(row['changingConfigurations'] is None or type(row['changingConfigurations']) is bool,
+             'cached_configuration_flag')
         last_seq, last_time = seq, tick
-        owner, phase = row['ownerIdentity'], row['phase']
-        owner_phases = phases.setdefault(owner, {})
-        need(phase not in owner_phases, 'duplicate_lifecycle_phase')
-        owner_phases[phase] = row
-        if phase.startswith('plugin-'):
-            need(arm == 'packaged' and row['ownerKind'] == 'plugin', 'plain_must_have_no_plugin')
-            plugin_owners.add(owner)
-        else:
-            need(row['ownerKind'] == 'activity' and row['activityIdentity'] == owner, 'activity_owner_identity')
-            if phase == prefix + 'create-exit':
-                created.add(owner); views.add(row['webViewIdentity']); activity_views[owner] = row['webViewIdentity']
-            if phase == prefix + 'destroy-exit': destroyed.add(owner)
-            if phase == prefix + 'detach-exit': detached.add(owner)
-    need(len(created) == len(views) == 2 and 0 not in views and created == destroyed == detached, 'two_distinct_activities_views_closed')
-    for owner in created:
-        rows = phases[owner]
-        for stage in ('create', 'resume', 'pause', 'stop', 'destroy', 'detach'):
-            enter, exit = rows.get(prefix + stage + '-enter'), rows.get(prefix + stage + '-exit')
-            need(enter is not None and exit is not None and enter['sequence'] < exit['sequence'], 'lifecycle_enter_exit_' + stage)
-        need(rows[prefix + 'create-exit']['sequence'] < rows[prefix + 'resume-enter']['sequence']
-             < rows[prefix + 'pause-enter']['sequence'] < rows[prefix + 'stop-enter']['sequence']
-             < rows[prefix + 'destroy-enter']['sequence'], 'activity_transition_order')
-    if arm == 'packaged':
-        need(len(plugin_owners) == 2, 'two_plugin_owners')
-        for owner in plugin_owners:
-            rows = phases[owner]
-            required = ('plugin-destroy-enter', 'plugin-cancel-complete', 'plugin-cleanup-enter',
-                        'plugin-cleanup-complete', 'plugin-shutdown-requested', 'plugin-destroy-exit')
-            need(set(rows) == set(required), 'plugin_cleanup_complete')
-            need(rows['plugin-cleanup-enter']['sequence'] < rows['plugin-cleanup-complete']['sequence'], 'queued_cleanup_order')
-            need(all(r['activityIdentity'] in created and r['webViewIdentity'] == activity_views[r['activityIdentity']]
-                     for r in rows.values()), 'plugin_known_owner_view')
-    return {'actualPid': actual_pid, 'events': len(events), 'activities': 2, 'views': 2, 'fullProductAcceptance': False}
+    ownership = report.get('ownership')
+    need(isinstance(ownership, dict) and ownership.get('schema') == 'shikuang-direct-WebView-ownership-v2'
+         and type(ownership.get('ownershipComplete')) is bool, 'explicit_native_ownership_or_unknown')
+    return {'currentNativeEvidenceIntegrityValid': True, 'actualPid': actual_pid, 'events': len(events),
+            'nativeCompleted': report['completed'], 'nativeOwnershipCompleteClaim': ownership['ownershipComplete'],
+            'fullProductAcceptance': False}
+
+
+def direct_ownership(report, arm):
+    """Independently check actual per-view destroy, separate from Window callback."""
+    prefix = 'plain-' if arm == 'plain' else ''
+    events = report['lifecycle']['events']
+    by_kind = {k: {} for k in ('activity', 'view', 'plugin', 'decor')}
+    for row in events:
+        by_kind[row['ownerKind']].setdefault(row['ownerIdentity'], {}).setdefault(row['phase'], []).append(row)
+    births = [r for r in events if r['ownerKind'] == 'activity' and r['phase'] == prefix + 'create-exit']
+    need(len(births) == 2 and len({r['ownerIdentity'] for r in births}) == 2, 'two_distinct_activities')
+    activity_views = {r['ownerIdentity']: r['webViewIdentity'] for r in births}
+    need(len(set(activity_views.values())) == 2 and 0 not in activity_views.values(), 'two_distinct_WebViews')
+    for birth in births:
+        phases = by_kind['activity'][birth['ownerIdentity']]
+        need(birth['windowIdentity'] != 0 and birth['decorIdentity'] != 0, 'alive_Window_Decor_identity')
+        for stage in ('create', 'resume', 'pause', 'stop', 'destroy'):
+            enters, exits = phases.get(prefix + stage + '-enter', []), phases.get(prefix + stage + '-exit', [])
+            need(enters and len(enters) == len(exits) and (stage not in ('create', 'destroy') or len(enters) == 1),
+                 'activity_lifecycle_complete_' + stage)
+            need(all(a['sequence'] < b['sequence'] for a, b in zip(enters, exits)), 'activity_enter_before_exit')
+        need(phases[prefix + 'create-exit'][0]['sequence'] < phases[prefix + 'destroy-enter'][0]['sequence'],
+             'activity_create_before_destroy')
+        for row in phases[prefix + 'destroy-enter'] + phases[prefix + 'destroy-exit']:
+            need(type(row['changingConfigurations']) is bool and row['windowIdentity'] == birth['windowIdentity']
+                 and row['decorIdentity'] == birth['decorIdentity'], 'cached_destruction_context')
+    need(set(by_kind['view']) == set(activity_views.values()), 'only_two_known_observed_views')
+    for view, phases in by_kind['view'].items():
+        for phase in ('view-create', 'view-destroy-enter', 'view-destroy-exit'):
+            need(len(phases.get(phase, [])) == 1, 'exactly_once_actual_' + phase)
+        birth, enter, exit = [phases[k][0] for k in ('view-create', 'view-destroy-enter', 'view-destroy-exit')]
+        need(birth['sequence'] < enter['sequence'] < exit['sequence'], 'actual_WebView_destroy_order')
+        need(all(r['webViewIdentity'] == view and activity_views.get(r['activityIdentity']) == view
+                 for rows in phases.values() for r in rows), 'view_exact_known_owner')
+        for stage in ('attach', 'detach'):
+            enters, exits = phases.get('view-' + stage + '-enter', []), phases.get('view-' + stage + '-exit', [])
+            need(len(enters) == len(exits) and all(a['sequence'] < b['sequence'] for a, b in zip(enters, exits)),
+                 'actual_view_callback_complete_' + stage)
+        need(phases.get('view-attach-enter'), 'each_probe_view_was_attached')
+    last = births[-1]; final_phases = by_kind['activity'][last['ownerIdentity']]
+    need(len(final_phases.get(prefix + 'detach-enter', [])) == len(final_phases.get(prefix + 'detach-exit', [])) == 1,
+         'final_Activity_Window_detach')
+    decor_events = [r for r in events if r['ownerKind'] == 'decor' and r['phase'] == 'decor-detach'
+                    and r['decorIdentity'] == last['decorIdentity']]
+    need(decor_events, 'actual_final_Decor_detach_callback')
+    # A preserved Decor may notify the listeners registered by both Activities;
+    # they are not two physical detaches, and no Window-identity equality is assumed.
+    if arm == 'plain': need(not by_kind['plugin'], 'plain_has_no_mineral_plugin')
+    else:
+        need(len(by_kind['plugin']) == 2, 'two_plugin_owners')
+        plugin_activity_owners = []
+        for phases in by_kind['plugin'].values():
+            for phase in ('plugin-destroy-enter', 'plugin-cancel-complete', 'plugin-cleanup-enter',
+                          'plugin-cleanup-complete', 'plugin-shutdown-requested', 'plugin-destroy-exit'):
+                need(len(phases.get(phase, [])) == 1, 'exact_plugin_cleanup_phase')
+            need(phases['plugin-cleanup-enter'][0]['sequence'] < phases['plugin-cleanup-complete'][0]['sequence'],
+                 'serialized_plugin_cleanup_returned')
+            need(all(activity_views.get(r['activityIdentity']) == r['webViewIdentity']
+                     for rows in phases.values() for r in rows), 'plugin_exact_owner_view')
+            complete = phases['plugin-cleanup-complete'][0]
+            need(complete['sessions'] == 0 and complete['environmentPresent'] is False, 'plugin_references_closed_not_RSS_claim')
+            plugin_activity_owners.append(phases['plugin-destroy-enter'][0]['activityIdentity'])
+        need(len(set(plugin_activity_owners)) == 2 and set(plugin_activity_owners) == set(activity_views),
+             'one_actual_plugin_closure_for_each_Activity')
+    return {'activities': 2, 'views': 2, 'actualViewDestroyPairs': 2,
+            'finalDecorDetachObserved': True, 'ownershipComplete': True, 'nativeMemoryFullyReleased': None}
+
+
+def verify_report(report, arm, nonce, actual_pid):
+    proof = evidence_report(report, arm, nonce, actual_pid)
+    need(report['completed'] is True and report['ownership']['ownershipComplete'] is True,
+         'failed_or_unknown_native_ownership_not_success')
+    proof.update(direct_ownership(report, arm))
+    if arm == 'plain':
+        need(all(report.get(k) is True for k in ('initialPageReady', 'recreatedPageReady', 'scenarioCloseReturned')),
+             'actual_plain_probe_checkpoints')
+    else: need(report.get('legacyMethodReturned') is True, 'exact_legacy_method_returned')
+    return proof
+
+
+def collect_fixed_reports(host, out, result, arm, nonce, actual_pid):
+    """Called after every terminal, including failure. Never sets passed=True."""
+    files = [('native', 'native-lifecycle-' + arm + '.json')]
+    if arm == 'packaged': files.append(('asset-migration', 'asset-migration-report.json'))
+    collected = result.setdefault('collectedReports', {})
+    for kind, filename in files:
+        label = 'current-' + kind + '-report'
+        try:
+            raw = host.command(label, ['exec-out', 'content', 'read', '--uri',
+                'content://androidx.test.services.storage.outputfiles/' + filename])
+            need(0 < len(raw) <= 256 * 1024, 'fixed_native_report_bound')
+            (out / filename).write_bytes(raw)
+            entry = collected[kind] = {'filename': filename, 'bytes': len(raw),
+                'sha256': hashlib.sha256(raw).hexdigest(), 'receiptLabel': label, 'collected': True}
+            body = json.loads(raw)
+            if kind == 'native':
+                result['nativeEvidence'] = evidence_report(body, arm, nonce, actual_pid)
+                entry['currentNoncePidIntegrityValid'] = True
+            else:
+                # Original migration JSON has no nonce. Preserve it as auxiliary
+                # evidence; only the v2 wrapper can attest its method returned.
+                need(isinstance(body, dict), 'migration_JSON_object')
+                entry['contextualOnlyNoOwnNonce'] = True
+                entry['phase'] = body.get('phase')
+        except Exception as error:
+            collected.setdefault(kind, {'filename': filename, 'collected': False})['failure'] = type(error).__name__ + ': ' + str(error)
+            result.setdefault('evidenceCollectionProblems', []).append(kind + ':' + str(error))
 
 
 def capture(host, label):
@@ -155,8 +237,14 @@ def run_arm(out, arm, method, timeout, boot, fingerprint, seen_pids):
     out.mkdir(exist_ok=False)
     host = Host('emulator-5554', out)
     result = {'arm': arm, 'method': method, 'passed': False, 'attempts': 0,
+              'junitTerminalPassed': False, 'postEnvironmentVerified': False,
               'fullProductAcceptance': False, 'originalFailureRemainsRecorded': True}
     proc = None
+    actual_pid, nonce = None, None
+    def failure(label, error):
+        text = label + ':' + type(error).__name__ + ': ' + str(error)
+        result.setdefault('failure', text)
+        result.setdefault('failureDetails', []).append(text)
     try:
         environment(host, 'before', boot, fingerprint)
         result['beforeForceStopPid'] = host.pid('before-stop-pid')
@@ -169,7 +257,6 @@ def run_arm(out, arm, method, timeout, boot, fingerprint, seen_pids):
             started = time.monotonic(); result['attempts'] += 1
             proc = subprocess.Popen(argv, stdout=stdout, stderr=stderr)
             receipt.update(started_monotonic_seconds=started, host_adb_pid=proc.pid)
-            actual_pid = None
             while time.monotonic() - started < 20 and proc.poll() is None:
                 pid = host.pid('live-pid-' + str(len(host.receipts)))
                 if pid is not None: actual_pid = pid; break
@@ -179,15 +266,9 @@ def run_arm(out, arm, method, timeout, boot, fingerprint, seen_pids):
             seen_pids.add(actual_pid); result['actualPid'] = actual_pid
             code = proc.wait(timeout=max(1, timeout - (time.monotonic() - started)))
         terminal((out / 'instrumentation.stdout.bin').read_bytes(), (out / 'instrumentation.stderr.bin').read_bytes(), code, method)
-        raw = host.command('current-native-report', ['exec-out', 'content', 'read', '--uri',
-            'content://androidx.test.services.storage.outputfiles/native-lifecycle-' + arm + '.json'])
-        need(0 < len(raw) <= 256 * 1024, 'report_bound')
-        result['verifiedNativeReport'] = verify_report(json.loads(raw), arm, nonce, actual_pid)
-        (out / ('native-lifecycle-' + arm + '.json')).write_bytes(raw)
-        environment(host, 'after', boot, fingerprint)
-        result['passed'] = True
+        result['junitTerminalPassed'] = True
     except Exception as error:
-        result['failure'] = type(error).__name__ + ': ' + str(error)
+        failure('primary', error)
     finally:
         if proc is not None:
             if proc.poll() is None:
@@ -198,14 +279,33 @@ def run_arm(out, arm, method, timeout, boot, fingerprint, seen_pids):
                 finished_monotonic_seconds=time.monotonic())
             for stream in ('stdout', 'stderr'):
                 result['instrumentation'][stream + '_sha256'] = hashlib.sha256((out / ('instrumentation.' + stream + '.bin')).read_bytes()).hexdigest()
+        # Recovery of partial evidence is independent of the authoritative JUnit
+        # outcome. Native crashes can leave no finally report; absence stays missing.
+        if proc is not None and nonce is not None:
+            collect_fixed_reports(host, out, result, arm, nonce, actual_pid)
+            if result['junitTerminalPassed']:
+                try:
+                    raw = (out / ('native-lifecycle-' + arm + '.json')).read_bytes()
+                    result['verifiedNativeReport'] = verify_report(json.loads(raw), arm, nonce, actual_pid)
+                    if arm == 'packaged':
+                        auxiliary = result['collectedReports'].get('asset-migration', {})
+                        need(auxiliary.get('collected') is True and auxiliary.get('phase') == 'migration-passed',
+                             'current_contextual_migration_report_required')
+                except Exception as error: failure('native-success-gate', error)
+        try:
+            environment(host, 'after', boot, fingerprint)
+            result['postEnvironmentVerified'] = True
+        except Exception as error: failure('post-environment', error)
         result['captureProblems'] = capture(host, 'final')
-        if result['captureProblems']: result['passed'] = False
-        if result['passed']:
+        if result['captureProblems']: failure('capture', ValueError(';'.join(result['captureProblems'])))
+        if actual_pid is not None and not result['captureProblems']:
             try:
                 reject_observed_crash((out / 'final-exit-info.stdout.bin').read_bytes(),
-                    (out / 'final-logcat.stdout.bin').read_bytes(), result['actualPid'])
-            except Exception as error:
-                result['passed'] = False; result['failure'] = type(error).__name__ + ': ' + str(error)
+                    (out / 'final-logcat.stdout.bin').read_bytes(), actual_pid)
+            except Exception as error: failure('current-native-crash', error)
+        result['passed'] = bool(result['junitTerminalPassed'] and result.get('verifiedNativeReport')
+            and result['postEnvironmentVerified'] and not result.get('failureDetails')
+            and not result.get('evidenceCollectionProblems'))
         (out / 'arm-result.json').write_text(json.dumps(result, indent=2) + '\n')
     return result
 
@@ -220,7 +320,7 @@ def main():
     need(subprocess.check_output(['git', 'rev-parse', 'HEAD']).strip().decode() == args.source_sha, 'checkout_SHA_mismatch')
     need(re.fullmatch(r'[a-f0-9]{32}', args.unit_nonce) is not None, 'explicit_fresh_unit_nonce')
     args.out.mkdir(parents=True, exist_ok=False)
-    result = {'schema': 'shikuang-host-native-lifecycle-pair-v1', 'sourceSha': args.source_sha,
+    result = {'schema': 'shikuang-host-native-lifecycle-pair-v2', 'sourceSha': args.source_sha,
         'unitNonce': args.unit_nonce, 'passed': False, 'maximumArms': 2, 'maximumAttemptsPerArm': 1,
         'fullProductAcceptance': False, 'rootCauseConfirmed': False, 'originalFailingRun': 39246792540,
         'arms': []}

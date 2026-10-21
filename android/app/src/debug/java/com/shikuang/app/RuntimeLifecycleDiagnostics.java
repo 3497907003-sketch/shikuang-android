@@ -3,6 +3,7 @@ package com.shikuang.app;
 import android.os.Process;
 import android.os.SystemClock;
 import android.util.Log;
+import android.view.View;
 import java.util.ArrayDeque;
 
 /** Debug-only bounded observer. No WebView calls, files, user values or cleanup. */
@@ -16,19 +17,44 @@ public final class RuntimeLifecycleDiagnostics {
 
     private RuntimeLifecycleDiagnostics() {}
 
-    public static void activity(String phase, Object owner, int webViewIdentity) {
+    public static void activity(String phase, Object owner, int webViewIdentity,
+                                int windowIdentity, int decorIdentity, boolean changingConfigurations) {
         event(phase, "activity", System.identityHashCode(owner), System.identityHashCode(owner),
-            webViewIdentity, -1, -1, null);
+            webViewIdentity, windowIdentity, decorIdentity, changingConfigurations, -1, -1, null);
     }
 
     public static void plugin(String phase, Object owner, int activityIdentity, int webViewIdentity,
                               int jobs, int sessions, Boolean environmentPresent) {
         event(phase, "plugin", System.identityHashCode(owner), activityIdentity, webViewIdentity,
-            jobs, sessions, environmentPresent);
+            0, 0, null, jobs, sessions, environmentPresent);
+    }
+
+    public static void view(String phase, int viewIdentity, int activityIdentity,
+                            int windowIdentity, int decorIdentity) {
+        event(phase, "view", viewIdentity, activityIdentity, viewIdentity,
+            windowIdentity, decorIdentity, null, -1, -1, null);
+    }
+
+    public static void observeDecor(View decor, final int activityIdentity,
+                                    final int windowIdentity, final int decorIdentity) {
+        if (decor == null) return;
+        // The listener captures integers only. A preserved Decor can have both
+        // registrations; receipts describe their origin, not two detach events.
+        decor.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
+            @Override public void onViewAttachedToWindow(View ignored) { receipt("decor-attach"); }
+            @Override public void onViewDetachedFromWindow(View ignored) { receipt("decor-detach"); }
+            private void receipt(String phase) {
+                // Android can invoke this before mAttachInfo is cleared. Do not
+                // inspect isAttachedToWindow/parent or query a destroyed WebView.
+                event(phase, "decor", decorIdentity, activityIdentity, 0,
+                    windowIdentity, decorIdentity, null, -1, -1, null);
+            }
+        });
     }
 
     private static synchronized void event(String phase, String ownerKind, int ownerIdentity,
                                             int activityIdentity, int webViewIdentity,
+                                            int windowIdentity, int decorIdentity, Boolean changingConfigurations,
                                             int jobs, int sessions, Boolean environmentPresent) {
         // All names are internal literals. No exception is caught or converted
         // into a successful lifecycle transition; missing exit remains missing.
@@ -37,12 +63,14 @@ public final class RuntimeLifecycleDiagnostics {
             char c = phase.charAt(i);
             if (c != '-' && (c < 'a' || c > 'z')) throw new IllegalArgumentException("Invalid lifecycle phase");
         }
-        String row = "{\"schema\":\"shikuang-debug-lifecycle-v1\",\"sequence\":" + (++sequence)
+        String row = "{\"schema\":\"shikuang-debug-lifecycle-v2\",\"sequence\":" + (++sequence)
             + ",\"elapsedRealtimeNanos\":" + SystemClock.elapsedRealtimeNanos()
             + ",\"pid\":" + Process.myPid() + ",\"tid\":" + Process.myTid()
             + ",\"phase\":\"" + phase + "\",\"ownerKind\":\"" + ownerKind
             + "\",\"ownerIdentity\":" + ownerIdentity + ",\"activityIdentity\":" + activityIdentity
             + ",\"webViewIdentity\":" + webViewIdentity + ",\"jobs\":" + jobs
+            + ",\"windowIdentity\":" + windowIdentity + ",\"decorIdentity\":" + decorIdentity
+            + ",\"changingConfigurations\":" + changingConfigurations
             + ",\"sessions\":" + sessions + ",\"environmentPresent\":" + environmentPresent + "}";
         if (EVENTS.size() == MAX_EVENTS) { EVENTS.removeFirst(); dropped++; }
         EVENTS.addLast(row);
@@ -51,7 +79,7 @@ public final class RuntimeLifecycleDiagnostics {
     }
 
     public static synchronized String snapshot() {
-        StringBuilder json = new StringBuilder("{\"schema\":\"shikuang-debug-lifecycle-snapshot-v1\",\"pid\":")
+        StringBuilder json = new StringBuilder("{\"schema\":\"shikuang-debug-lifecycle-snapshot-v2\",\"pid\":")
             .append(Process.myPid()).append(",\"droppedEvents\":").append(dropped)
             .append(",\"events\":[");
         boolean first = true;

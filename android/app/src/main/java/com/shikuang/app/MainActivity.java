@@ -19,9 +19,13 @@ public class MainActivity extends BridgeActivity {
     private ConnectivityManager.NetworkCallback networkCallback;
     private boolean networkMonitorDestroyed;
     private int diagnosticWebViewIdentity;
+    private int diagnosticWindowIdentity;
+    private int diagnosticDecorIdentity;
+    private boolean diagnosticChangingConfigurations;
 
     private void lifecycleReceipt(String phase) {
-        if (RuntimeLifecycleDiagnostics.ENABLED) RuntimeLifecycleDiagnostics.activity(phase, this, diagnosticWebViewIdentity);
+        if (RuntimeLifecycleDiagnostics.ENABLED) RuntimeLifecycleDiagnostics.activity(phase, this, diagnosticWebViewIdentity,
+            diagnosticWindowIdentity, diagnosticDecorIdentity, diagnosticChangingConfigurations);
     }
 
     int diagnosticWebViewIdentity() { return diagnosticWebViewIdentity; }
@@ -33,7 +37,15 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
         // Cache only an identity number while the WebView is alive. Later
         // destruction receipts must never call methods on a destroyed view.
-        if (RuntimeLifecycleDiagnostics.ENABLED) diagnosticWebViewIdentity = System.identityHashCode(bridge.getWebView());
+        if (RuntimeLifecycleDiagnostics.ENABLED) {
+            diagnosticWebViewIdentity = System.identityHashCode(bridge.getWebView());
+            android.view.Window diagnosticWindow = getWindow();
+            android.view.View diagnosticDecor = diagnosticWindow == null ? null : diagnosticWindow.peekDecorView();
+            diagnosticWindowIdentity = System.identityHashCode(diagnosticWindow);
+            diagnosticDecorIdentity = System.identityHashCode(diagnosticDecor);
+            RuntimeLifecycleDiagnostics.observeDecor(diagnosticDecor, System.identityHashCode(this),
+                diagnosticWindowIdentity, diagnosticDecorIdentity);
+        }
         installPackagedAssetMigration();
         connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         updateWebViewNetworkState();
@@ -123,6 +135,7 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onDestroy() {
+        if (RuntimeLifecycleDiagnostics.ENABLED) diagnosticChangingConfigurations = isChangingConfigurations();
         lifecycleReceipt("destroy-enter");
         networkMonitorDestroyed = true;
         if (connectivityManager != null && networkCallback != null) {
