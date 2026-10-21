@@ -1,0 +1,65 @@
+{
+  "schema": "shikuang-pinned-webview-lifetime-patch-v1",
+  "packages": {
+    "@capacitor/android": "6.2.2",
+    "@capacitor/app": "6.0.3"
+  },
+  "files": [
+    {
+      "target": "node_modules/@capacitor/android/capacitor/src/main/java/com/getcapacitor/Bridge.java",
+      "before_sha256": "f09f8643fad0f5d56cf578c833f883172b1906459d55bb1c83aca4823d343fce",
+      "after_sha256": "e5b8929b1a742dd4a8f02f376d9923a6834956cad6fb7f71b4cf8be4410fde90",
+      "after_bytes": 63458,
+      "payload": "patches/webview-lifetime/@capacitor/android/capacitor/src/main/java/com/getcapacitor/Bridge.java"
+    },
+    {
+      "target": "node_modules/@capacitor/android/capacitor/src/main/java/com/getcapacitor/BridgeWebChromeClient.java",
+      "before_sha256": "7edfc1b1a9bf9a8bd7446b1daae729f26338ef9539598991328d954600cc3b32",
+      "after_sha256": "154c2a4fab35ddffd35455256f80c9770548bf7e16483d1af58467c5beba648e",
+      "after_bytes": 27057,
+      "payload": "patches/webview-lifetime/@capacitor/android/capacitor/src/main/java/com/getcapacitor/BridgeWebChromeClient.java"
+    },
+    {
+      "target": "node_modules/@capacitor/android/capacitor/src/main/java/com/getcapacitor/BridgeWebViewClient.java",
+      "before_sha256": "46017acadf628345671d770037e9e0b48f6c7164a422fe064fad14c2f85cc799",
+      "after_sha256": "529d1de8f51152f9d83cd0256472151513640f008028de3ecf03e53b0055514f",
+      "after_bytes": 4167,
+      "payload": "patches/webview-lifetime/@capacitor/android/capacitor/src/main/java/com/getcapacitor/BridgeWebViewClient.java"
+    },
+    {
+      "target": "node_modules/@capacitor/android/capacitor/src/main/java/com/getcapacitor/CapacitorWebView.java",
+      "before_sha256": "f669e651556e1b5c1b283db3b154ab3ae7993524848ed10a16fcf5586b229bcb",
+      "after_sha256": "e31d7781e8453be5bba2deeb2d2474e48140c2aa00d1c0262f419a20ab1bedf5",
+      "after_bytes": 1751,
+      "payload": "patches/webview-lifetime/@capacitor/android/capacitor/src/main/java/com/getcapacitor/CapacitorWebView.java"
+    },
+    {
+      "target": "node_modules/@capacitor/android/capacitor/src/main/java/com/getcapacitor/MessageHandler.java",
+      "before_sha256": "503311a0e83d8409ca0c9a9b079ca0f53dc9a9faa681148df3058a872ac9841f",
+      "after_sha256": "bf0a915aab82b6ff2f465a7474062c3c8ec160af56b2f27ed557f6370ca9a86f",
+      "after_bytes": 6755,
+      "payload": "patches/webview-lifetime/@capacitor/android/capacitor/src/main/java/com/getcapacitor/MessageHandler.java"
+    },
+    {
+      "target": "node_modules/@capacitor/android/capacitor/src/main/java/com/getcapacitor/WebViewLifetime.java",
+      "before_sha256": null,
+      "after_sha256": "6c54a479bf9dc28dbd4ca060fa3df80364c4b0d5381169cf1fd4134ab61861fa",
+      "after_bytes": 1257,
+      "payload": "patches/webview-lifetime/@capacitor/android/capacitor/src/main/java/com/getcapacitor/WebViewLifetime.java"
+    },
+    {
+      "target": "node_modules/@capacitor/android/capacitor/src/main/java/com/getcapacitor/cordova/MockCordovaWebViewImpl.java",
+      "before_sha256": "a90bee8190dec7b6fe9495dd0aadc39e22bb764ff64e7951c8c09220dbde213b",
+      "after_sha256": "3a6a93be0e3f92ff03220cb2070e188d65aad7dedf4c7dfec802a0567af82a01",
+      "after_bytes": 9226,
+      "payload": "patches/webview-lifetime/@capacitor/android/capacitor/src/main/java/com/getcapacitor/cordova/MockCordovaWebViewImpl.java"
+    },
+    {
+      "target": "node_modules/@capacitor/app/android/src/main/java/com/capacitorjs/plugins/app/AppPlugin.java",
+      "before_sha256": "c5bdd890d2dcda95ca129219eda7c91ccddf6b70f90f837f6f829e13577d7075",
+      "after_sha256": "a1dcc7dc67c9935ea147c019f7f070980a1fe44f8fabae67ea94420a6fb98510",
+      "after_bytes": 5437,
+      "payload": "patches/webview-lifetime/@capacitor/app/android/src/main/java/com/capacitorjs/plugins/app/AppPlugin.java"
+    }
+  ]
+}

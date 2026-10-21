@@ -82,16 +82,16 @@ public final class MineralInferencePlugin extends Plugin {
     public void classify(PluginCall call) {
         String jobId = call.getString("jobId", "");
         if (!jobId.matches("[A-Za-z0-9_-]{1,80}")) {
-            call.reject("识别任务编号无效", "INVALID_INPUT");
+            rejectLive(call, "识别任务编号无效", "INVALID_INPUT");
             return;
         }
         final Job job = new Job(jobId);
         synchronized (jobs) {
             pruneTombstones();
-            if (destroyed.get()) { call.reject("本机识别引擎已关闭", "ENGINE_CLOSED"); return; }
-            if (cancelledBeforeStart.remove(jobId) != null) { call.reject(CANCELLED, "ABORT_ERR"); return; }
-            if (jobs.containsKey(jobId)) { call.reject("识别任务编号已存在", "INVALID_INPUT"); return; }
-            if (jobs.size() >= 3) { call.reject("请等待当前分析停止后再试", "ENGINE_BUSY"); return; }
+            if (destroyed.get()) { rejectLive(call, "本机识别引擎已关闭", "ENGINE_CLOSED"); return; }
+            if (cancelledBeforeStart.remove(jobId) != null) { rejectLive(call, CANCELLED, "ABORT_ERR"); return; }
+            if (jobs.containsKey(jobId)) { rejectLive(call, "识别任务编号已存在", "INVALID_INPUT"); return; }
+            if (jobs.size() >= 3) { rejectLive(call, "请等待当前分析停止后再试", "ENGINE_BUSY"); return; }
             jobs.put(jobId, job);
             job.timeout = watchdog.schedule(() -> { job.timedOut = true; job.cancel(); }, INFERENCE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         }
@@ -101,18 +101,18 @@ public final class MineralInferencePlugin extends Plugin {
                     checkCancelled(job);
                     JSObject result = analyze(job, call);
                     checkCancelled(job);
-                    call.resolve(result);
+                    resolveLive(call, result);
                 } catch (Exception e) {
-                    if (job.timedOut) call.reject("本机分析超过 120 秒，已停止，请重试快速模式", "ENGINE_TIMEOUT");
-                    else if (job.cancelled.get() || destroyed.get()) call.reject(CANCELLED, "ABORT_ERR");
-                    else { releaseSessions(); call.reject(e.getMessage() == null ? "Android 本机识别失败" : e.getMessage(), "INFERENCE_ERROR"); }
+                    if (job.timedOut) rejectLive(call, "本机分析超过 120 秒，已停止，请重试快速模式", "ENGINE_TIMEOUT");
+                    else if (job.cancelled.get() || destroyed.get()) rejectLive(call, CANCELLED, "ABORT_ERR");
+                    else { releaseSessions(); rejectLive(call, e.getMessage() == null ? "Android 本机识别失败" : e.getMessage(), "INFERENCE_ERROR"); }
                 } catch (LinkageError e) {
                     releaseSessions();
-                    call.reject("设备无法加载 Android 本机识别引擎，请安装匹配设备架构的新版 App", "NATIVE_RUNTIME_ERROR");
+                    rejectLive(call, "设备无法加载 Android 本机识别引擎，请安装匹配设备架构的新版 App", "NATIVE_RUNTIME_ERROR");
                 } catch (OutOfMemoryError e) {
                     // Drop all resident model weights before suggesting a smaller, single-model retry.
                     releaseSessions();
-                    call.reject("设备内存不足，请关闭其他应用后使用快速模式", "INSUFFICIENT_MEMORY");
+                    rejectLive(call, "设备内存不足，请关闭其他应用后使用快速模式", "INSUFFICIENT_MEMORY");
                 } finally {
                     if (job.timeout != null) job.timeout.cancel(false);
                     synchronized (jobs) { jobs.remove(job.id); }
@@ -121,14 +121,14 @@ public final class MineralInferencePlugin extends Plugin {
         } catch (RejectedExecutionException e) {
             if (job.timeout != null) job.timeout.cancel(false);
             synchronized (jobs) { jobs.remove(job.id); }
-            call.reject("本机识别引擎已关闭", "ENGINE_CLOSED");
+            rejectLive(call, "本机识别引擎已关闭", "ENGINE_CLOSED");
         }
     }
 
     @PluginMethod
     public void cancel(PluginCall call) {
         String jobId = call.getString("jobId", "");
-        if (!jobId.matches("[A-Za-z0-9_-]{1,80}")) { call.reject("识别任务编号无效", "INVALID_INPUT"); return; }
+        if (!jobId.matches("[A-Za-z0-9_-]{1,80}")) { rejectLive(call, "识别任务编号无效", "INVALID_INPUT"); return; }
         synchronized (jobs) {
             Job job = jobs.get(jobId);
             if (job != null) job.cancel();
@@ -138,7 +138,19 @@ public final class MineralInferencePlugin extends Plugin {
                 while (cancelledBeforeStart.size() > 64) cancelledBeforeStart.remove(cancelledBeforeStart.keySet().iterator().next());
             }
         }
-        JSObject result = new JSObject(); result.put("cancelled", true); call.resolve(result);
+        JSObject result = new JSObject(); result.put("cancelled", true); resolveLive(call, result);
+    }
+
+    private void resolveLive(PluginCall call, JSObject result) {
+        getBridge().executeWithLiveWebView(() -> {
+            if (destroyed.get()) call.release(getBridge()); else call.resolve(result);
+        }, () -> call.release(getBridge()));
+    }
+
+    private void rejectLive(PluginCall call, String message, String code) {
+        getBridge().executeWithLiveWebView(() -> {
+            if (destroyed.get()) call.release(getBridge()); else call.reject(message, code);
+        }, () -> call.release(getBridge()));
     }
 
     private void pruneTombstones() {
@@ -155,7 +167,9 @@ public final class MineralInferencePlugin extends Plugin {
         checkCancelled(job);
         JSObject event = new JSObject();
         event.put("jobId", job.id); event.put("stage", stage); event.put("message", message);
-        notifyListeners("mineralProgress", event);
+        getBridge().executeWithLiveWebView(() -> {
+            if (!destroyed.get() && !job.cancelled.get()) notifyListeners("mineralProgress", event);
+        }, () -> {});
     }
 
     private JSObject analyze(Job job, PluginCall call) throws Exception {

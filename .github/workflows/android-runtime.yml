@@ -504,7 +504,7 @@ jobs:
           python3 -B -m unittest discover -s tools -p test_android_lifecycle_diagnostic.py
           python3 -B -m unittest discover -s tools -p test_android_compiled_layout.py
       - name: Compile debug, test and release without running instrumentation
-        run: ./android/gradlew -p android --no-daemon --max-workers=2 assembleDebug assembleDebugAndroidTest assembleRelease
+        run: ./android/gradlew -p android --no-daemon --max-workers=2 testDebugUnitTest assembleDebug assembleDebugAndroidTest assembleRelease
       - name: Verify built manifests and exact helper
         run: |
           mkdir -p lifecycle-artifacts/build
@@ -554,8 +554,24 @@ jobs:
           nohup "$SHIKUANG_ANDROID_SDK/emulator/emulator" -avd shikuang-api35-16k -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect -camera-back none -camera-front none -memory 3072 -cores 2 -accel on > lifecycle-artifacts/emulator.log 2>&1 &
           timeout 180 adb wait-for-device
           timeout 180 bash -c 'until [[ "$(adb shell getprop sys.boot_completed | tr -d "\r")" == 1 ]]; do sleep 2; done'
-          adb root > lifecycle-artifacts/root-transition.txt 2>&1
-          timeout 30 adb wait-for-device
+          # Match the ordinary matrix's bounded adbd connection transition.
+          # Keep every command exit/output; no App/test/provider retry occurs.
+          mkdir -p lifecycle-artifacts/root-transition
+          SHIKUANG_ROOT_READY=false
+          for SHIKUANG_ROOT_ATTEMPT in 1 2 3 4 5; do
+            SHIKUANG_ROOT_PREFIX="lifecycle-artifacts/root-transition/attempt-$SHIKUANG_ROOT_ATTEMPT"
+            SHIKUANG_ROOT_EXIT=0
+            timeout 20 adb root > "$SHIKUANG_ROOT_PREFIX-root.stdout" 2> "$SHIKUANG_ROOT_PREFIX-root.stderr" || SHIKUANG_ROOT_EXIT=$?
+            SHIKUANG_WAIT_EXIT=0
+            timeout 30 adb wait-for-device > "$SHIKUANG_ROOT_PREFIX-wait.stdout" 2> "$SHIKUANG_ROOT_PREFIX-wait.stderr" || SHIKUANG_WAIT_EXIT=$?
+            SHIKUANG_UID_EXIT=0
+            timeout 10 adb shell id -u > "$SHIKUANG_ROOT_PREFIX-uid.stdout" 2> "$SHIKUANG_ROOT_PREFIX-uid.stderr" || SHIKUANG_UID_EXIT=$?
+            SHIKUANG_ROOT_UID="$(tr -d '\r' < "$SHIKUANG_ROOT_PREFIX-uid.stdout")"
+            printf 'attempt=%s root_exit=%s wait_exit=%s uid_exit=%s uid=%s\n' "$SHIKUANG_ROOT_ATTEMPT" "$SHIKUANG_ROOT_EXIT" "$SHIKUANG_WAIT_EXIT" "$SHIKUANG_UID_EXIT" "$SHIKUANG_ROOT_UID" >> lifecycle-artifacts/root-transition.txt
+            if [[ "$SHIKUANG_WAIT_EXIT" = 0 && "$SHIKUANG_UID_EXIT" = 0 && "$SHIKUANG_ROOT_UID" = 0 ]]; then SHIKUANG_ROOT_READY=true; break; fi
+            if [[ "$SHIKUANG_ROOT_ATTEMPT" != 5 ]]; then sleep 2; fi
+          done
+          test "$SHIKUANG_ROOT_READY" = true
           test "$(adb shell id -u | tr -d '\r')" = 0
           test "$(adb shell getconf PAGE_SIZE | tr -d '\r')" = 16384
           adb shell input keyevent 82

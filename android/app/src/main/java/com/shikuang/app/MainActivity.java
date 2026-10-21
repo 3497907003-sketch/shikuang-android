@@ -18,6 +18,7 @@ public class MainActivity extends BridgeActivity {
     private ConnectivityManager connectivityManager;
     private ConnectivityManager.NetworkCallback networkCallback;
     private boolean networkMonitorDestroyed;
+    private WebView ownedWebView;
     private int diagnosticWebViewIdentity;
     private int diagnosticWindowIdentity;
     private int diagnosticDecorIdentity;
@@ -35,6 +36,7 @@ public class MainActivity extends BridgeActivity {
         lifecycleReceipt("create-enter");
         registerPlugin(MineralInferencePlugin.class);
         super.onCreate(savedInstanceState);
+        ownedWebView = bridge.getWebView();
         // Cache only an identity number while the WebView is alive. Later
         // destruction receipts must never call methods on a destroyed view.
         if (RuntimeLifecycleDiagnostics.ENABLED) {
@@ -73,14 +75,14 @@ public class MainActivity extends BridgeActivity {
 
     private void updateWebViewNetworkState() {
         runOnUiThread(() -> {
-            if (networkMonitorDestroyed || bridge == null || bridge.getWebView() == null) return;
+            if (networkMonitorDestroyed || bridge == null || !bridge.isWebViewActive() || ownedWebView == null) return;
             boolean available = false;
             if (connectivityManager != null) {
                 Network network = connectivityManager.getActiveNetwork();
                 NetworkCapabilities capabilities = network == null ? null : connectivityManager.getNetworkCapabilities(network);
                 available = capabilities != null && capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
             }
-            bridge.getWebView().setNetworkAvailable(available);
+            ownedWebView.setNetworkAvailable(available);
         });
     }
 
@@ -102,8 +104,10 @@ public class MainActivity extends BridgeActivity {
         }
         bridge.setWebViewClient(new BridgeWebViewClient(bridge) {
             @Override public void onPageFinished(WebView view, String url) {
+                // Parent reads getProgress; stale callbacks must stop before super.
+                if (networkMonitorDestroyed || !bridge.isWebViewActive() || view != ownedWebView) return;
                 super.onPageFinished(view, url);
-                if (networkMonitorDestroyed || url == null) return;
+                if (networkMonitorDestroyed || !bridge.isWebViewActive() || url == null) return;
                 Uri actual = Uri.parse(url), local = Uri.parse(bridge.getLocalUrl());
                 if (!local.getScheme().equals(actual.getScheme()) || !local.getAuthority().equals(actual.getAuthority())) return;
                 view.evaluateJavascript(script, null);
@@ -138,22 +142,37 @@ public class MainActivity extends BridgeActivity {
         if (RuntimeLifecycleDiagnostics.ENABLED) diagnosticChangingConfigurations = isChangingConfigurations();
         lifecycleReceipt("destroy-enter");
         networkMonitorDestroyed = true;
+        Throwable teardownFailure = null;
         if (connectivityManager != null && networkCallback != null) {
             try {
                 connectivityManager.unregisterNetworkCallback(networkCallback);
             } catch (IllegalArgumentException error) {
                 Log.w("ShikuangNetwork", "Network callback was already unregistered", error);
+            } catch (RuntimeException | Error error) {
+                teardownFailure = error;
+            } finally {
+                networkCallback = null;
             }
-            networkCallback = null;
         }
-        super.onDestroy();
+        try {
+            // Bridge closes its shared delivery gate before plugin/native teardown
+            // and owns actual WebView retirement, including preserved-window recreate.
+            super.onDestroy();
+        } catch (RuntimeException | Error error) {
+            if (teardownFailure == null) teardownFailure = error;
+            else if (teardownFailure != error) teardownFailure.addSuppressed(error);
+        } finally {
+            ownedWebView = null;
+        }
+        if (teardownFailure instanceof RuntimeException) throw (RuntimeException) teardownFailure;
+        if (teardownFailure != null) throw (Error) teardownFailure;
         lifecycleReceipt("destroy-exit");
     }
 
     @Override
     public void onDetachedFromWindow() {
         lifecycleReceipt("detach-enter");
-        // Capacitor remains the sole owner of WebView.destroy().
+        // The patched per-Bridge owner guards every cleanup method before touching the view.
         super.onDetachedFromWindow();
         lifecycleReceipt("detach-exit");
     }

@@ -84,3 +84,10 @@ try {
 } catch(Exception e) {
     logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
 }
+
+// Fail closed if npm install was skipped or the pinned dependency sources drift.
+tasks.register('verifyWebViewLifetimePatch', Exec) {
+    workingDir rootProject.projectDir.parentFile
+    commandLine 'node', 'tools/apply-webview-lifetime-patch.cjs', '--check'
+}
+tasks.named('preBuild').configure { dependsOn 'verifyWebViewLifetimePatch' }
