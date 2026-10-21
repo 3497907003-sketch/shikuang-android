@@ -11,16 +11,16 @@
     "source_image_records": 871,
     "local_reviewed_photos": 117,
     "local_reference_exact_ima_species": 52,
-    "catalog_species_with_physical_facts": 185,
-    "verified_catalog_fields": 955,
-    "catalog_species_with_literature_facts": 100,
-    "verified_literature_fields": 198
+    "catalog_species_with_physical_facts": 195,
+    "verified_catalog_fields": 1010,
+    "catalog_species_with_literature_facts": 110,
+    "verified_literature_fields": 218
   },
   "files": [
     {
       "path": "data/catalog.json",
-      "bytes": 4580222,
-      "sha256": "e70ef4cc25e3a82bf444ea6ce041970c71b23daceaf3002d07f4fab2143cb21b"
+      "bytes": 4653375,
+      "sha256": "e656ed6035b35d08a74c0d86501b0e93d286127cd1055f087cf18e6b10f14e0b"
     },
     {
       "path": "data/crystals.json",
@@ -35,8 +35,13 @@
   ],
   "literature_bundle": {
     "path": "data/minerals.js",
-    "bytes": 631708,
-    "sha256": "96ea48691cebc6719306076763aef95c965d3441dfa64c46123456a50936de24",
-    "root_ledger_sha256": "1d3223d772c275db9677f2fa1a7d02ccae1c46450a478db1f19013b578f51b58"
+    "bytes": 662489,
+    "sha256": "382b334980daf9f31e130bbdf58d7d9c0e3ab084ee32d7d7a08c63455f482325",
+    "root_ledger_sha256": "1d3223d772c275db9677f2fa1a7d02ccae1c46450a478db1f19013b578f51b58",
+    "source_batch_registry_sha256": "ebebec796440225a77e291c071b65581fe33aba1905ae475e9d4f61c796208b2",
+    "root_ledger_sha256s": [
+      "1d3223d772c275db9677f2fa1a7d02ccae1c46450a478db1f19013b578f51b58",
+      "c6f377928428c61b8c96f51e6d17b0d5067cc5ee240d0f0db2e26d7615d03aa3"
+    ]
   }
 }
