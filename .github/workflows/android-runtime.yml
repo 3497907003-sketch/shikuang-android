@@ -16,6 +16,21 @@ on:
         required: false
         type: boolean
         default: false
+      lifecycle_diagnostic:
+        description: 'One explicit SDK35/16K lifecycle diagnostic pair; not product acceptance'
+        required: false
+        type: boolean
+        default: false
+      expected_source_sha:
+        description: 'Exact reviewed commit required only for lifecycle diagnostic mode'
+        required: false
+        type: string
+        default: ''
+      unit_nonce:
+        description: 'Fresh 32 lower-case hex value required only for lifecycle diagnostic mode'
+        required: false
+        type: string
+        default: ''
 permissions:
   contents: read
 concurrency:
@@ -23,6 +38,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   runtime:
+    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.lifecycle_diagnostic) }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
@@ -455,3 +471,112 @@ jobs:
             android/app/build/outputs/androidTest-results/
             android/app/build/outputs/connected_android_test_additional_output/
           if-no-files-found: warn
+  lifecycle-diagnostic:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.lifecycle_diagnostic }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      ANDROID_AVD_HOME: /tmp/shikuang-avd
+      SHIKUANG_EXPECTED_SOURCE: ${{ inputs.expected_source_sha }}
+      SHIKUANG_UNIT_NONCE: ${{ inputs.unit_nonce }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require the exact reviewed commit and one new run
+        run: |
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          test "$SHIKUANG_EXPECTED_SOURCE" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$SHIKUANG_EXPECTED_SOURCE"
+          [[ "$SHIKUANG_EXPECTED_SOURCE" =~ ^[a-f0-9]{40}$ ]]
+          [[ "$SHIKUANG_UNIT_NONCE" =~ ^[a-f0-9]{32}$ ]]
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+      - run: npm ci
+      - run: npm run sync
+      - name: Check diagnostic terminal and evidence contracts
+        run: python3 -B -m unittest discover -s tools -p test_android_lifecycle_diagnostic.py
+      - name: Compile debug, test and release without running instrumentation
+        run: ./android/gradlew -p android --no-daemon --max-workers=2 assembleDebug assembleDebugAndroidTest assembleRelease
+      - name: Verify built manifests and exact helper
+        run: |
+          mkdir -p lifecycle-artifacts/build
+          SHIKUANG_ANDROID_SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          "$SHIKUANG_ANDROID_SDK/cmdline-tools/latest/bin/apkanalyzer" manifest print android/app/build/outputs/apk/debug/app-debug.apk > lifecycle-artifacts/build/debug-manifest.xml
+          "$SHIKUANG_ANDROID_SDK/cmdline-tools/latest/bin/apkanalyzer" manifest print android/app/build/outputs/apk/release/app-release-unsigned.apk > lifecycle-artifacts/build/release-manifest.xml
+          python3 -B - <<'PY'
+          import xml.etree.ElementTree as E
+          from pathlib import Path
+          ns = '{http://schemas.android.com/apk/res/android}'
+          for mode, expected in [('debug', 1), ('release', 0)]:
+              root = E.parse('lifecycle-artifacts/build/' + mode + '-manifest.xml').getroot()
+              rows = [a for a in root.findall('application/activity') if a.get(ns+'name') == 'com.shikuang.app.PlainWebViewDiagnosticActivity']
+              assert len(rows) == expected
+              assert not rows or rows[0].get(ns+'exported') == 'false'
+              assert root.get('package') == 'com.shikuang.app' + ('.preview' if mode == 'debug' else '')
+          PY
+          curl --fail --silent --show-error --max-time 90 --output lifecycle-artifacts/build/test-services-1.4.2.apk https://dl.google.com/dl/android/maven2/androidx/test/services/test-services/1.4.2/test-services-1.4.2.apk
+          echo 'c6bc74268b29bdabad8da962e00e2f6fd613c24b42c69e81b258397b4819f156  lifecycle-artifacts/build/test-services-1.4.2.apk' | sha256sum --check
+          sha256sum android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk lifecycle-artifacts/build/test-services-1.4.2.apk > lifecycle-artifacts/build/installed-apk-sha256.txt
+      - name: Install the same official 16K image
+        run: |
+          SHIKUANG_ANDROID_SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          "$SHIKUANG_ANDROID_SDK/cmdline-tools/latest/bin/sdkmanager" "platform-tools" "emulator" "system-images;android-35;google_apis_ps16k;x86_64"
+          printf '%s\n' "$SHIKUANG_ANDROID_SDK/platform-tools" >> "$GITHUB_PATH"
+          mkdir -p "$ANDROID_AVD_HOME"
+          printf 'no\n' | "$SHIKUANG_ANDROID_SDK/cmdline-tools/latest/bin/avdmanager" create avd --name shikuang-api35-16k --package 'system-images;android-35;google_apis_ps16k;x86_64' --device pixel_2 --path "$ANDROID_AVD_HOME/shikuang-api35-16k.avd"
+          sudo chmod 666 /dev/kvm
+      - name: Boot once and establish route-free offline environment
+        run: |
+          SHIKUANG_ANDROID_SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          nohup "$SHIKUANG_ANDROID_SDK/emulator/emulator" -avd shikuang-api35-16k -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect -camera-back none -camera-front none -memory 3072 -cores 2 -accel on > lifecycle-artifacts/emulator.log 2>&1 &
+          timeout 180 adb wait-for-device
+          timeout 180 bash -c 'until [[ "$(adb shell getprop sys.boot_completed | tr -d "\r")" == 1 ]]; do sleep 2; done'
+          adb root > lifecycle-artifacts/root-transition.txt 2>&1
+          timeout 30 adb wait-for-device
+          test "$(adb shell id -u | tr -d '\r')" = 0
+          test "$(adb shell getconf PAGE_SIZE | tr -d '\r')" = 16384
+          adb shell input keyevent 82
+          adb shell settings put global window_animation_scale 0
+          adb shell settings put global transition_animation_scale 0
+          adb shell settings put global animator_duration_scale 0
+          timeout 90 bash -c 'until [[ "$(adb shell getprop gsm.sim.state)" == *LOADED* ]]; do sleep 2; done'
+          adb shell cmd connectivity airplane-mode enable
+          adb shell svc wifi disable
+          adb shell svc data disable
+          adb shell 'for device in eth0 eth1 wlan0; do if ip link show "$device" >/dev/null 2>&1; then ip link set "$device" down; fi; done'
+          timeout 60 bash -c 'until [[ "$(adb shell dumpsys connectivity)" == *"Active default network: none"* ]]; do sleep 2; done'
+          python3 -B tools/android_offline_setup.py --out lifecycle-artifacts/offline-network-setup
+          adb logcat -c
+          nohup adb logcat -b all -v threadtime > lifecycle-artifacts/logcat-stream.txt 2>&1 &
+      - name: Install once and invoke each declared arm once
+        run: |
+          timeout 90 adb install -r -g android/app/build/outputs/apk/debug/app-debug.apk > lifecycle-artifacts/app-install.txt 2>&1
+          timeout 90 adb install -r -g android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk > lifecycle-artifacts/test-install.txt 2>&1
+          timeout 90 adb install -r -g --force-queryable lifecycle-artifacts/build/test-services-1.4.2.apk > lifecycle-artifacts/helper-install.txt 2>&1
+          adb shell appops set androidx.test.services MANAGE_EXTERNAL_STORAGE allow
+          adb shell appops get androidx.test.services MANAGE_EXTERNAL_STORAGE > lifecycle-artifacts/helper-storage-appop.txt
+          grep -Eq '^MANAGE_EXTERNAL_STORAGE: allow([; ].*)?$' lifecycle-artifacts/helper-storage-appop.txt
+          python3 -B tools/android_lifecycle_diagnostic.py --out lifecycle-artifacts/pair --source-sha "$SHIKUANG_EXPECTED_SOURCE" --unit-nonce "$SHIKUANG_UNIT_NONCE"
+      - name: Preserve final failure diagnostics
+        if: always()
+        run: |
+          mkdir -p lifecycle-artifacts
+          timeout 20 adb logcat -b all -d -v threadtime > lifecycle-artifacts/logcat-final.txt 2>&1 || true
+          timeout 20 adb shell dumpsys activity exit-info com.shikuang.app.preview > lifecycle-artifacts/exit-info-final.txt 2>&1 || true
+          timeout 20 adb shell dumpsys webviewupdate > lifecycle-artifacts/provider-final.txt 2>&1 || true
+          timeout 20 adb shell dumpsys connectivity > lifecycle-artifacts/connectivity-final.txt 2>&1 || true
+          timeout 20 adb shell ip route show table all > lifecycle-artifacts/routes-final.txt 2>&1 || true
+          timeout 20 adb shell ip -6 route show table all > lifecycle-artifacts/routes6-final.txt 2>&1 || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: shikuang-16k-lifecycle-diagnostic-${{ github.run_id }}
+          path: lifecycle-artifacts/
+          retention-days: 14
+          if-no-files-found: error

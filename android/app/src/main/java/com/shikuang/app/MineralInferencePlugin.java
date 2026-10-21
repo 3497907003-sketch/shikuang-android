@@ -367,14 +367,35 @@ public final class MineralInferencePlugin extends Plugin {
 
     @Override
     protected void handleOnDestroy() {
+        int activityIdentity = 0, webViewIdentity = 0;
+        if (RuntimeLifecycleDiagnostics.ENABLED) {
+            android.app.Activity owner = getActivity();
+            activityIdentity = System.identityHashCode(owner);
+            if (owner instanceof MainActivity) webViewIdentity = ((MainActivity) owner).diagnosticWebViewIdentity();
+            RuntimeLifecycleDiagnostics.plugin("plugin-destroy-enter", this, activityIdentity, webViewIdentity, -1, -1, null);
+        }
+        final int diagnosticActivity = activityIdentity, diagnosticWebView = webViewIdentity;
         destroyed.set(true);
-        synchronized (jobs) { for (Job job : jobs.values()) job.cancel(); cancelledBeforeStart.clear(); }
+        synchronized (jobs) {
+            for (Job job : jobs.values()) job.cancel();
+            cancelledBeforeStart.clear();
+            if (RuntimeLifecycleDiagnostics.ENABLED) RuntimeLifecycleDiagnostics.plugin("plugin-cancel-complete", this,
+                diagnosticActivity, diagnosticWebView, jobs.size(), -1, null);
+        }
         try {
             executor.execute(() -> {
+                if (RuntimeLifecycleDiagnostics.ENABLED) RuntimeLifecycleDiagnostics.plugin("plugin-cleanup-enter", this,
+                    diagnosticActivity, diagnosticWebView, -1, sessions.size(), environment != null);
                 releaseSessions();
                 if (environment != null) { environment.close(); environment = null; }
+                if (RuntimeLifecycleDiagnostics.ENABLED) RuntimeLifecycleDiagnostics.plugin("plugin-cleanup-complete", this,
+                    diagnosticActivity, diagnosticWebView, -1, sessions.size(), environment != null);
             });
         } finally { executor.shutdown(); watchdog.shutdownNow(); }
+        if (RuntimeLifecycleDiagnostics.ENABLED) RuntimeLifecycleDiagnostics.plugin("plugin-shutdown-requested", this,
+            diagnosticActivity, diagnosticWebView, -1, -1, null);
         super.handleOnDestroy();
+        if (RuntimeLifecycleDiagnostics.ENABLED) RuntimeLifecycleDiagnostics.plugin("plugin-destroy-exit", this,
+            diagnosticActivity, diagnosticWebView, -1, -1, null);
     }
 }

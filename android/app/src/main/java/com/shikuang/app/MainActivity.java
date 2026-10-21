@@ -18,11 +18,22 @@ public class MainActivity extends BridgeActivity {
     private ConnectivityManager connectivityManager;
     private ConnectivityManager.NetworkCallback networkCallback;
     private boolean networkMonitorDestroyed;
+    private int diagnosticWebViewIdentity;
+
+    private void lifecycleReceipt(String phase) {
+        if (RuntimeLifecycleDiagnostics.ENABLED) RuntimeLifecycleDiagnostics.activity(phase, this, diagnosticWebViewIdentity);
+    }
+
+    int diagnosticWebViewIdentity() { return diagnosticWebViewIdentity; }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        lifecycleReceipt("create-enter");
         registerPlugin(MineralInferencePlugin.class);
         super.onCreate(savedInstanceState);
+        // Cache only an identity number while the WebView is alive. Later
+        // destruction receipts must never call methods on a destroyed view.
+        if (RuntimeLifecycleDiagnostics.ENABLED) diagnosticWebViewIdentity = System.identityHashCode(bridge.getWebView());
         installPackagedAssetMigration();
         connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         updateWebViewNetworkState();
@@ -45,6 +56,7 @@ public class MainActivity extends BridgeActivity {
             };
             connectivityManager.registerDefaultNetworkCallback(networkCallback);
         }
+        lifecycleReceipt("create-exit");
     }
 
     private void updateWebViewNetworkState() {
@@ -89,12 +101,29 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onResume() {
+        lifecycleReceipt("resume-enter");
         super.onResume();
         updateWebViewNetworkState();
+        lifecycleReceipt("resume-exit");
+    }
+
+    @Override
+    public void onPause() {
+        lifecycleReceipt("pause-enter");
+        super.onPause();
+        lifecycleReceipt("pause-exit");
+    }
+
+    @Override
+    public void onStop() {
+        lifecycleReceipt("stop-enter");
+        super.onStop();
+        lifecycleReceipt("stop-exit");
     }
 
     @Override
     public void onDestroy() {
+        lifecycleReceipt("destroy-enter");
         networkMonitorDestroyed = true;
         if (connectivityManager != null && networkCallback != null) {
             try {
@@ -105,5 +134,14 @@ public class MainActivity extends BridgeActivity {
             networkCallback = null;
         }
         super.onDestroy();
+        lifecycleReceipt("destroy-exit");
+    }
+
+    @Override
+    public void onDetachedFromWindow() {
+        lifecycleReceipt("detach-enter");
+        // Capacitor remains the sole owner of WebView.destroy().
+        super.onDetachedFromWindow();
+        lifecycleReceipt("detach-exit");
     }
 }
