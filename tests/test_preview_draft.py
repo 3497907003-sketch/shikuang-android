@@ -4,6 +4,7 @@ Run with: python3 -m unittest discover -s tests -p test_preview_draft.py -v
 Uses only the standard library and does not call GitHub, download, or upload.
 """
 import copy
+from contextlib import contextmanager
 import hashlib
 import importlib.util
 import json
@@ -20,6 +21,37 @@ spec = importlib.util.spec_from_file_location('preview_draft', REPO_ROOT / 'tool
 g = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(g)
 COMMIT, TAG = 'a' * 40, 'v2.5.0-preview.1'
+
+
+def fixture_digest(value):
+    return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode()).hexdigest()
+
+
+def sync_fixture():
+    # Engineering bytes only: the raw JS deliberately differs from compiled JS.
+    names = ['app.js', 'model-manifest.json', 'models/fixture.onnx'] + [f'controlled-fixture/{i}.bin' for i in range(165)]
+    def rows(compiled):
+        return sorted([{'path': name, 'bytes': len(body), 'sha256': hashlib.sha256(body).hexdigest()}
+                       for name in names for body in [(b'compiled JS' if compiled else b'raw JS') if name == 'app.js' else b'x']], key=lambda row: row['path'])
+    inputs = {f'tools/controlled-{i}.cjs': {'bytes': 1, 'sha256': hashlib.sha256(b'x').hexdigest()} for i in range(11)}
+    sync = {'source_repository': 'https://github.com/' + g.WEB_REPO, 'source_commit': g.REVIEWED_WEB_COMMIT,
+            'applicationVersion': g.VERSION, 'androidVersionCode': g.VERSION_CODE, 'packageName': g.PACKAGE,
+            'assetCount': 168, 'publishedPhotos': 117, 'activeModelVersion': 'inherited-2.0-audited',
+            'assets': rows(False), 'build_inputs': inputs}
+    compiled = {'schema_version': 1, 'source_repository': sync['source_repository'], 'source_commit': sync['source_commit'],
+                'raw_assets_sha256': fixture_digest(sync['assets']), 'build_inputs_sha256': fixture_digest(inputs),
+                'assetCount': 168, 'assets': rows(True)}
+    return sync, compiled
+
+
+@contextmanager
+def reviewed_fixture(sync, compiled):
+    # Pin the original fake contract before applying corruptions; keep real
+    # fixed counts and Web commit checks enabled throughout these cases.
+    with patch.object(g, 'RAW_ASSETS_SHA256', fixture_digest(sync['assets'])), \
+         patch.object(g, 'BUILD_INPUTS_SHA256', fixture_digest(sync['build_inputs'])), \
+         patch.object(g, 'COMPILED_ASSETS_SHA256', fixture_digest(compiled['assets'])):
+        yield
 
 
 def run_fixture():
@@ -163,19 +195,17 @@ class DraftGateTests(unittest.TestCase):
         runtime = {**run_fixture(), 'id': 456, 'workflow_id': 43, 'path': '.github/workflows/android-runtime.yml', 'run_attempt': 2, 'html_url': 'https://example.invalid/runtime'}
         previous = {**runtime, 'run_attempt': 1, 'conclusion': 'failure'}
         if case == 'wrong_prior_head': previous['head_sha'] = 'b' * 40
-        sync = {'source_repository': 'https://github.com/' + g.WEB_REPO, 'source_commit': COMMIT, 'applicationVersion': g.VERSION,
-                'androidVersionCode': g.VERSION_CODE, 'packageName': g.PACKAGE, 'assetCount': 157, 'publishedPhotos': 117,
-                'assets': [{'path': f'controlled-fixture/{i}.bin', 'bytes': 1, 'sha256': 'a' * 64} for i in range(157)]}
+        sync, compiled = sync_fixture()
         def api(endpoint):
             if endpoint.endswith('/runs/123'): return build
             if endpoint.endswith('/runs/456'): return runtime
             if endpoint.endswith('/workflows/android.yml'): return {'id': 42}
             if endpoint.endswith('/workflows/android-runtime.yml'): return {'id': 43}
             if endpoint.endswith('/runs/456/attempts/1'): return previous
-            if '/commits/' in endpoint: return {'sha': COMMIT}
+            if '/commits/' in endpoint: return {'sha': g.REVIEWED_WEB_COMMIT}
             raise AssertionError('Unexpected API call: ' + endpoint)
         args = SimpleNamespace(repo=g.REPO, build_run='123', runtime_run='456', source_commit=COMMIT, tag=TAG, output=root)
-        with patch.object(g, 'api', side_effect=api), patch.object(g, 'api_pages', side_effect=lambda endpoint, key: b if '/runs/123/' in endpoint else r), patch.object(g, 'artifact_rows', return_value=[]), patch.object(g, 'release_state', return_value=None), patch.object(g, 'command'), patch.object(g, 'source_json', return_value=sync), patch.object(g, 'source_bytes', return_value=b'controlled-fixture-source'):
+        with reviewed_fixture(sync, compiled), patch.object(g, 'api', side_effect=api), patch.object(g, 'api_pages', side_effect=lambda endpoint, key: b if '/runs/123/' in endpoint else r), patch.object(g, 'artifact_rows', return_value=[]), patch.object(g, 'release_state', return_value=None), patch.object(g, 'command'), patch.object(g, 'source_json', side_effect=lambda _commit, name: sync if name.endswith('ANDROID_SOURCE_SYNC.json') else compiled), patch.object(g, 'source_bytes', return_value=b'controlled-fixture-source'):
             return g.preflight(args)
 
     def test_same_head_retry_preserves_failed_attempt(self):
@@ -198,6 +228,47 @@ class DraftGateTests(unittest.TestCase):
 
 def add_case(name, fn):
     setattr(DraftGateTests, 'test_' + name, fn)
+
+
+def check_reviewed_ledgers(self):
+    # Public hash metadata only; none of its model/image paths is opened.
+    sync = json.loads((REPO_ROOT / 'docs/ANDROID_SOURCE_SYNC.json').read_text())
+    compiled = json.loads((REPO_ROOT / 'docs/ANDROID_COMPILED_ASSETS.json').read_text())
+    raw, built = g.validate_sync(sync), g.validate_compiled_sync(sync, compiled)
+    self.assertEqual(len(raw), 168)
+    self.assertEqual(len(sync['build_inputs']), 11)
+    self.assertNotEqual(raw['app.js']['sha256'], built['app.js']['sha256'])
+add_case('current_reviewed_metadata_ledgers', check_reviewed_ledgers)
+
+
+def check_raw_compiled(self):
+    sync, compiled = sync_fixture()
+    with reviewed_fixture(sync, compiled):
+        raw, built = g.validate_sync(sync), g.validate_compiled_sync(sync, compiled)
+    self.assertNotEqual(raw['app.js'], built['app.js'])
+    self.assertEqual(raw['models/fixture.onnx'], built['models/fixture.onnx'])
+add_case('controlled_raw_and_compiled_are_distinct', check_raw_compiled)
+
+for case in ['wrong_count', 'missing_asset', 'duplicate_asset', 'wrong_web_sha', 'wrong_asset_sha',
+             'missing_build_input', 'wrong_build_sha', 'compiled_wrong_source', 'compiled_wrong_sha',
+             'compiled_missing_asset', 'compiled_wrong_raw_binding', 'boolean_size']:
+    def check(self, case=case):
+        sync, compiled = sync_fixture()
+        with reviewed_fixture(sync, compiled):
+            if case == 'wrong_count': sync['assetCount'] = 167
+            if case == 'missing_asset': sync['assets'].pop()
+            if case == 'duplicate_asset': sync['assets'][0] = copy.deepcopy(sync['assets'][-1])
+            if case == 'wrong_web_sha': sync['source_commit'] = 'b' * 40
+            if case == 'wrong_asset_sha': sync['assets'][0]['sha256'] = 'f' * 64
+            if case == 'missing_build_input': sync['build_inputs'].pop(next(iter(sync['build_inputs'])))
+            if case == 'wrong_build_sha': next(iter(sync['build_inputs'].values()))['sha256'] = 'f' * 64
+            if case == 'compiled_wrong_source': compiled['source_commit'] = 'b' * 40
+            if case == 'compiled_wrong_sha': compiled['assets'][0]['sha256'] = 'f' * 64
+            if case == 'compiled_missing_asset': compiled['assets'].pop()
+            if case == 'compiled_wrong_raw_binding': compiled['raw_assets_sha256'] = 'f' * 64
+            if case == 'boolean_size': sync['assets'][0]['bytes'] = True
+            with self.assertRaises(ValueError): g.validate_compiled_sync(sync, compiled)
+    add_case('sync_reject_' + case, check)
 
 
 for index, value in [(0, 'attacker/fork'), (1, '-3'), (1, '1;echo hacked'), (1, '0'), (2, '123'),
@@ -373,13 +444,13 @@ for case, message in [('certificate', 'certificate pin'), ('package', 'package/v
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp); tools = root / '35.0.0'; tools.mkdir(); release = root / 'release'; release.mkdir()
             for name in ('apksigner', 'aapt', 'zipalign'): (tools / name).write_text('controlled fixture only')
-            assets = [{'path': f'controlled-fixture/{i}.bin', 'bytes': 1, 'sha256': hashlib.sha256(b'x').hexdigest()} for i in range(157)]
-            sync = {'source_repository': 'https://github.com/' + g.WEB_REPO, 'source_commit': COMMIT, 'applicationVersion': g.VERSION,
-                    'androidVersionCode': g.VERSION_CODE, 'packageName': g.PACKAGE, 'assetCount': 157, 'publishedPhotos': 117, 'assets': assets}
+            sync, compiled = sync_fixture(); assets = compiled['assets']
             apk = root / 'controlled-fixture.apk'
             with zipfile.ZipFile(apk, 'w') as z:
                 for i, asset in enumerate(assets):
-                    data = b'y' if case == 'resource_hash' and i == 0 else b'xx' if case == 'resource_length' and i == 0 else b'x'
+                    data = b'compiled JS' if asset['path'] == 'app.js' else b'x'
+                    if case == 'resource_hash' and i == 0: data = b'y' * len(data)
+                    if case == 'resource_length' and i == 0: data += b'x'
                     z.writestr('assets/public/' + asset['path'], data)
             def command(argv, **kwargs):
                 out = ''
@@ -391,8 +462,8 @@ for case, message in [('certificate', 'certificate pin'), ('package', 'package/v
                 elif '--require-16k' in argv:
                     Path(argv[argv.index('--output') + 1]).write_text(json.dumps({'apkSha256': g.sha(apk), 'structuralFailures': ['bad ELF'] if case == 'elf' else []}))
                 return SimpleNamespace(stdout=out, stderr='', returncode=0)
-            with patch.object(g, 'command', side_effect=command):
-                with self.assertRaisesRegex(ValueError, message): g.inspect_package(SimpleNamespace(build_tools=tools), apk, sync, release)
+            with reviewed_fixture(sync, compiled), patch.object(g, 'command', side_effect=command):
+                with self.assertRaisesRegex(ValueError, message): g.inspect_package(SimpleNamespace(build_tools=tools), apk, sync, release, compiled)
     add_case('package_reject_' + case, check)
 
 

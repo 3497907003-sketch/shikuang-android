@@ -24,6 +24,14 @@ CERT_SHA256 = 'DC81C921827B7BBDAA9E0C7FD8C8492CA2239AAAB9795421698313025A6B99B6'
 PACKAGE = 'com.shikuang.app.preview'
 VERSION = '2.5.0-preview.1'
 VERSION_CODE = 25001
+# This gate accepts only the reviewed immutable Web source/build contract.
+# A later deliberate source update must refresh all three inventory digests.
+REVIEWED_WEB_COMMIT = '406c3f9b7a7c9ac499b041ee224fd3b02933a870'
+SOURCE_ASSET_COUNT = 168
+BUILD_INPUT_COUNT = 11
+RAW_ASSETS_SHA256 = '080b336c7156fd9e06ebc6ea527c21ceb7e65432c8ac5fe69bcbe8bdcbc75724'
+BUILD_INPUTS_SHA256 = '621da11bfa8fec957aec6b5768da28997b9626d5c71b703270673c984cfc475f'
+COMPILED_ASSETS_SHA256 = 'b77a148065d2afa72c8102a075f018932b236b397976ed4f8c9bb714bf68b45d'
 MATRICES = {'24': (24, 4096, 'google_apis'), '30': (30, 4096, 'google_apis'),
             '35': (35, 4096, 'google_apis'), '35-16k': (35, 16384, 'google_apis_ps16k')}
 BUILD_STEPS = ['Prepare persistent preview signing key', 'Build and lint Android preview',
@@ -189,18 +197,59 @@ def source_json(commit, path):
     return json.loads(source_bytes(commit, path))
 
 
+def metadata_digest(value):
+    return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(',', ':'),
+                                     ensure_ascii=False, allow_nan=False).encode()).hexdigest()
+
+
+def asset_rows(rows):
+    require(type(rows) is list and len(rows) == SOURCE_ASSET_COUNT, 'Expected complete168 assets')
+    for row in rows:
+        require(type(row) is dict and set(row) == {'path', 'bytes', 'sha256'} and
+                type(row['path']) is str and safe_path(row['path']) and
+                type(row['bytes']) is int and row['bytes'] > 0 and type(row['sha256']) is str and
+                re.fullmatch(r'[0-9a-f]{64}', row['sha256']), 'Invalid asset hash/size/path')
+    require(len({row['path'] for row in rows}) == SOURCE_ASSET_COUNT, 'Duplicate sync asset path')
+    return sorted(rows, key=lambda row: row['path'])
+
+
 def validate_sync(sync):
     require(sync['source_repository'] == 'https://github.com/' + WEB_REPO and
-            re.fullmatch(r'[0-9a-f]{40}', sync['source_commit']), 'Invalid source sync web identity')
+            sync['source_commit'] == REVIEWED_WEB_COMMIT, 'Source sync differs from reviewed Web commit')
     require(sync['applicationVersion'] == VERSION and sync['androidVersionCode'] == VERSION_CODE and
             sync['packageName'] == PACKAGE, 'Source sync package version mismatch')
-    rows = sync['assets']
-    require(sync['assetCount'] == len(rows) == 157 and sync['publishedPhotos'] == 117, 'Expected complete157 assets and117 photos')
-    require(len({row['path'] for row in rows}) == 157, 'Duplicate sync asset path')
-    for row in rows:
-        require(safe_path(row['path']) and isinstance(row['bytes'], int) and row['bytes'] > 0 and
-                re.fullmatch(r'[0-9a-f]{64}', row['sha256']), 'Invalid asset hash/size/path')
+    rows = asset_rows(sync['assets'])
+    require(type(sync['assetCount']) is int and sync['assetCount'] == SOURCE_ASSET_COUNT and
+            sync['publishedPhotos'] == 117, 'Expected complete168 assets and117 photos')
+    require(metadata_digest(rows) == RAW_ASSETS_SHA256, 'Raw source asset inventory differs from reviewed bytes')
+    inputs = sync['build_inputs']
+    require(type(inputs) is dict and len(inputs) == BUILD_INPUT_COUNT, 'Expected exact11 build inputs')
+    for name, row in inputs.items():
+        require(type(name) is str and name.startswith('tools/') and safe_path(name) and
+                type(row) is dict and set(row) == {'bytes', 'sha256'} and
+                type(row['bytes']) is int and row['bytes'] > 0 and type(row['sha256']) is str and
+                re.fullmatch(r'[0-9a-f]{64}', row['sha256']), 'Invalid build input hash/size/path')
+    require(metadata_digest(inputs) == BUILD_INPUTS_SHA256, 'Build input inventory differs from reviewed bytes')
     return {row['path']: row for row in rows}
+
+
+def validate_compiled_sync(sync, compiled):
+    raw = validate_sync(sync)
+    require(type(compiled['schema_version']) is int and compiled['schema_version'] == 1 and
+            compiled['source_repository'] == sync['source_repository'] and
+            compiled['source_commit'] == REVIEWED_WEB_COMMIT and
+            compiled['raw_assets_sha256'] == RAW_ASSETS_SHA256 and
+            compiled['build_inputs_sha256'] == BUILD_INPUTS_SHA256,
+            'Compiled inventory source/build binding differs')
+    rows = asset_rows(compiled['assets'])
+    require(type(compiled['assetCount']) is int and compiled['assetCount'] == SOURCE_ASSET_COUNT and
+            metadata_digest(rows) == COMPILED_ASSETS_SHA256, 'Compiled inventory differs from reviewed bytes')
+    expected = {row['path']: row for row in rows}
+    require(set(expected) == set(raw), 'Compiled inventory has missing or extra source assets')
+    for name, row in raw.items():
+        if name.startswith(('models/', 'images/')) or name == 'model-manifest.json':
+            require(expected[name] == row, 'Compiled model/photo identity differs from raw source')
+    return expected
 
 
 def safe_path(name):
@@ -233,7 +282,8 @@ def preflight(args):
     release_state(args.tag, args.source_commit)
     command(['git', 'fetch', '--no-tags', 'origin', args.source_commit], capture_output=True)
     sync = source_json(args.source_commit, 'docs/ANDROID_SOURCE_SYNC.json')
-    validate_sync(sync)
+    compiled = source_json(args.source_commit, 'docs/ANDROID_COMPILED_ASSETS.json')
+    validate_compiled_sync(sync, compiled)
     web_commit = api(f'repos/{WEB_REPO}/commits/{sync["source_commit"]}')
     require(web_commit['sha'] == sync['source_commit'], 'Web source commit resolution differs from source sync')
     report = {'schema_version': 1, 'repository': REPO, 'android_source_commit': args.source_commit,
@@ -245,7 +295,8 @@ def preflight(args):
               'build_steps_verified': BUILD_STEPS, 'runtime_steps_verified': RUNTIME_STEPS,
               'runtime_jobs': [{key: row[key] for key in ['id', 'name', 'run_attempt', 'head_sha', 'conclusion']} for row in runtime_jobs],
               'prior_runtime_attempts': prior_attempts, 'source_sync_sha256': hashlib.sha256(source_bytes(args.source_commit, 'docs/ANDROID_SOURCE_SYNC.json')).hexdigest(),
-              'source_asset_count': sync['assetCount'], 'preflight_passed': True}
+              'compiled_inventory_sha256': hashlib.sha256(source_bytes(args.source_commit, 'docs/ANDROID_COMPILED_ASSETS.json')).hexdigest(),
+              'source_asset_count': sync['assetCount'], 'build_input_count': len(sync['build_inputs']), 'preflight_passed': True}
     args.output.mkdir(parents=True, exist_ok=True)
     (args.output / 'preflight.json').write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n')
     return report, artifacts, sync
@@ -376,7 +427,7 @@ def validate_runtime(root, key, manifest, manifest_sha, reference, photos, photo
             'screenshots': screenshots, 'limitation': limitation}
 
 
-def inspect_package(args, apk, sync, release):
+def inspect_package(args, apk, sync, release, compiled):
     tools = args.build_tools
     require(tools and tools.name == '35.0.0' and all((tools / tool).is_file() for tool in ['apksigner', 'aapt', 'zipalign']),
             'Official SDK35 build-tools binaries are required')
@@ -397,7 +448,8 @@ def inspect_package(args, apk, sync, release):
     require(not structural['structuralFailures'] and structural['apkSha256'] == sha(apk), 'Four ABI / ELF16KB check failed')
     structural['apk'] = apk.name
     (release / 'apk-native-compatibility.json').write_text(json.dumps(structural, indent=2) + '\n')
-    expected = validate_sync(sync)
+    raw_expected = validate_sync(sync)
+    expected = validate_compiled_sync(sync, compiled)
     checked = []
     with zipfile.ZipFile(apk) as archive:
         require(len(archive.namelist()) == len(set(archive.namelist())), 'APK has duplicate ZIP entries')
@@ -418,8 +470,8 @@ def inspect_package(args, apk, sync, release):
                 len(read('data/image-sources.json')['records']) == reference['counts']['source_image_records'] == 871,
                 'Photo/reference counts mismatch')
         for row in manifest['models'] + photos['assets'] + reference['files']:
-            require(row['path'] in expected and row['sha256'] == expected[row['path']]['sha256'] and
-                    row['bytes'] == expected[row['path']]['bytes'], 'Model/photo/reference manifest differs from source sync')
+            require(row['path'] in raw_expected and row['sha256'] == raw_expected[row['path']]['sha256'] and
+                    row['bytes'] == raw_expected[row['path']]['bytes'], 'Model/photo/reference manifest differs from source sync')
         require({path for path in public if path.startswith('models/')} == {row['path'] for row in manifest['models']} and
                 {path for path in public if path.startswith('images/')} == {row['path'] for row in photos['assets']},
                 'APK contains stale model/photo assets')
@@ -446,9 +498,9 @@ def create_draft(args, gate):
                          f'Android source `{args.source_commit}`; web source `{gate["web_source_commit"]}`.\n'
                          f'Validated build: {gate["build_url"]}\nValidated runtime: {gate["runtime_url"]}\n\n'
                          'Draft only: release publication requires a separate human action. Four ABI/ELF+ZIP16KB checks, '
-                         '157 source assets, four native graphs and117 licensed reference photo decodes verified. '
+                         '168 compiled assets bound to reviewed raw source and 11 build inputs, four native graphs and 117 licensed reference photo decodes verified. '
                          'API24 factory WebView may only pass the supported recovery screen; see runtime gate limitations. '
-                         'Regression checks do not establish mineral accuracy or Kappa0.95.\n')
+                         'Engineering regression is not independent accuracy acceptance; the independent Kappa target of approximately 0.80 remains unaccepted.\n')
     request = {'tag_name': args.tag, 'target_commitish': args.source_commit,
                'name': f'识矿 {VERSION} Android preview', 'body': notes, 'draft': True, 'prerelease': True}
     request_file = args.output / 'draft-create-request.json'
@@ -511,12 +563,14 @@ def main():
     release.mkdir(parents=True, exist_ok=True)
     published_apk = release / f'shikuang-{VERSION}-android.apk'
     shutil.copyfile(apk, published_apk)
-    package, runtime_contract = inspect_package(args, published_apk, sync, release)
+    compiled = source_json(args.source_commit, 'docs/ANDROID_COMPILED_ASSETS.json')
+    package, runtime_contract = inspect_package(args, published_apk, sync, release, compiled)
     runtime = [validate_runtime(downloads / ('shikuang-runtime-api-' + key), key, *runtime_contract) for key in MATRICES]
     gate = {**pre, 'package': package, 'runtimeMatrices': runtime, 'gatePassed': True,
             'releaseMode': 'draft-prerelease-only', 'productionAccuracyClaim': False,
-            'limitations': 'Native/fixture/offline regression only; source-photo pilot Kappa remains0.6564 and was not deployed. API24 factory WebView recovery is explicitly distinguished from photo UI inference.'}
+            'limitations': 'Native/fixture/offline engineering regression only; independent Kappa acceptance at approximately 0.80 remains incomplete. This gate makes no research-model quality claim. API24 factory WebView recovery is explicitly distinguished from photo UI inference.'}
     (release / 'ANDROID_SOURCE_SYNC.json').write_bytes(source_bytes(args.source_commit, 'docs/ANDROID_SOURCE_SYNC.json'))
+    (release / 'ANDROID_COMPILED_ASSETS.json').write_bytes(source_bytes(args.source_commit, 'docs/ANDROID_COMPILED_ASSETS.json'))
     (release / 'android-preview-gate.json').write_text(json.dumps(gate, ensure_ascii=False, indent=2) + '\n')
     sums = ''.join(f'{sha(file)}  {file.name}\n' for file in sorted(release.iterdir()) if file.is_file() and file.name != 'SHA256SUMS')
     (release / 'SHA256SUMS').write_text(sums)
