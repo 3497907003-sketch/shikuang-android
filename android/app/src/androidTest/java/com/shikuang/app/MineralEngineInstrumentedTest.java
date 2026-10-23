@@ -203,8 +203,12 @@ public class MineralEngineInstrumentedTest {
     }
 
     /** Native system overlays are invisible to WebView DOM/visual-state checks. */
-    private JSONObject requireNativeScreenshotWindow(String filename, String stage) throws Exception {
+    JSONObject requireNativeScreenshotWindow(String filename, String stage) throws Exception {
+        boolean diagnostic = NativeDialogDiagnostic.requested();
         String expected = InstrumentationRegistry.getInstrumentation().getTargetContext().getPackageName();
+        AtomicBoolean treeClaimed = new AtomicBoolean(false);
+        AtomicReference<JSONObject> treeSafe = new AtomicReference<>();
+        AtomicReference<Boolean> lastDiagnosticFocus = new AtomicReference<>();
         long deadline = SystemClock.elapsedRealtime() + 10000;
         JSONArray attempts = new JSONArray();
         JSONObject evidence = new JSONObject().put("filename",filename).put("stage",stage)
@@ -224,6 +228,12 @@ public class MineralEngineInstrumentedTest {
                     root = InstrumentationRegistry.getInstrumentation().getUiAutomation().getRootInActiveWindow();
                     if (root != null && root.getPackageName() != null) active.set(root.getPackageName().toString());
                     scenario.onActivity(activity -> focused.set(activity.getBridge().getWebView().hasWindowFocus()));
+                    if (diagnostic) {
+                        lastDiagnosticFocus.set(focused.get());
+                        if (root != null && !(expected.equals(active.get()) && Boolean.TRUE.equals(focused.get()))
+                                && treeClaimed.compareAndSet(false, true))
+                            treeSafe.set(NativeDialogDiagnostic.bounded(AccessibilityNodeInfo.obtain(root), focused.get(), deadline));
+                    }
                 } catch (Exception failure) {
                     error.set(failure.toString());
                 } catch (AssertionError failure) {
@@ -248,6 +258,12 @@ public class MineralEngineInstrumentedTest {
             if (remaining>0) SystemClock.sleep(Math.min(100,remaining));
         } while (SystemClock.elapsedRealtime()<deadline);
         evidence.put("passed",passed).put("finishedElapsedRealtimeMs",SystemClock.elapsedRealtime());
+        if (diagnostic) {
+            JSONObject safe = NativeDialogDiagnostic.report(passed, attempts.length(), lastDiagnosticFocus.get(), treeSafe.get());
+            NativeDialogDiagnostic.writeReport(safe);
+            assertTrue("Native screenshot window is obstructed or unverified; finite diagnostic: " + safe, passed);
+            return safe;
+        }
         String stem = filename.substring(0,filename.length()-4)+"-native-window-"+stage;
         // Persist the failed observation before another accessibility IPC.
         try (OutputStream output=RuntimeTestOutput.open(stem+".json")) {

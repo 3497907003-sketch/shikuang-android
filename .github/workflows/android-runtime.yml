@@ -16,18 +16,23 @@ on:
         required: false
         type: boolean
         default: false
+      native_dialog_diagnostic:
+        description: "One API35 finite native-dialog diagnostic only; not product acceptance"
+        required: false
+        type: boolean
+        default: false
       lifecycle_diagnostic:
         description: 'One explicit SDK35/16K lifecycle diagnostic pair; not product acceptance'
         required: false
         type: boolean
         default: false
       expected_source_sha:
-        description: 'Exact reviewed commit required only for lifecycle diagnostic mode'
+        description: 'Exact reviewed commit required for lifecycle or finite native-dialog diagnostic mode'
         required: false
         type: string
         default: ''
       unit_nonce:
-        description: 'Fresh 32 lower-case hex value required only for lifecycle diagnostic mode'
+        description: 'Fresh 32 lower-case hex value required for lifecycle or finite native-dialog diagnostic mode'
         required: false
         type: string
         default: ''
@@ -38,7 +43,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   runtime:
-    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.lifecycle_diagnostic) }}
+    if: ${{ !(github.event_name == 'workflow_dispatch' && (inputs.lifecycle_diagnostic || inputs.native_dialog_diagnostic)) }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
@@ -472,7 +477,7 @@ jobs:
             android/app/build/outputs/connected_android_test_additional_output/
           if-no-files-found: warn
   lifecycle-diagnostic:
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.lifecycle_diagnostic }}
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.lifecycle_diagnostic && !inputs.native_dialog_diagnostic }}
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
@@ -613,3 +618,151 @@ jobs:
           path: lifecycle-artifacts/
           retention-days: 14
           if-no-files-found: error
+
+  native-dialog-diagnostic:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.native_dialog_diagnostic }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+    env:
+      ANDROID_AVD_HOME: /tmp/shikuang-native-dialog-avd
+      EXPECTED_SOURCE: ${{ inputs.expected_source_sha }}
+      DIAGNOSTIC_NONCE: ${{ inputs.unit_nonce }}
+      DISPATCH_HEAD: ${{ github.sha }}
+      NETWORK_PROBE: ${{ inputs.network_probe }}
+      LIFECYCLE_DIAGNOSTIC: ${{ inputs.lifecycle_diagnostic }}
+      EXPECTED_PRODUCERS: '{"android/app/src/androidTest/java/com/shikuang/app/MineralEngineInstrumentedTest.java":"2a08d8240f8cca1156b83ef80c7b799f3e780537e42aa7254b3c3b80ab9cf52b","android/app/src/androidTest/java/com/shikuang/app/NativeDialogDiagnostic.java":"485375a8a8f28e07d8f80cb64e75a2c25840d933471038f7cc87f86b3f7c6569","android/app/src/androidTest/java/com/shikuang/app/NativeDialogEnumDiagnosticTest.java":"acdcba219ff6140cef007b9233a050bea756e20f40db7d3436ec7593de7fd96b","android/app/src/androidTest/java/com/shikuang/app/RuntimeTestOutput.java":"caefd07e5f9c05fc4ed95b104267000022ab60e94b1b31a2d266ab74e6c8f6e5","tools/validate_native_dialog_enum_report.py":"7817e4b5c9d1f75941c0e9db17d0555102b4d82579dbb99fd8995afdfe467787"}'
+    steps:
+      - name: Require one exact explicit diagnostic dispatch
+        shell: bash
+        run: |
+          python3 -B - <<'PY'
+          import json,os,re
+          e=os.environ
+          ok=(e.get('GITHUB_EVENT_NAME')=='workflow_dispatch' and e.get('GITHUB_RUN_ATTEMPT')=='1'
+              and e.get('NETWORK_PROBE')=='false' and e.get('LIFECYCLE_DIAGNOSTIC')=='false'
+              and re.fullmatch('[a-f0-9]{40}',e.get('EXPECTED_SOURCE',''))
+              and e.get('DISPATCH_HEAD')==e.get('EXPECTED_SOURCE')
+              and re.fullmatch('[a-f0-9]{32}',e.get('DIAGNOSTIC_NONCE','')))
+          if not ok:raise SystemExit('finite_diagnostic_dispatch_rejected')
+          print(json.dumps({'explicit_diagnostic':True,'attempt':1,'api':35,'page_size':4096,'release_acceptance':False}))
+          PY
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.expected_source_sha }}
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+      - name: Verify reviewed producer sources
+        shell: bash
+        run: |
+          python3 -B - <<'PY'
+          import hashlib,json,os,subprocess
+          from pathlib import Path
+          if subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()!=os.environ['EXPECTED_SOURCE']:raise SystemExit('finite_diagnostic_checkout_rejected')
+          pins=json.loads(os.environ['EXPECTED_PRODUCERS'])
+          if len(pins)!=5 or any(hashlib.sha256(Path(p).read_bytes()).hexdigest()!=s for p,s in pins.items()):raise SystemExit('finite_diagnostic_producer_pin_rejected')
+          print(json.dumps({'producer_pins_verified':5,'release_acceptance':False}))
+          PY
+      - name: Prepare exact API35 4K offline environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir diagnostic-local
+          {
+            npm ci
+            npm run sync
+            SHIKUANG_DIAG_SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+            "$SHIKUANG_DIAG_SDK/cmdline-tools/latest/bin/sdkmanager" "platform-tools" "emulator" "system-images;android-35;google_apis;x86_64"
+            export PATH="$SHIKUANG_DIAG_SDK/platform-tools:$PATH"
+            printf '%s\n' "$SHIKUANG_DIAG_SDK/platform-tools" >> "$GITHUB_PATH"
+            mkdir -p "$ANDROID_AVD_HOME"
+            printf 'no\n' | "$SHIKUANG_DIAG_SDK/cmdline-tools/latest/bin/avdmanager" create avd --name shikuang-native-dialog-api35 --package 'system-images;android-35;google_apis;x86_64' --device pixel_2 --path "$ANDROID_AVD_HOME/shikuang-native-dialog-api35.avd" --force
+            sudo chmod 666 /dev/kvm
+            nohup "$SHIKUANG_DIAG_SDK/emulator/emulator" -avd shikuang-native-dialog-api35 -port 5554 -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect -camera-back none -camera-front none -memory 3072 -cores 2 -accel on > diagnostic-local/emulator.log 2>&1 &
+            timeout 180 adb -s emulator-5554 wait-for-device
+            timeout 180 bash -c 'until [[ "$(adb -s emulator-5554 shell getprop sys.boot_completed | tr -d "\r")" == 1 ]]; do sleep 2; done'
+            python3 -B - <<'PY'
+          import subprocess
+          rows=[x.split() for x in subprocess.check_output(['adb','devices'],text=True).splitlines()[1:] if x.strip()]
+          if rows!=[['emulator-5554','device']]:raise SystemExit('finite_diagnostic_one_emulator_required')
+          PY
+            test "$(adb -s emulator-5554 shell getprop ro.kernel.qemu | tr -d '\r')" = 1
+            test "$(adb -s emulator-5554 shell getprop ro.build.version.sdk | tr -d '\r')" = 35
+            test "$(adb -s emulator-5554 shell getconf PAGE_SIZE | tr -d '\r')" = 4096
+            # Same early setup unlock/animation controls as the ordinary job; no dialog interaction.
+            adb -s emulator-5554 shell input keyevent 82
+            adb -s emulator-5554 shell settings put global window_animation_scale 0
+            adb -s emulator-5554 shell settings put global transition_animation_scale 0
+            adb -s emulator-5554 shell settings put global animator_duration_scale 0
+            SHIKUANG_DIAG_ROOT=false
+            for SHIKUANG_DIAG_ATTEMPT in 1 2 3 4 5; do
+              timeout 20 adb -s emulator-5554 root || true
+              timeout 30 adb -s emulator-5554 wait-for-device || true
+              SHIKUANG_DIAG_UID="$(timeout 10 adb -s emulator-5554 shell id -u | tr -d '\r' || true)"
+              if [[ "$SHIKUANG_DIAG_UID" = 0 ]]; then SHIKUANG_DIAG_ROOT=true; break; fi
+              sleep 2
+            done
+            test "$SHIKUANG_DIAG_ROOT" = true
+            timeout 90 bash -c 'until [[ "$(adb -s emulator-5554 shell getprop gsm.sim.state)" == *LOADED* ]]; do sleep 2; done'
+            adb -s emulator-5554 shell cmd connectivity airplane-mode enable
+            test "$(adb -s emulator-5554 shell cmd connectivity airplane-mode | tr -d '\r')" = enabled
+            adb -s emulator-5554 shell svc wifi disable
+            adb -s emulator-5554 shell svc data disable
+            adb -s emulator-5554 shell 'for device in eth0 eth1 wlan0; do if ip link show "$device" >/dev/null 2>&1; then ip link set "$device" down; fi; done'
+            timeout 60 bash -c 'until [[ "$(adb -s emulator-5554 shell dumpsys connectivity)" == *"Active default network: none"* ]]; do sleep 2; done'
+            python3 -B tools/android_offline_setup.py --serial emulator-5554 --out diagnostic-local/offline-controls
+          } > diagnostic-local/setup.stdout.txt 2> diagnostic-local/setup.stderr.txt
+          printf '%s\n' '{"offline_setup_verified":true,"api":35,"page_size":4096,"release_acceptance":false}'
+      - name: Run only finite native-dialog diagnostic once
+        id: native
+        shell: bash
+        run: |
+          set +e
+          (
+            cd android
+            ./gradlew --no-daemon --max-workers=2 \
+              -Pandroid.testInstrumentationRunnerArguments.expectedPageSize=4096 \
+              '-Pandroid.testInstrumentationRunnerArguments.class=com.shikuang.app.NativeDialogEnumDiagnosticTest#recoveryWindowFiniteEnums' \
+              -Pandroid.testInstrumentationRunnerArguments.nativeDialogDiagnostic=true \
+              "-Pandroid.testInstrumentationRunnerArguments.expectedSourceSha=$EXPECTED_SOURCE" \
+              "-Pandroid.testInstrumentationRunnerArguments.diagnosticNonce=$DIAGNOSTIC_NONCE" \
+              connectedDebugAndroidTest
+          ) > diagnostic-local/native.stdout.txt 2> diagnostic-local/native.stderr.txt
+          SHIKUANG_DIAG_NATIVE_EXIT=$?
+          set -e
+          printf '{"native_exit_code":%s,"release_acceptance":false}\n' "$SHIKUANG_DIAG_NATIVE_EXIT"
+          exit "$SHIKUANG_DIAG_NATIVE_EXIT"
+      - name: Stage only finite JSON after terminal native outcome
+        id: stage
+        if: ${{ always() && (steps.native.outcome == 'success' || steps.native.outcome == 'failure') }}
+        shell: bash
+        run: |
+          python3 -B - <<'PY'
+          import hashlib,json,os,subprocess
+          from pathlib import Path
+          pins=json.loads(os.environ['EXPECTED_PRODUCERS'])
+          if any(hashlib.sha256(Path(p).read_bytes()).hexdigest()!=s for p,s in pins.items()):raise SystemExit('finite_diagnostic_producer_changed')
+          paths=list(pins)+['.github/workflows/android-runtime.yml']
+          if subprocess.run(['git','diff','--quiet','HEAD','--',*paths]).returncode!=0:raise SystemExit('finite_diagnostic_source_changed')
+          PY
+          python3 -B tools/validate_native_dialog_enum_report.py --stage-root android/app/build/outputs/connected_android_test_additional_output "$EXPECTED_SOURCE" "$DIAGNOSTIC_NONCE"
+      - name: Upload standalone finite-enum artifact only
+        if: ${{ always() && steps.stage.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: shikuang-native-dialog-enums-api35-${{ github.run_id }}-${{ inputs.unit_nonce }}
+          path: diagnostic-upload/native-dialog-enum-report.json
+          compression-level: 0
+          if-no-files-found: error
+          overwrite: false
+          include-hidden-files: false
+          retention-days: 7
