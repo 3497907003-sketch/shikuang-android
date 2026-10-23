@@ -204,7 +204,7 @@ public class MineralEngineInstrumentedTest {
 
     /** Native system overlays are invisible to WebView DOM/visual-state checks. */
     JSONObject requireNativeScreenshotWindow(String filename, String stage) throws Exception {
-        boolean diagnostic = NativeDialogDiagnostic.requested();
+        boolean diagnostic = NativeDialogDiagnostic.observesGate(filename, stage);
         String expected = InstrumentationRegistry.getInstrumentation().getTargetContext().getPackageName();
         AtomicBoolean treeClaimed = new AtomicBoolean(false);
         AtomicReference<JSONObject> treeSafe = new AtomicReference<>();

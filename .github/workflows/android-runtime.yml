@@ -632,7 +632,7 @@ jobs:
       DISPATCH_HEAD: ${{ github.sha }}
       NETWORK_PROBE: ${{ inputs.network_probe }}
       LIFECYCLE_DIAGNOSTIC: ${{ inputs.lifecycle_diagnostic }}
-      EXPECTED_PRODUCERS: '{"android/app/src/androidTest/java/com/shikuang/app/MineralEngineInstrumentedTest.java":"ecad5cee8a971d8d7ce4bb3ba610433f6e8621420f3ec63b2b603a9857b6dabb","android/app/src/androidTest/java/com/shikuang/app/NativeDialogDiagnostic.java":"485375a8a8f28e07d8f80cb64e75a2c25840d933471038f7cc87f86b3f7c6569","android/app/src/androidTest/java/com/shikuang/app/NativeDialogEnumDiagnosticTest.java":"f117bda37a4e1dadb1186cbda2ee4a5cc4ab88546563d50ddfe098010bec27ce","android/app/src/androidTest/java/com/shikuang/app/RuntimeTestOutput.java":"caefd07e5f9c05fc4ed95b104267000022ab60e94b1b31a2d266ab74e6c8f6e5","tools/validate_native_dialog_enum_report.py":"7817e4b5c9d1f75941c0e9db17d0555102b4d82579dbb99fd8995afdfe467787"}'
+      EXPECTED_PRODUCERS: '{"android/app/src/androidTest/java/com/shikuang/app/MineralEngineInstrumentedTest.java":"189bd41a663b52efd70a8e18781a6124959553f3601362a85004dbcfb770f3c9","android/app/src/androidTest/java/com/shikuang/app/NativeDialogDiagnostic.java":"166d00b92214d56c54b6a8cb94016a45d1e10e65208c860241173ce3d06b807e","android/app/src/androidTest/java/com/shikuang/app/NativeDialogEnumDiagnosticTest.java":"73c63ec315a17f10640523f7c168287d6f8d1fd09d8e18ab97a8a2c38ac6b9c2","android/app/src/androidTest/java/com/shikuang/app/RuntimeTestOutput.java":"caefd07e5f9c05fc4ed95b104267000022ab60e94b1b31a2d266ab74e6c8f6e5","tools/validate_native_dialog_enum_report.py":"7817e4b5c9d1f75941c0e9db17d0555102b4d82579dbb99fd8995afdfe467787"}'
     steps:
       - name: Require one exact explicit diagnostic dispatch
         shell: bash
@@ -722,7 +722,7 @@ jobs:
             python3 -B tools/android_offline_setup.py --serial emulator-5554 --out diagnostic-local/offline-controls
           } > diagnostic-local/setup.stdout.txt 2> diagnostic-local/setup.stderr.txt
           printf '%s\n' '{"offline_setup_verified":true,"api":35,"page_size":4096,"release_acceptance":false}'
-      - name: Run only finite native-dialog diagnostic once
+      - name: Run existing recognition workload with one finite native-window observation
         id: native
         shell: bash
         run: |
@@ -731,8 +731,9 @@ jobs:
             cd android
             ./gradlew --no-daemon --max-workers=2 \
               -Pandroid.testInstrumentationRunnerArguments.expectedPageSize=4096 \
-              '-Pandroid.testInstrumentationRunnerArguments.class=com.shikuang.app.NativeDialogEnumDiagnosticTest#recoveryWindowFiniteEnums' \
+              '-Pandroid.testInstrumentationRunnerArguments.class=com.shikuang.app.NativeDialogEnumDiagnosticTest#recognitionWorkloadFiniteEnums' \
               -Pandroid.testInstrumentationRunnerArguments.nativeDialogDiagnostic=true \
+              -Pandroid.testInstrumentationRunnerArguments.nativeDialogScope=post-native-first-result-before \
               "-Pandroid.testInstrumentationRunnerArguments.expectedSourceSha=$EXPECTED_SOURCE" \
               "-Pandroid.testInstrumentationRunnerArguments.diagnosticNonce=$DIAGNOSTIC_NONCE" \
               connectedDebugAndroidTest

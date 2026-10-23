@@ -43,6 +43,29 @@ final class NativeDialogDiagnostic {
     static final String[] RESOURCE_ENUMS = {"aerr_restart", "aerr_app_info", "aerr_close", "aerr_report", "aerr_mute", "aerr_wait"};
     static final String[] TITLE_FORMATS = {"aerr_application", "aerr_application_repeated", "aerr_process", "aerr_process_repeated", "anr_application_process", "anr_process"};
 
+    static final String RECOVERY_SCOPE = "recovery";
+    static final String WORKLOAD_SCOPE = "post-native-first-result-before";
+    private static final AtomicBoolean REPORT_WRITTEN = new AtomicBoolean(false);
+
+    static String scope() {
+        Bundle args = InstrumentationRegistry.getArguments();
+        String value = RECOVERY_SCOPE;
+        if (args.containsKey("nativeDialogScope")) {
+            Object raw = args.get("nativeDialogScope");
+            if (!(raw instanceof String))
+                throw new IllegalStateException("Explicit finite diagnostic scope required");
+            value = (String) raw;
+        }
+        if (!RECOVERY_SCOPE.equals(value) && !WORKLOAD_SCOPE.equals(value))
+            throw new IllegalStateException("Explicit finite diagnostic scope required");
+        return value;
+    }
+    static boolean observesGate(String filename, String stage) {
+        if (!requested()) return false;
+        return RECOVERY_SCOPE.equals(scope())
+                || ("quartz-result.png".equals(filename) && "before".equals(stage));
+    }
+
     static boolean requested() {
         Bundle a = InstrumentationRegistry.getArguments();
         if (!"true".equals(a.getString("nativeDialogDiagnostic"))) return false;
@@ -182,6 +205,8 @@ final class NativeDialogDiagnostic {
     static void writeReport(JSONObject safe) throws Exception {
         byte[] bytes = safe.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
         if (bytes.length > 65536) throw new IllegalStateException("Finite diagnostic JSON cap exceeded");
+        if (!REPORT_WRITTEN.compareAndSet(false, true))
+            throw new IllegalStateException("Finite diagnostic report already attempted");
         try (java.io.OutputStream output = RuntimeTestOutput.open(REPORT_FILE)) { output.write(bytes); }
     }
 }
