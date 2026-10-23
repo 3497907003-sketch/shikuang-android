@@ -731,7 +731,8 @@ jobs:
             cd android
             ./gradlew --no-daemon --max-workers=2 \
               -Pandroid.testInstrumentationRunnerArguments.expectedPageSize=4096 \
-              '-Pandroid.testInstrumentationRunnerArguments.class=com.shikuang.app.NativeDialogEnumDiagnosticTest#recognitionWorkloadFiniteEnums' \
+              -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true \
+              '-Pandroid.testInstrumentationRunnerArguments.class=com.shikuang.app.MineralModelContractTest,com.shikuang.app.ReviewedPhotoAssetsInstrumentedTest,com.shikuang.app.MineralEngineInstrumentedTest' \
               -Pandroid.testInstrumentationRunnerArguments.nativeDialogDiagnostic=true \
               -Pandroid.testInstrumentationRunnerArguments.nativeDialogScope=post-native-first-result-before \
               "-Pandroid.testInstrumentationRunnerArguments.expectedSourceSha=$EXPECTED_SOURCE" \
@@ -742,6 +743,18 @@ jobs:
           set -e
           printf '{"native_exit_code":%s,"release_acceptance":false}\n' "$SHIKUANG_DIAG_NATIVE_EXIT"
           exit "$SHIKUANG_DIAG_NATIVE_EXIT"
+      - name: Verify all nine ordinary tests actually executed
+        id: nine
+        shell: bash
+        run: |
+          python3 -B - <<'PY_CHECK'
+          import hashlib,subprocess
+          from pathlib import Path
+          p='tools/verify_ordinary_nine_test_results.py'
+          if hashlib.sha256(Path(p).read_bytes()).hexdigest()!='45ff93fd7ba002db2e0b98aa686172f7047cb7436f3c47fec1ca4181cc9f1960':raise SystemExit('ordinary_count_verifier_pin_rejected')
+          if subprocess.run(['git','diff','--quiet','HEAD','--',p]).returncode!=0:raise SystemExit('ordinary_count_verifier_changed')
+          PY_CHECK
+          python3 -B tools/verify_ordinary_nine_test_results.py
       - name: Stage only finite JSON after terminal native outcome
         id: stage
         if: ${{ always() && (steps.native.outcome == 'success' || steps.native.outcome == 'failure') }}
@@ -752,7 +765,7 @@ jobs:
           from pathlib import Path
           pins=json.loads(os.environ['EXPECTED_PRODUCERS'])
           if any(hashlib.sha256(Path(p).read_bytes()).hexdigest()!=s for p,s in pins.items()):raise SystemExit('finite_diagnostic_producer_changed')
-          paths=list(pins)+['.github/workflows/android-runtime.yml']
+          paths=list(pins)+['.github/workflows/android-runtime.yml','tools/verify_ordinary_nine_test_results.py']
           if subprocess.run(['git','diff','--quiet','HEAD','--',*paths]).returncode!=0:raise SystemExit('finite_diagnostic_source_changed')
           PY
           python3 -B tools/validate_native_dialog_enum_report.py --stage-root android/app/build/outputs/connected_android_test_additional_output "$EXPECTED_SOURCE" "$DIAGNOSTIC_NONCE"
