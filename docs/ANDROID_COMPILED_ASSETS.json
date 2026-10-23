@@ -1,15 +1,15 @@
 {
   "schema_version": 1,
   "source_repository": "https://github.com/3497907003-sketch/shikuang-app",
-  "source_commit": "e333c33d8d1c7d247a13115f2a12f7bf62cc3dc6",
-  "raw_assets_sha256": "67773ff6ee5e317a8eadf172fdf0ace7ee5f8c0d25bd30304ca32e7d3a59ce46",
+  "source_commit": "4048c7744f6534c1e1b366ee999434c2f4cbf377",
+  "raw_assets_sha256": "d85d8322708729c07466a25dc354889fe52455d56a9f86ddaa0dc3a6acecb3c1",
   "build_inputs_sha256": "621da11bfa8fec957aec6b5768da28997b9626d5c71b703270673c984cfc475f",
   "assetCount": 168,
   "assets": [
     {
       "path": "app.js",
-      "bytes": 131036,
-      "sha256": "b80d0e882babf4367bca8ae57460c3df18179191dfac99e2e8d3d7499125d39b"
+      "bytes": 131870,
+      "sha256": "8b04103c58c2d0137e7868f77a5b8a3b662f0fb333091d0557d10096c2420957"
     },
     {
       "path": "compat.js",
@@ -24,7 +24,7 @@
     {
       "path": "core.js",
       "bytes": 32055,
-      "sha256": "68fee6df782a51b4311af22eb0d17bdb13651ccd9cfd2835324091cd5347bb9b"
+      "sha256": "3290db3149e56d07fdf938a974998e1964bcbe3545159e34f1d067e4a22f4b97"
     },
     {
       "path": "data/catalog.json",
@@ -63,8 +63,8 @@
     },
     {
       "path": "data/minerals.js",
-      "bytes": 774475,
-      "sha256": "02c1d872f49d09c7cc54bb8e8bb3ef6b07b430ad95ca4b6ac473f3e41daef875"
+      "bytes": 779760,
+      "sha256": "1fe1202bbb327a0b02f64cde444a591e74a22869f8f360455515b9b7ef8d28c6"
     },
     {
       "path": "data/reference-manifest.json",
@@ -84,7 +84,7 @@
     {
       "path": "engine-worker.js",
       "bytes": 10096,
-      "sha256": "d8eccf75e419d90c3f36fbe8b51f7006e19a8f94df1f277aa3e07abe58574042"
+      "sha256": "9e83049d75e66e961c49f281bcae3767437b459526965f5c79f57a8fe41cd7b8"
     },
     {
       "path": "gallery.js",
@@ -704,7 +704,7 @@
     {
       "path": "index.html",
       "bytes": 29150,
-      "sha256": "85fe31c53fd0f3463c9d593121e701e2d9affbc1141d4795d19878d5870629cc"
+      "sha256": "18a14f70fb341c1258e27e228cfeee3a8bbdf25d686fdf8a092cc509eceb093b"
     },
     {
       "path": "inference.js",
@@ -799,7 +799,7 @@
     {
       "path": "research/shikuang-research-native-roi-q16-torchf32-v1/worker.js",
       "bytes": 2978,
-      "sha256": "e74f529c745680d995f94d4f1e5db18f48e5ada8c4f8e77b6923023f6464e2d3"
+      "sha256": "bb081dff6518d8883bb17cbaab9b51c24fef34494954e8c056b17cf2bc4c56c0"
     },
     {
       "path": "storage.js",
@@ -814,7 +814,7 @@
     {
       "path": "sw.js",
       "bytes": 13616,
-      "sha256": "a123190c9c8b9d0946919a88c836d4cb87570c6bae0acc05ecc4d138d4367c0e"
+      "sha256": "90a1725abe2e58f78c1adf1585616c3a313ffa74716621be953a98619f7eb978"
     },
     {
       "path": "vendor/lucide.min.js",

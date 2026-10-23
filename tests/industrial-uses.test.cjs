@@ -1,6 +1,6 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const {fixture}=require('./helpers/app-fixture.cjs');
-const reviewedKeys=['quartz','fluorite','gypsum','graphite'];
+const reviewedKeys=['quartz','fluorite','gypsum','graphite','barite','cassiterite'];
 const escape=value=>String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 
 function knowledge(){
@@ -15,14 +15,14 @@ function reviewedFact(){
   return {status:'verified',value:['用途字段检查专用文本'],source_url:'https://www.usgs.gov/centers/national-minerals-information-center',source_title:'USGS 测试来源标题',source_section:'Uses',retrieved_at:'2026-10-23',source_text_sha256:'a'.repeat(64),commodity_scope_zh:'检查专用商品品级限定'};
 }
 
-test('the four reviewed mineral-use records retain USGS provenance and show the complete commodity scope in details',async()=>{
+test('reviewed mineral-use records retain USGS provenance and show the complete commodity scope in details',async()=>{
   const records=knowledge(),before=JSON.stringify(records),f=fixture({knowledge:records});await f.settle();
   for(const key of reviewedKeys){
     const fact=records[key].verified_industrial_uses;assert.ok(fact,key);
     assert.equal(fact.status,'verified',key);assert.ok(Array.isArray(fact.value)&&fact.value.length>0,key);
     for(const value of fact.value)assert.ok(typeof value==='string'&&value.trim()&&/[\u3400-\u9fff]/.test(value),key);
     const source=new URL(fact.source_url);assert.equal(source.protocol,'https:',key);assert.ok(['www.usgs.gov','pubs.usgs.gov'].includes(source.hostname),key);
-    assert.match(fact.source_text_sha256,/^[a-f0-9]{64}$/i,key);assert.equal(fact.retrieved_at,'2026-10-23',key);
+    assert.match(fact.source_text_sha256,/^[a-f0-9]{64}$/i,key);assert.equal(fact.retrieved_at,['barite','cassiterite'].includes(key)?'2026-10-24':'2026-10-23',key);
     for(const field of ['source_title','source_section','commodity_scope_zh'])assert.ok(typeof fact[field]==='string'&&fact[field].trim(),key+':'+field);
     assert.ok(Array.isArray(records[key].industrial_uses)&&records[key].industrial_uses.length>0,key+' legacy data retained');
     await f.documentClick('[data-detail]',{detail:key});const body=f.node('detailBody').innerHTML,uses=section(body,'verified');assert.ok(uses,key);
@@ -33,6 +33,28 @@ test('the four reviewed mineral-use records retain USGS provenance and show the 
     assert.match(uses,/rel="noopener noreferrer"/);
   }
   assert.equal(JSON.stringify(records),before,'opening details must preserve reviewed and legacy source data');
+});
+
+test('canonical-only halite and talc uses require the exact existing mineral identity and do not create legacy or model entries',async()=>{
+  const context={window:{}};vm.runInNewContext(fs.readFileSync(require.resolve('../web/data/minerals.js'),'utf8'),context);
+  const records=context.window.MINERAL_KB,extensions=context.window.MINERAL_INDUSTRIAL_USE_EXTENSIONS;
+  const catalog=JSON.parse(fs.readFileSync(require.resolve('../web/data/catalog.json'),'utf8')).minerals.filter(row=>['ima-halite','ima-talc'].includes(row.id));
+  assert.equal(catalog.length,2);assert.equal(Object.keys(records).length,105);assert.equal(records.halite,undefined);assert.equal(records.talc,undefined);
+  const f=fixture({knowledge:records,catalog:{minerals:catalog}});f.context.MINERAL_INDUSTRIAL_USE_EXTENSIONS=extensions;await f.settle();
+  for(const reference of catalog){
+    const extension=extensions[reference.id],fact=extension.verified_industrial_uses;
+    assert.equal(extension.id,reference.id);assert.equal(extension.name_en,reference.name_en);assert.equal(extension.formula,reference.formula);
+    await f.documentClick('[data-detail]',{detail:'catalog:'+reference.id});let body=f.node('detailBody').innerHTML,uses=section(body,'verified');
+    assert.ok(uses,reference.id);for(const value of fact.value)assert.ok(uses.includes(escape(value)),reference.id);
+    assert.ok(uses.includes(escape(fact.commodity_scope_zh)));assert.ok(uses.includes('href="'+escape(fact.source_url)+'"'));
+    assert.doesNotMatch(f.node('detailType').textContent,/图像模型支持/);
+    for(const field of ['id','name_en','formula']){
+      const original=extension[field];extension[field]=original+'-mismatch';await f.documentClick('[data-detail]',{detail:'catalog:'+reference.id});
+      body=f.node('detailBody').innerHTML;assert.equal(section(body,'verified'),undefined,reference.id+':'+field);assert.ok(!body.includes(fact.value[0]));extension[field]=original;
+    }
+    const original=fact.status;fact.status='needs_review';await f.documentClick('[data-detail]',{detail:'catalog:'+reference.id});assert.equal(section(f.node('detailBody').innerHTML,'verified'),undefined);fact.status=original;
+  }
+  assert.equal(Object.keys(records).length,105);assert.equal(records.halite,undefined);assert.equal(records.talc,undefined);
 });
 
 test('a use claim with incomplete review, provenance, or values cannot appear as reviewed',async()=>{

@@ -1,15 +1,15 @@
 {
-  "source_commit": "e333c33d8d1c7d247a13115f2a12f7bf62cc3dc6",
+  "source_commit": "4048c7744f6534c1e1b366ee999434c2f4cbf377",
   "source_repository": "https://github.com/3497907003-sketch/shikuang-app",
-  "source_method": "Local source sync from exact Web commit e333c33d8d1c7d247a13115f2a12f7bf62cc3dc6 via git show commit:path. The 168 runtime entries bind original raw Android/web sources; the 11 build inputs bind unchanged shared builder/helper/compiler bytes. Only app.js and data/minerals.js changed; the shared industrial-use test is copied with the Android/web path adaptation. Compiled dist hashes are recorded separately. Local build/Capacitor/canonical verification receipts belong to work/android-usgs-source-sync-resume29-001; no APK, CI, deployment, physical-device or recognition-accuracy acceptance.",
+  "source_method": "Local git-show immutable source sync of168 runtime assets and11 build inputs; only app.js and data/minerals.js changed, shared test adapts three data-path references. No new model, image, CI, device acceptance or publication.",
   "applicationVersion": "2.5.0-preview.1",
   "androidVersionCode": 25001,
   "packageName": "com.shikuang.app.preview",
   "activeModelVersion": "inherited-2.0-audited",
   "assets": [
     {
-      "bytes": 109893,
-      "sha256": "9cafeac53d83ff377fc91a555296144d8829b254c6a917ff17e78264e8dc48e2",
+      "bytes": 110474,
+      "sha256": "d3f7d07aee2fd79b8d8f7b28e3f776dd2ba9b495e9ab0e58298da54742f10a3a",
       "path": "app.js"
     },
     {
@@ -63,8 +63,8 @@
       "path": "data/licenses/reviewed-photos-v25.txt"
     },
     {
-      "bytes": 666755,
-      "sha256": "ad4ffc298640c7c4a58232f85c8e79ce4ea9239f5f7151df2ed6f435a262be69",
+      "bytes": 671651,
+      "sha256": "d0b79f60e0919c9d48893dd2823522a751134a642f2f30cb0d2cdb93541737b5",
       "path": "data/minerals.js"
     },
     {
@@ -851,7 +851,7 @@
   "assetCount": 168,
   "publishedPhotos": 117,
   "scope": "Local preview source and packaged-asset identity; not field accuracy, new model training, CI, physical-device acceptance or a public release",
-  "local_sync_at": "2026-10-23T16:52:08.311693+08:00",
+  "local_sync_at": "2026-10-24T02:23:07.220958+08:00",
   "developmentRevision": "r9",
   "public_deployment_verified_for_this_sync": false,
   "historical_production_web_merge": "95b4b4e4d1d9be561a18ed745c95eb60f0b6ab0f",
