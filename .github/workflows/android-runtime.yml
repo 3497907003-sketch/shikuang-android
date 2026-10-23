@@ -632,7 +632,7 @@ jobs:
       DISPATCH_HEAD: ${{ github.sha }}
       NETWORK_PROBE: ${{ inputs.network_probe }}
       LIFECYCLE_DIAGNOSTIC: ${{ inputs.lifecycle_diagnostic }}
-      EXPECTED_PRODUCERS: '{"android/app/src/androidTest/java/com/shikuang/app/MineralEngineInstrumentedTest.java":"2a08d8240f8cca1156b83ef80c7b799f3e780537e42aa7254b3c3b80ab9cf52b","android/app/src/androidTest/java/com/shikuang/app/NativeDialogDiagnostic.java":"485375a8a8f28e07d8f80cb64e75a2c25840d933471038f7cc87f86b3f7c6569","android/app/src/androidTest/java/com/shikuang/app/NativeDialogEnumDiagnosticTest.java":"acdcba219ff6140cef007b9233a050bea756e20f40db7d3436ec7593de7fd96b","android/app/src/androidTest/java/com/shikuang/app/RuntimeTestOutput.java":"caefd07e5f9c05fc4ed95b104267000022ab60e94b1b31a2d266ab74e6c8f6e5","tools/validate_native_dialog_enum_report.py":"7817e4b5c9d1f75941c0e9db17d0555102b4d82579dbb99fd8995afdfe467787"}'
+      EXPECTED_PRODUCERS: '{"android/app/src/androidTest/java/com/shikuang/app/MineralEngineInstrumentedTest.java":"ecad5cee8a971d8d7ce4bb3ba610433f6e8621420f3ec63b2b603a9857b6dabb","android/app/src/androidTest/java/com/shikuang/app/NativeDialogDiagnostic.java":"485375a8a8f28e07d8f80cb64e75a2c25840d933471038f7cc87f86b3f7c6569","android/app/src/androidTest/java/com/shikuang/app/NativeDialogEnumDiagnosticTest.java":"f117bda37a4e1dadb1186cbda2ee4a5cc4ab88546563d50ddfe098010bec27ce","android/app/src/androidTest/java/com/shikuang/app/RuntimeTestOutput.java":"caefd07e5f9c05fc4ed95b104267000022ab60e94b1b31a2d266ab74e6c8f6e5","tools/validate_native_dialog_enum_report.py":"7817e4b5c9d1f75941c0e9db17d0555102b4d82579dbb99fd8995afdfe467787"}'
     steps:
       - name: Require one exact explicit diagnostic dispatch
         shell: bash

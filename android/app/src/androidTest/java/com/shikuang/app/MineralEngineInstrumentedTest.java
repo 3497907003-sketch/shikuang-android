@@ -320,7 +320,7 @@ public class MineralEngineInstrumentedTest {
         return evidence;
     }
 
-    void screenshot(String filename, String selector) throws Exception {
+    void awaitScreenshotDrawable(String selector) throws Exception {
         awaitUi("(() => {const e=document.querySelector(" + JSONObject.quote(selector) + ");if(!e)return false;const r=e.getBoundingClientRect();return r.width>0&&r.height>0&&r.bottom>0&&r.top<innerHeight&&r.right>0&&r.left<innerWidth;})()",
             "visible screenshot target " + selector,10000);
         awaitUi("!document.getElementById('toast') || document.getElementById('toast').hidden", "toast to finish naturally",10000);
@@ -337,6 +337,10 @@ public class MineralEngineInstrumentedTest {
         // Chromium's visual callback precedes the display compositor on some
         // emulator images. Await stable genuine display pixels as well.
         SystemClock.sleep(750);
+    }
+
+    void screenshot(String filename, String selector) throws Exception {
+        awaitScreenshotDrawable(selector);
         JSONObject nativeBefore = requireNativeScreenshotWindow(filename,"before");
         Bitmap bitmap = InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
         assertNotNull("Screenshot unavailable", bitmap);
@@ -584,19 +588,30 @@ public class MineralEngineInstrumentedTest {
             + ",ipv6Routes:" + JSONObject.quote(finalRoutes6) + ",native:" + nativeNetwork + "};window.__shikuangRuntimeSmoke.phase='passed';");
     }
 
+    JSONObject showMissingCapabilityRecovery() throws Exception {
+        evaluate("window.__shikuangRuntimeSmoke={phase:'negative-seeding'};(async()=>{try{await SpecimenStore.put({id:'runtime-missing-capability-proof',key:'quartz',name:'恢复负例保留记录',rankings:[{key:'quartz',score:.5}]});window.__shikuangRuntimeSmoke.snapshot=JSON.stringify((await SpecimenStore.list()).find(r=>r.id==='runtime-missing-capability-proof'));window.__shikuangRuntimeSmoke.phase='negative-seeded';}catch(e){window.__shikuangRuntimeSmoke={phase:'failed',failure:String(e)};}})();");
+        JSONObject seeded = awaitPhase("negative-seeded",15000);
+        evaluate("(() => {const saved=window.AbortController;try{window.AbortController=undefined;window.__shikuangRuntimeSmoke.boot=MineralNativeAssets.boot(true);}finally{window.AbortController=saved;}})();");
+        assertEquals("false",evaluate("window.__shikuangRuntimeSmoke.boot.supported"));
+        assertEquals("true",evaluate("window.__shikuangRuntimeSmoke.boot.missing.indexOf('AbortController')>=0"));
+        assertEquals("true",evaluate("!!document.getElementById('native-boot-recovery')"));
+        assertTrue(evaluate("document.getElementById('native-boot-recovery').textContent").contains("本机标本和历史记录会保留"));
+        return seeded;
+    }
+
+    void clearMissingCapabilityRecoveryFixture() throws Exception {
+        evaluate("window.__negativeCleanup=false;window.__negativeCleanupError=null;(async()=>{try{if(window.SpecimenStore){await SpecimenStore.remove('runtime-missing-capability-proof');if((await SpecimenStore.list()).some(r=>r.id==='runtime-missing-capability-proof'))throw Error('Negative fixture survived cleanup');}}catch(e){window.__negativeCleanupError=String(e);}finally{window.__negativeCleanup=true;}})();");
+        awaitUi("window.__negativeCleanup===true","only negative-test fixture cleanup",10000);
+        assertEquals("Negative fixture cleanup failed","null",evaluate("window.__negativeCleanupError"));
+    }
+
     @Test
     public void explicitlyMissingCapabilityRecoveryDoesNotReplaceProductAcceptance() throws Exception {
         scenario = ActivityScenario.launch(MainActivity.class);
         try {
             requireSupportedWebView();
             awaitPage();
-            evaluate("window.__shikuangRuntimeSmoke={phase:'negative-seeding'};(async()=>{try{await SpecimenStore.put({id:'runtime-missing-capability-proof',key:'quartz',name:'恢复负例保留记录',rankings:[{key:'quartz',score:.5}]});window.__shikuangRuntimeSmoke.snapshot=JSON.stringify((await SpecimenStore.list()).find(r=>r.id==='runtime-missing-capability-proof'));window.__shikuangRuntimeSmoke.phase='negative-seeded';}catch(e){window.__shikuangRuntimeSmoke={phase:'failed',failure:String(e)};}})();");
-            JSONObject seeded = awaitPhase("negative-seeded",15000);
-            evaluate("(() => {const saved=window.AbortController;try{window.AbortController=undefined;window.__shikuangRuntimeSmoke.boot=MineralNativeAssets.boot(true);}finally{window.AbortController=saved;}})();");
-            assertEquals("false",evaluate("window.__shikuangRuntimeSmoke.boot.supported"));
-            assertEquals("true",evaluate("window.__shikuangRuntimeSmoke.boot.missing.indexOf('AbortController')>=0"));
-            assertEquals("true",evaluate("!!document.getElementById('native-boot-recovery')"));
-            assertTrue(evaluate("document.getElementById('native-boot-recovery').textContent").contains("本机标本和历史记录会保留"));
+            JSONObject seeded = showMissingCapabilityRecovery();
             screenshot("expected-missing-capability-recovery.png","#native-boot-recovery");
             scenario.recreate();
             requireSupportedWebView();
@@ -608,9 +623,7 @@ public class MineralEngineInstrumentedTest {
             }
         } finally {
             try {
-                evaluate("window.__negativeCleanup=false;window.__negativeCleanupError=null;(async()=>{try{if(window.SpecimenStore){await SpecimenStore.remove('runtime-missing-capability-proof');if((await SpecimenStore.list()).some(r=>r.id==='runtime-missing-capability-proof'))throw Error('Negative fixture survived cleanup');}}catch(e){window.__negativeCleanupError=String(e);}finally{window.__negativeCleanup=true;}})();");
-                awaitUi("window.__negativeCleanup===true","only negative-test fixture cleanup",10000);
-                assertEquals("Negative fixture cleanup failed","null",evaluate("window.__negativeCleanupError"));
+                clearMissingCapabilityRecoveryFixture();
             } finally { scenario.close(); }
         }
     }

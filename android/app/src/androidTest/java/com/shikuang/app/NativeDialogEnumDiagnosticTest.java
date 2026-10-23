@@ -23,10 +23,13 @@ public final class NativeDialogEnumDiagnosticTest {
             harness.scenario = ActivityScenario.launch(MainActivity.class);
             try {
                 harness.requireSupportedWebView(); harness.awaitPage();
-                harness.evaluate("(() => {const saved=window.AbortController;try{window.AbortController=undefined;MineralNativeAssets.boot(true);}finally{window.AbortController=saved;}})();");
-                assertEquals("true", harness.evaluate("!!document.getElementById('native-boot-recovery')"));
+                harness.showMissingCapabilityRecovery();
+                harness.awaitScreenshotDrawable("#native-boot-recovery");
                 harness.requireNativeScreenshotWindow("native-dialog-enum-probe.png", "before");
-            } finally { harness.scenario.close(); }
+            } finally {
+                try { harness.clearMissingCapabilityRecoveryFixture(); }
+                finally { harness.scenario.close(); }
+            }
         } finally {
             android.accessibilityservice.AccessibilityServiceInfo restore = automation.getServiceInfo();
             if (restore != null) { restore.flags = originalFlags; automation.setServiceInfo(restore); }
