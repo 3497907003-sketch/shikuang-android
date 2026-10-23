@@ -1,15 +1,15 @@
 {
   "schema_version": 1,
   "source_repository": "https://github.com/3497907003-sketch/shikuang-app",
-  "source_commit": "406c3f9b7a7c9ac499b041ee224fd3b02933a870",
-  "raw_assets_sha256": "080b336c7156fd9e06ebc6ea527c21ceb7e65432c8ac5fe69bcbe8bdcbc75724",
+  "source_commit": "e333c33d8d1c7d247a13115f2a12f7bf62cc3dc6",
+  "raw_assets_sha256": "67773ff6ee5e317a8eadf172fdf0ace7ee5f8c0d25bd30304ca32e7d3a59ce46",
   "build_inputs_sha256": "621da11bfa8fec957aec6b5768da28997b9626d5c71b703270673c984cfc475f",
   "assetCount": 168,
   "assets": [
     {
       "path": "app.js",
-      "bytes": 129474,
-      "sha256": "355b9b9fb0593a1d40ed0b4fa34e4c09741c9ebab5d5ce2474f2bb10b338efe7"
+      "bytes": 131036,
+      "sha256": "b80d0e882babf4367bca8ae57460c3df18179191dfac99e2e8d3d7499125d39b"
     },
     {
       "path": "compat.js",
@@ -24,7 +24,7 @@
     {
       "path": "core.js",
       "bytes": 32055,
-      "sha256": "8649b0ef0c45bdd07d72b1a83491a61a07ab50352ea2cdd7f63e6121050559f3"
+      "sha256": "68fee6df782a51b4311af22eb0d17bdb13651ccd9cfd2835324091cd5347bb9b"
     },
     {
       "path": "data/catalog.json",
@@ -63,8 +63,8 @@
     },
     {
       "path": "data/minerals.js",
-      "bytes": 769855,
-      "sha256": "3f1fce98a79ab510269211fd0f71a1bf7d831c8da933193c95738980566ab092"
+      "bytes": 774475,
+      "sha256": "02c1d872f49d09c7cc54bb8e8bb3ef6b07b430ad95ca4b6ac473f3e41daef875"
     },
     {
       "path": "data/reference-manifest.json",
@@ -84,7 +84,7 @@
     {
       "path": "engine-worker.js",
       "bytes": 10096,
-      "sha256": "dc951da87620a2a813bae6a634dea1b52f17ee43271a24ff55d30b27df074bc1"
+      "sha256": "d8eccf75e419d90c3f36fbe8b51f7006e19a8f94df1f277aa3e07abe58574042"
     },
     {
       "path": "gallery.js",
@@ -704,7 +704,7 @@
     {
       "path": "index.html",
       "bytes": 29150,
-      "sha256": "c2c2ff332fada2a6bafc511c1c29679f96dd68fa2c3c6abc8793904bd875b019"
+      "sha256": "85fe31c53fd0f3463c9d593121e701e2d9affbc1141d4795d19878d5870629cc"
     },
     {
       "path": "inference.js",
@@ -799,7 +799,7 @@
     {
       "path": "research/shikuang-research-native-roi-q16-torchf32-v1/worker.js",
       "bytes": 2978,
-      "sha256": "8aaafbcce307d2244be7de4abada4af4f36195a5c16c68b446e50fa54dd67dc1"
+      "sha256": "e74f529c745680d995f94d4f1e5db18f48e5ada8c4f8e77b6923023f6464e2d3"
     },
     {
       "path": "storage.js",
@@ -814,7 +814,7 @@
     {
       "path": "sw.js",
       "bytes": 13616,
-      "sha256": "de5aa086d6a41b4bc4e3801cc42d6972ff25e0292705cfb5588acee1bb452735"
+      "sha256": "a123190c9c8b9d0946919a88c836d4cb87570c6bae0acc05ecc4d138d4367c0e"
     },
     {
       "path": "vendor/lucide.min.js",
@@ -846,9 +846,5 @@
       "bytes": 6621,
       "sha256": "5912a49ff6823ed32aace588ca4eb25f7eecfcaa8c55842dac8eab48c59dbf9c"
     }
-  ],
-  "provenance": {
-    "method": "Existing canonical compiled inventory from the actual immutable committed Web rebuild and staged desktop verification; no new payload read or raw-to-compiled inference. Android verify-sync separately verified all168 compiled assets equal the same canonical dist.",
-    "compiled_inventory_metadata_sha256": "2ea2de63702740fbd2c3828cd0c6598179394362f3d83253dcfc3bbc2372567c"
-  }
+  ]
 }

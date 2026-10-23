@@ -1,15 +1,15 @@
 {
-  "source_commit": "406c3f9b7a7c9ac499b041ee224fd3b02933a870",
+  "source_commit": "e333c33d8d1c7d247a13115f2a12f7bf62cc3dc6",
   "source_repository": "https://github.com/3497907003-sketch/shikuang-app",
-  "source_method": "Local source sync from exact Web commit 406c3f9b7a7c9ac499b041ee224fd3b02933a870 via git show commit:path. The 168 asset entries bind original raw files under Android/web, and the 11 declared build inputs bind unchanged raw builder/helper/compiler bytes under Android/web/tools. Pins reuse the recorded source-sync inventory; compiled dist hashes are not source hashes. Existing tools/build.cjs wrapper runs the canonical builder, Capacitor sync copies its output, and verify-sync --canonical-dist verified all 168 compiled shared assets byte-identical to canonical Web dist. Local source/Capacitor sync only; no APK, CI, deployment, physical-device or recognition-accuracy acceptance.",
+  "source_method": "Local source sync from exact Web commit e333c33d8d1c7d247a13115f2a12f7bf62cc3dc6 via git show commit:path. The 168 runtime entries bind original raw Android/web sources; the 11 build inputs bind unchanged shared builder/helper/compiler bytes. Only app.js and data/minerals.js changed; the shared industrial-use test is copied with the Android/web path adaptation. Compiled dist hashes are recorded separately. Local build/Capacitor/canonical verification receipts belong to work/android-usgs-source-sync-resume29-001; no APK, CI, deployment, physical-device or recognition-accuracy acceptance.",
   "applicationVersion": "2.5.0-preview.1",
   "androidVersionCode": 25001,
   "packageName": "com.shikuang.app.preview",
   "activeModelVersion": "inherited-2.0-audited",
   "assets": [
     {
-      "bytes": 108509,
-      "sha256": "2ac173e8853ae6558a9e0e965ef39d340459181c519dad0fde0c3550015e348a",
+      "bytes": 109893,
+      "sha256": "9cafeac53d83ff377fc91a555296144d8829b254c6a917ff17e78264e8dc48e2",
       "path": "app.js"
     },
     {
@@ -63,8 +63,8 @@
       "path": "data/licenses/reviewed-photos-v25.txt"
     },
     {
-      "bytes": 662489,
-      "sha256": "382b334980daf9f31e130bbdf58d7d9c0e3ab084ee32d7d7a08c63455f482325",
+      "bytes": 666755,
+      "sha256": "ad4ffc298640c7c4a58232f85c8e79ce4ea9239f5f7151df2ed6f435a262be69",
       "path": "data/minerals.js"
     },
     {

@@ -249,9 +249,9 @@ def check_raw_compiled(self):
     self.assertEqual(raw['models/fixture.onnx'], built['models/fixture.onnx'])
 add_case('controlled_raw_and_compiled_are_distinct', check_raw_compiled)
 
-for case in ['wrong_count', 'missing_asset', 'duplicate_asset', 'wrong_web_sha', 'wrong_asset_sha',
+for case in ['wrong_count', 'missing_asset', 'duplicate_asset', 'wrong_web_sha', 'prior_reviewed_web_sha', 'wrong_asset_sha',
              'missing_build_input', 'wrong_build_sha', 'compiled_wrong_source', 'compiled_wrong_sha',
-             'compiled_missing_asset', 'compiled_wrong_raw_binding', 'boolean_size']:
+             'compiled_missing_asset', 'compiled_prior_reviewed_web_sha', 'compiled_wrong_raw_binding', 'boolean_size']:
     def check(self, case=case):
         sync, compiled = sync_fixture()
         with reviewed_fixture(sync, compiled):
@@ -259,12 +259,14 @@ for case in ['wrong_count', 'missing_asset', 'duplicate_asset', 'wrong_web_sha',
             if case == 'missing_asset': sync['assets'].pop()
             if case == 'duplicate_asset': sync['assets'][0] = copy.deepcopy(sync['assets'][-1])
             if case == 'wrong_web_sha': sync['source_commit'] = 'b' * 40
+            if case == 'prior_reviewed_web_sha': sync['source_commit'] = '406c3f9b7a7c9ac499b041ee224fd3b02933a870'
             if case == 'wrong_asset_sha': sync['assets'][0]['sha256'] = 'f' * 64
             if case == 'missing_build_input': sync['build_inputs'].pop(next(iter(sync['build_inputs'])))
             if case == 'wrong_build_sha': next(iter(sync['build_inputs'].values()))['sha256'] = 'f' * 64
             if case == 'compiled_wrong_source': compiled['source_commit'] = 'b' * 40
             if case == 'compiled_wrong_sha': compiled['assets'][0]['sha256'] = 'f' * 64
             if case == 'compiled_missing_asset': compiled['assets'].pop()
+            if case == 'compiled_prior_reviewed_web_sha': compiled['source_commit'] = '406c3f9b7a7c9ac499b041ee224fd3b02933a870'
             if case == 'compiled_wrong_raw_binding': compiled['raw_assets_sha256'] = 'f' * 64
             if case == 'boolean_size': sync['assets'][0]['bytes'] = True
             with self.assertRaises(ValueError): g.validate_compiled_sync(sync, compiled)
