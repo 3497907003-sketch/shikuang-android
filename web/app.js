@@ -344,7 +344,7 @@
     if(referenceLoading)return referenceLoading;
     if(loader.status==='ready'&&catalog===window.MINERAL_CATALOG)return Promise.resolve();
     $('#catalogLoadState').textContent='正在打开完整资料库，可先搜索原有资料。图像识别不等待目录加载。';$('#catalogRetry').hidden=true;
-    referenceLoading=Promise.resolve().then(()=>loader.load({retry})).then(()=>{rebuildReferenceIndex();renderCatalogIntro();updateClassFilter();$('#catalogLoadState').textContent=`完整资料库已就绪：${catalogRows.length} 种官方矿物目录，支持离线搜索。`;}).catch(error=>{$('#catalogLoadState').textContent=`完整资料库暂未打开：${String(error.message||'资源读取失败').slice(0,160)}。原有资料仍可查阅。`;$('#catalogRetry').hidden=false;}).finally(()=>{referenceLoading=null;});
+    referenceLoading=Promise.resolve().then(()=>loader.load({retry})).then(()=>{rebuildReferenceIndex();renderCatalogIntro();updateClassFilter();$('#catalogLoadState').textContent=`基础目录已加载：${catalogRows.length} 种官方矿物目录，支持离线搜索。`;}).catch(error=>{$('#catalogLoadState').textContent=`完整资料库暂未打开：${String(error.message||'资源读取失败').slice(0,160)}。原有资料仍可查阅。`;$('#catalogRetry').hidden=false;}).finally(()=>{referenceLoading=null;});
     return referenceLoading;
   }
   function icons() { window.lucide?.createIcons(); }

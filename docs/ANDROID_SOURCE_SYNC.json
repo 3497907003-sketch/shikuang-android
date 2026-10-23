@@ -1,15 +1,15 @@
 {
-  "source_commit": "4048c7744f6534c1e1b366ee999434c2f4cbf377",
+  "source_commit": "c6d27c071f921aa87b5f9a50d58731e0ff623559",
   "source_repository": "https://github.com/3497907003-sketch/shikuang-app",
-  "source_method": "Local git-show immutable source sync of168 runtime assets and11 build inputs; only app.js and data/minerals.js changed, shared test adapts three data-path references. No new model, image, CI, device acceptance or publication.",
+  "source_method": "Local canonical sync of immutable Web c6d27c0:168 runtime assets and11 unchanged build inputs; only app.js ready-status literal changed from prior4048. No model,image,native,Gradle,workflow,CI,device acceptance or publication change.",
   "applicationVersion": "2.5.0-preview.1",
   "androidVersionCode": 25001,
   "packageName": "com.shikuang.app.preview",
   "activeModelVersion": "inherited-2.0-audited",
   "assets": [
     {
-      "bytes": 110474,
-      "sha256": "d3f7d07aee2fd79b8d8f7b28e3f776dd2ba9b495e9ab0e58298da54742f10a3a",
+      "bytes": 110471,
+      "sha256": "fc18f80f9d840ed885452644e32f7b235d13af961ddfcd95b12c8b9ba02e26ed",
       "path": "app.js"
     },
     {

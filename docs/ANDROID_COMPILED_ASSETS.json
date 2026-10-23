@@ -1,15 +1,15 @@
 {
   "schema_version": 1,
   "source_repository": "https://github.com/3497907003-sketch/shikuang-app",
-  "source_commit": "4048c7744f6534c1e1b366ee999434c2f4cbf377",
-  "raw_assets_sha256": "d85d8322708729c07466a25dc354889fe52455d56a9f86ddaa0dc3a6acecb3c1",
+  "source_commit": "c6d27c071f921aa87b5f9a50d58731e0ff623559",
+  "raw_assets_sha256": "1eb8a956cc36e09f04a7a2037125f0944c5eca4a230a0a98c90f0bc37d225ac0",
   "build_inputs_sha256": "621da11bfa8fec957aec6b5768da28997b9626d5c71b703270673c984cfc475f",
   "assetCount": 168,
   "assets": [
     {
       "path": "app.js",
-      "bytes": 131870,
-      "sha256": "8b04103c58c2d0137e7868f77a5b8a3b662f0fb333091d0557d10096c2420957"
+      "bytes": 131867,
+      "sha256": "62649e2e2fd318368f4363378ede4f22eea65375569012f5b62427f59218e978"
     },
     {
       "path": "compat.js",
@@ -24,7 +24,7 @@
     {
       "path": "core.js",
       "bytes": 32055,
-      "sha256": "3290db3149e56d07fdf938a974998e1964bcbe3545159e34f1d067e4a22f4b97"
+      "sha256": "2e896a4669bcfe8e2dcf0d9f95fac15b509ce6c8b4edcd857d36f8b647ce237e"
     },
     {
       "path": "data/catalog.json",
@@ -84,7 +84,7 @@
     {
       "path": "engine-worker.js",
       "bytes": 10096,
-      "sha256": "9e83049d75e66e961c49f281bcae3767437b459526965f5c79f57a8fe41cd7b8"
+      "sha256": "83956472ad3be1e9e471d08caffa24e593bba004443d19750e976822862501ff"
     },
     {
       "path": "gallery.js",
@@ -704,7 +704,7 @@
     {
       "path": "index.html",
       "bytes": 29150,
-      "sha256": "18a14f70fb341c1258e27e228cfeee3a8bbdf25d686fdf8a092cc509eceb093b"
+      "sha256": "efc1e036fb320b53879d90d9bf4c1d2853bc6d046b781a653efd76326cdbf0e6"
     },
     {
       "path": "inference.js",
@@ -799,7 +799,7 @@
     {
       "path": "research/shikuang-research-native-roi-q16-torchf32-v1/worker.js",
       "bytes": 2978,
-      "sha256": "bb081dff6518d8883bb17cbaab9b51c24fef34494954e8c056b17cf2bc4c56c0"
+      "sha256": "1c81636a24ea57c39320fcf849275e6a3615b248c7780d8b2a50cbe44306feb1"
     },
     {
       "path": "storage.js",
@@ -814,7 +814,7 @@
     {
       "path": "sw.js",
       "bytes": 13616,
-      "sha256": "90a1725abe2e58f78c1adf1585616c3a313ffa74716621be953a98619f7eb978"
+      "sha256": "deface001a3e03676dd80c1041cce00e3abc297b31cbc3213c27506e034b4e69"
     },
     {
       "path": "vendor/lucide.min.js",

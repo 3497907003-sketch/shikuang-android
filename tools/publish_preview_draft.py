@@ -26,12 +26,12 @@ VERSION = '2.5.0-preview.1'
 VERSION_CODE = 25001
 # This gate accepts only the reviewed immutable Web source/build contract.
 # A later deliberate source update must refresh all three inventory digests.
-REVIEWED_WEB_COMMIT = '4048c7744f6534c1e1b366ee999434c2f4cbf377'
+REVIEWED_WEB_COMMIT = 'c6d27c071f921aa87b5f9a50d58731e0ff623559'
 SOURCE_ASSET_COUNT = 168
 BUILD_INPUT_COUNT = 11
-RAW_ASSETS_SHA256 = 'd85d8322708729c07466a25dc354889fe52455d56a9f86ddaa0dc3a6acecb3c1'
+RAW_ASSETS_SHA256 = '1eb8a956cc36e09f04a7a2037125f0944c5eca4a230a0a98c90f0bc37d225ac0'
 BUILD_INPUTS_SHA256 = '621da11bfa8fec957aec6b5768da28997b9626d5c71b703270673c984cfc475f'
-COMPILED_ASSETS_SHA256 = '6a478d92ab0d916f94bf0bb5a3f1683fbc755b2c5a076189386cf0f01543ede2'
+COMPILED_ASSETS_SHA256 = 'a5df50d12fea5eecd49f2918dc29781c6e18f5d50bae9a8756b05d02f33718ad'
 MATRICES = {'24': (24, 4096, 'google_apis'), '30': (30, 4096, 'google_apis'),
             '35': (35, 4096, 'google_apis'), '35-16k': (35, 16384, 'google_apis_ps16k')}
 BUILD_STEPS = ['Prepare persistent preview signing key', 'Build and lint Android preview',
