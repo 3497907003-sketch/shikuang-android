@@ -19,7 +19,8 @@ function runtimeWasm(entries) {
 
 function render(name,bytes,id,wasm) {
   if(!/^[a-f0-9]{64}$/.test(id))throw new Error('Invalid shell content identity');
-  if(!['index.html','core.js','sw.js','engine-worker.js'].includes(name))return bytes;
+  const researchWorker=name==='research/shikuang-research-native-roi-q16-torchf32-v1/worker.js';
+  if(!researchWorker&&!['index.html','core.js','sw.js','engine-worker.js'].includes(name))return bytes;
   let text=bytes.toString('utf8');
   if(name==='index.html') {
     text=text.replace(/\b(src|href)="(\.\/[^"#]+)"/g,(whole,attr,value)=>{
@@ -32,6 +33,11 @@ function render(name,bytes,id,wasm) {
     const marker=/shell:'shikuang-static-[^']+'/g;
     if([...text.matchAll(marker)].length!==1)throw new Error('Shell cache identity marker changed');
     text=text.replace(marker,`shell:'shikuang-static-shell-${id}'`);
+  } else if(researchWorker) {
+    // This Worker uses its own frozen preprocessing closure and no ORT/model.
+    const imports=[...text.matchAll(/importScripts\('([^']+)'\);/g)];
+    if(imports.length!==7)throw new Error('Research dependency import markers changed');
+    text=text.replace(/importScripts\('([^']+)'\);/g,(_,dependency)=>`importScripts('${dependency}?v=shell-${id}');`);
   } else if(name==='engine-worker.js') {
     for(const dependency of ['compat.js','vendor/ort.min.js','core.js']) {
       const marker="importScripts('./"+dependency+"');";

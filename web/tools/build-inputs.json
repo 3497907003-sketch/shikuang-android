@@ -1,5 +1,6 @@
 [
   "tools/build.cjs",
+  "tools/research-input-contract.cjs",
   "tools/onnx-contract.cjs",
   "tools/shell-release.cjs",
   "tools/compat-js.cjs",

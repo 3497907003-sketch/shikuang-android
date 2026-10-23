@@ -1,13 +1,17 @@
 (function () {
   'use strict';
-  let worker, workerReady=false, nativeEngine, configuration=null, active=false, manifestCacheState='unprepared';
+  let worker, workerReady=false, nativeEngine, researchClient, researchPhotoClient, configuration=null, active=false, manifestCacheState='unprepared';
   const configurationHashes=new WeakMap();
   const hex = bytes => Array.from(new Uint8Array(bytes),b=>b.toString(16).padStart(2,'0')).join('');
   function cancellable(promise,signal) {
     abort(signal);if(!signal)return promise;
     return new Promise((resolve,reject)=>{const cancel=()=>reject(new DOMException('分析已停止','AbortError'));signal.addEventListener('abort',cancel,{once:true});Promise.resolve(promise).then(resolve,reject).finally(()=>signal.removeEventListener('abort',cancel));});
   }
+  function productionOnly(options) {
+    if(['profileId','profileVersion','inputProfile','researchProfile','researchManifest'].some(key=>Object.prototype.hasOwnProperty.call(options,key)))throw new Error('生产模型只接受原schema1输入；研究profile请显式使用prepareResearchInput，尚未注册研究模型');
+  }
   async function prepare(options={}) {
+    productionOnly(options);
     const {signal} = options; abort(signal);
     try {if(window.Capacitor?.isNativePlatform?.() || window.Capacitor?.getPlatform?.()==='android') {
       if(!window.MineralNativeAssets)throw new Error('本机资源迁移组件缺失，请更新 App');
@@ -112,9 +116,29 @@
     });
   }
   async function analyze(photos,options={}) {
+    productionOnly(options);
     if(active)throw new Error('已有分析正在进行，请先停止当前分析');
     active=true;
     try{return await analyzePrepared(photos,options);}finally{active=false;}
+  }
+  async function prepareResearchInput(options) {
+    if(active)throw new Error('已有分析正在进行，请先停止当前分析');
+    if(!window.ShikuangResearchInput)throw new Error('研究输入组件缺失，请更新应用资源');
+    active=true;
+    try{
+      researchClient=researchClient||window.ShikuangResearchInput.createClient({Worker:window.Worker,resourceURL:name=>MineralCore.shellResourceURL(name,location.href),setTimeout:(fn,ms)=>window.setTimeout(fn,ms),clearTimeout:id=>window.clearTimeout(id)});
+      return await researchClient.prepare(options);
+    }finally{active=false;}
+  }
+  async function prepareResearchPhoto(options) {
+    if(active)throw new Error('已有分析正在进行，请先停止当前分析');
+    if(!window.ShikuangResearchInput||!window.ShikuangResearchPhoto)throw new Error('研究原图输入组件缺失，请更新应用资源');
+    active=true;
+    try{
+      researchClient=researchClient||window.ShikuangResearchInput.createClient({Worker:window.Worker,resourceURL:name=>MineralCore.shellResourceURL(name,location.href),setTimeout:(fn,ms)=>window.setTimeout(fn,ms),clearTimeout:id=>window.clearTimeout(id)});
+      researchPhotoClient=researchPhotoClient||window.ShikuangResearchPhoto.createClient({Blob:window.Blob,Image:window.Image,URL:window.URL,document:window.document,setTimeout:(fn,ms)=>window.setTimeout(fn,ms),clearTimeout:id=>window.clearTimeout(id),inputClient:researchClient});
+      return await researchPhotoClient.prepare(options);
+    }finally{active=false;}
   }
   async function analyzePrepared(photos,options={}) {
     const {signal,report=()=>{},observation={},precision=true}=options;
@@ -142,5 +166,5 @@
     if(warnings.length){result.status='uncertain';result.reasons.push(...warnings);}
     return {...result,quality:qualityReports,observations:observation,warnings,engine:native?'onnx-native-android':'onnx-worker-wasm',modelVersion:manifest.version,manifestSha256:manifestHash,diagnostics:raw.diagnostics};
   }
-  window.MineralEngine={analyze,image,cropCanvas,prepare,modelResources:(config=configuration)=>{const digest=configurationHashes.get(config);if(!digest)throw new Error('模型清单尚未就绪');return config.models.map(model=>({...model,url:MineralCore.modelResourceURL(model,digest,location.href).href}));},getModels:(precision=true)=>configuration?MineralCore.selectedModels(configuration,precision):[],get models(){return configuration?MineralCore.selectedModels(configuration,true):[];},get configuration(){return configuration;},get manifestCacheState(){return manifestCacheState;}};
+  window.MineralEngine={analyze,image,cropCanvas,prepare,prepareResearchInput,prepareResearchPhoto,modelResources:(config=configuration)=>{const digest=configurationHashes.get(config);if(!digest)throw new Error('模型清单尚未就绪');return config.models.map(model=>({...model,url:MineralCore.modelResourceURL(model,digest,location.href).href}));},getModels:(precision=true)=>configuration?MineralCore.selectedModels(configuration,precision):[],get models(){return configuration?MineralCore.selectedModels(configuration,true):[];},get configuration(){return configuration;},get manifestCacheState(){return manifestCacheState;}};
 })();

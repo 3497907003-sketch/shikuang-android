@@ -69,6 +69,7 @@ onmessage=async({data})=>{
   busy=true;
   try {
     if(bootError)throw new Error(`识别依赖加载失败：${bootError}`);
+    if(['profileId','profileVersion','inputProfile','researchProfile','researchManifest'].some(key=>Object.prototype.hasOwnProperty.call(data,key)))throw new Error('生产识别线程禁止研究profile；研究模型尚未注册');
     const {base,inputs,labels,mode,modelIds,blocked,manifestSha256}=data;
     const origin=new URL(base);
     if(!['https:','http:'].includes(origin.protocol)||origin.origin!==self.location.origin)throw new Error('模型资源必须来自当前应用');

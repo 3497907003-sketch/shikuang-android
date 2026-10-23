@@ -23,6 +23,7 @@ test('build follows the active two-classifier manifest, excludes unused legacy f
     // Populate literal shell assets; classifier paths are deliberately absent from this list.
     for(const match of build.matchAll(/'([\w./-]+\.(?:js|cjs|html|css|json|webmanifest|svg|png|mjs|wasm|txt))'/g))if(!match[1].startsWith('..'))writeSource(match[1],'asset');
     for(const file of require(WEB+'tools/compat-js.cjs').BUILD_INPUT_PATHS)writeSource(file,fs.readFileSync(path.resolve(__dirname,WEB,file)));
+    for(const file of require(WEB+'tools/research-input-contract.cjs').ASSETS)writeSource(file,fs.readFileSync(path.resolve(__dirname,WEB,file)));
     // Android consumes the same source-prefixed closure, then its existing
     // wrapper moves the successful web/dist to root dist. A failed shared
     // build must leave the previous root dist intact.

@@ -20,7 +20,8 @@
     return url.href;
   }
   function workerAssets(base) {
-    return ['compat.js','engine-worker.js','core.js','vendor/ort.min.js','vendor/ort-wasm-simd-threaded.mjs','vendor/ort-wasm-simd-threaded.wasm'].map(name=>shellResourceURL(name,base));
+    const research='research/shikuang-research-native-roi-q16-torchf32-v1/';
+    return ['compat.js','engine-worker.js','core.js','vendor/ort.min.js','vendor/ort-wasm-simd-threaded.mjs','vendor/ort-wasm-simd-threaded.wasm','research-input.js','research-photo.js',...['encoded-header.js','worker.js','profile.js','frozen/native-roi-entry.js','frozen/vendor/native-roi-q16.js','frozen/vendor/normalization.js','frozen/vendor/normalization-lut.f32le.bin'].map(name=>research+name)].map(name=>shellResourceURL(name,base));
   }
   async function offlineWorkerIdentity(serviceWorker, base, signal, Channel) {
     const expected = offlineCaches(base), scriptURL = new URL('sw.js', expected.scope).href;
@@ -132,6 +133,7 @@
     const invalid = () => { throw new Error('模型清单或输入契约不匹配，请更新 App 或离线资源'); };
     if (!value || value.schemaVersion !== 1 || typeof value.version !== 'string' || !/^[A-Za-z0-9._-]{1,80}$/.test(value.version)) invalid();
     const input = value.input;
+    if([value,input].some(row=>row&&['profileId','profileVersion','inputProfile','inputContract','normId','geometryAlgorithm','sourceStage'].some(key=>Object.prototype.hasOwnProperty.call(row,key))))invalid();
     if (!input || input.dtype !== 'float32' || input.layout !== 'NCHW' || input.colorSpace !== 'RGB' || input.pixelScale !== 255 || input.resize !== 'bilinear' || input.crop !== 'user-selected center square' || JSON.stringify(input.shape) !== '[1,3,224,224]') invalid();
     if (JSON.stringify(input.normalization?.mean) !== '[0.485,0.456,0.406]' || JSON.stringify(input.normalization?.std) !== '[0.229,0.224,0.225]') invalid();
     const labels = value.labels;
