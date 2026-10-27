@@ -1,7 +1,7 @@
 {
-  "source_commit": "c6d27c071f921aa87b5f9a50d58731e0ff623559",
+  "source_commit": "6f65a0c84a22dc8630d6e0432ff69dde13f4245e",
   "source_repository": "https://github.com/3497907003-sketch/shikuang-app",
-  "source_method": "Local canonical sync of immutable Web c6d27c0:168 runtime assets and11 unchanged build inputs; only app.js ready-status literal changed from prior4048. No model,image,native,Gradle,workflow,CI,device acceptance or publication change.",
+  "source_method": "Local canonical sync of immutable Web 6f65a0c: only raw inference.js changed for idle Worker failure recovery; 168 runtime assets and 11 unchanged build inputs staged and verified against independent canonical dist before existing build/Capacitor sync/verify. No native business, model, knowledge, historical CURRENT_R9, CI, device acceptance or publication change.",
   "applicationVersion": "2.5.0-preview.1",
   "androidVersionCode": 25001,
   "packageName": "com.shikuang.app.preview",
@@ -708,8 +708,8 @@
       "path": "index.html"
     },
     {
-      "bytes": 14204,
-      "sha256": "40ebeae46fd20da988ccd771b4122cd9f0597b5cd11c4ee67332a219133bb3fd",
+      "bytes": 14438,
+      "sha256": "116d702b9d5742135c2c9e318a2d9a9b6d2e7504aa3d82025e65840c617d74fe",
       "path": "inference.js"
     },
     {
@@ -851,7 +851,7 @@
   "assetCount": 168,
   "publishedPhotos": 117,
   "scope": "Local preview source and packaged-asset identity; not field accuracy, new model training, CI, physical-device acceptance or a public release",
-  "local_sync_at": "2026-10-24T02:23:07.220958+08:00",
+  "local_sync_at": "2026-10-28T07:55:27.414339+08:00",
   "developmentRevision": "r9",
   "public_deployment_verified_for_this_sync": false,
   "historical_production_web_merge": "95b4b4e4d1d9be561a18ed745c95eb60f0b6ab0f",

@@ -47,12 +47,15 @@
     if(!window.Worker)throw new Error('当前 WebView 不支持后台识别，请更新系统 WebView');
     if(!worker){workerReady=false;worker=new Worker(MineralCore.shellResourceURL('./engine-worker.js',location.href));}
     const current=worker;
+    const discard=()=>{current.onmessage=null;current.onerror=null;current.terminate();if(worker===current){worker=null;workerReady=false;}};
     return new Promise((resolve,reject)=>{
       let settled=false,repairPending=Promise.resolve();
       const finish=(error,result,terminate=false)=>{
         if(settled)return;settled=true;clearTimeout(timer);clearTimeout(bootTimer);signal?.removeEventListener('abort',cancel);
-        current.onmessage=null;current.onerror=null;
-        if(terminate){current.terminate();if(worker===current){worker=null;workerReady=false;}}
+        current.onmessage=null;
+        // Keep observing a reusable thread between analyses. A late runtime
+        // error must not leave workerReady pointing at a dead Worker.
+        if(terminate)discard();else current.onerror=discard;
         error?reject(error):resolve(result);
       };
       const cancel=()=>finish(new DOMException('分析已停止','AbortError'),null,true);

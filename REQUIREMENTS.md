@@ -91,3 +91,9 @@
 ## 2.5 真实参考图库
 
 新增 117 张经照片、来源、逐图许可及分组审核的本地真实矿物照片，覆盖 53 个原标签，区分 52 个精确 IMA 物种与 Tetrahedrite 群。图库共 871 条出处、131 个来源名称；其余 754 条未审核记录不提升训练准入状态。参考照片用于离线对照，来源标签不冒充独立物相确认，记录作者、许可和实际图像修改。加载与离线准备核验逐图字节大小和 SHA，失败有时限和修复，关闭详情释放照片引用，图库不拖慢识别首页。
+
+## 2026-10-28 Android 本地线程恢复资源同步
+
+固定网页提交6f65a0c84a22dc8630d6e0432ff69dde13f4245e，先在临时目录按既有168项raw资源与11项构建依赖仅替换inference.js，既有构建器生成的168项资源与独立规范网页dist逐字节一致后，才更新本机raw源。既有Android build、Capacitor sync、canonical verify-sync与check均通过；本次仅更新线程闲置错误恢复的共享源码及两份资源身份JSON，4生产模型、模型清单、知识资料、native业务源码与CURRENT_R9历史证据保持。
+
+桌面现有6f65a0c bundle只读复核168项一致，未重跑同步。保留本轮开始前AGENTS及REQUIREMENTS未提交内容；本段只追加本次证据。不运行新CI、APK构建、真实模型或手机/桌面GUI推理，不声明设备验收、独立Kappa或发布达标；原preview发布门仍固定旧来源，未修改或运行。有限证据位于项目根work/android-idle-worker-source-sync-resume34-001/Root-safe-Android-Desktop-local-sync-summary.json。
