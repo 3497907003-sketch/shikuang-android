@@ -268,7 +268,7 @@
   const date = time => new Date(time).toLocaleString('zh-CN', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
   const types = { amber:'有机宝石', lapis_lazuli:'岩石标本', limonite:'矿物集合体', hornblende:'矿物族', tourmaline:'矿物族', agate:'石英变种', jasper:'石英集合体', flint:'石英集合体', amethyst:'石英变种', carnelian:'玉髓变种', chalcedony:'石英集合体', chrysoprase:'玉髓变种', amazonite:'微斜长石变种', nephritis:'矿物集合体' };
   const libraryPageSize=80,catalogById=new Map(),catalogByDetail=new Map();
-  let catalog={},catalogRows=[],crystalSource={},crystalById=new Map(),imageSource={},imageRows=[],imagesByName=new Map(),libraryItems=[],referenceLoading;
+  let catalog={},catalogRows=[],crystalSource={},crystalById=new Map(),imageSource={},imageRows=[],imagesByName=new Map(),libraryItems=[],referenceLoading,bookEvidenceIndex=null;
   let selectedCrystals=[],crystalsShown=0,selectedImages=[],imagesShown=0;
   let galleryController=null,galleryGeneration=0;
   const galleryBlobs=new Set(),galleryLoading=new Set();
@@ -307,7 +307,7 @@
     const bound=['source_pdf_sha256','proposal_field_sha256','evidence_sha256','render_index_sha256','root_ledger_sha256'].every(key=>/^[a-f0-9]{64}$/.test(fact?.[key]||''));
     return fact?.status==='verified'&&typeof fact.value_zh==='string'&&fact.value_zh.trim()&&safeLink(fact.source_url)&&safeLink(fact.source_url)===safeLink(reference.handbook_url)&&pagesValid&&bound?fact:null;
   }
-  const hasReviewedReferenceDetails=reference=>Object.values(reference?.physical_properties||{}).some(fact=>fact?.status==='verified'&&typeof fact.value==='string'&&fact.value.trim())||['occurrence','distribution'].some(field=>!!reviewedLiteratureFact(reference,field));
+  const hasReviewedReferenceDetails=reference=>Object.values(reference?.physical_properties||{}).some(fact=>fact?.status==='verified'&&typeof fact.value==='string'&&fact.value.trim())||['occurrence','distribution'].some(field=>!!reviewedLiteratureFact(reference,field))||reviewedBookGroups(reference).some(group=>group.rows.length>0);
   const makeLibraryItem=(key,detail,reference)=>({key,detail,reference,
     title:detail?.name_zh||reviewedCatalogName(reference)?.name_zh||reference?.name_en||detail?.name_en||key,
     english:reference?.name_en||detail?.name_en||'',formula:reference?.formula||detail?.formula||'',
@@ -316,7 +316,7 @@
   function rebuildReferenceIndex(){
     catalog=window.MINERAL_CATALOG||{};crystalSource=window.MINERAL_CRYSTAL_RECORDS||{};imageSource=window.MINERAL_IMAGE_SOURCES||{};
     catalogRows=(Array.isArray(catalog.minerals)?catalog.minerals:Array.isArray(catalog.entries)?catalog.entries:[]).filter(row=>row&&typeof row.id==='string'&&typeof row.name_en==='string'&&row.name_en.trim());
-    catalogById.clear();catalogByDetail.clear();crystalById=new Map();
+    catalogById.clear();catalogByDetail.clear();crystalById=new Map();rebuildBookEvidenceIndex(catalog.reviewed_book_evidence);
     imageRows=Array.isArray(imageSource.records)?imageSource.records.filter(row=>row&&row.mineral_name&&safeLink(row.image_page_url)):[];imagesByName=new Map();
     for(const row of imageRows){const key=normalizeSearch(row.mineral_name);if(!imagesByName.has(key))imagesByName.set(key,[]);imagesByName.get(key).push(row);}
     for(const row of catalogRows){
@@ -612,6 +612,66 @@
       return `<div class="${field==='formula'?'formula-property':''}"><dt>${label}</dt><dd><div class="property-value">${text}</div>${provenance}</dd></div>`;
     }).join('')}</dl>`;
   }
+  function rebuildBookEvidenceIndex(overlay){
+    bookEvidenceIndex=null;
+    if(overlay?.schema_version!==1||overlay.scope!=='secondary_book_source_statements'||overlay.primary_properties_changed!==false||overlay.model_scope_changed!==false||!Array.isArray(overlay.books)||!Array.isArray(overlay.records)||!Array.isArray(overlay.withheld))return;
+    const rows=new Map(),held=new Map(),books=new Map();
+    const add=(map,key,row)=>{if(typeof key==='string'){if(!map.has(key))map.set(key,[]);map.get(key).push(row);}};
+    overlay.records.forEach(row=>add(rows,row?.catalog_id,row));overlay.withheld.forEach(row=>add(held,row?.catalog_id,row));overlay.books.forEach(book=>add(books,book?.source_id,book));
+    bookEvidenceIndex={rows,held,books};
+  }
+  function reviewedBookGroups(reference){
+    if(!reference||!bookEvidenceIndex)return [];
+    const rows=bookEvidenceIndex.rows.get(reference.id)||[],held=bookEvidenceIndex.held.get(reference.id)||[];
+    // Per-species bounds protect this detail view, without limiting the full library.
+    if((!rows.length&&!held.length)||rows.length>128||held.length>32)return [];
+    const labels=['formula','hardness','relative_density','crystal_system','cleavage','luster','streak'],hash=value=>/^[a-f0-9]{64}$/.test(value||'');
+    const sourceIds=[...new Set([...rows,...held].map(row=>row.source_id))],groups=[];
+    if(sourceIds.length>16)return [];
+    for(const sourceId of sourceIds){
+      if(typeof sourceId!=='string'||!/^user-book-\d{2,}$/.test(sourceId))return [];
+      const sources=bookEvidenceIndex.books.get(sourceId)||[],book=sources.length===1?sources[0]:null;
+      if(book?.status!=='reviewed_selected_pages'||book.full_book_reviewed!==false||!hash(book.book_sha256)||!hash(book.root_review_sha256)||typeof book.title!=='string'||!book.title.trim()||book.title.length>200||!Array.isArray(book.authors)||!book.authors.length||book.authors.length>8||book.authors.some(author=>typeof author!=='string'||!author.trim()||author.length>80)||!Array.isArray(book.subjects))return [];
+      const subjects=book.subjects.filter(subject=>subject?.catalog_id===reference.id),own=rows.filter(row=>row.source_id===sourceId),waiting=held.filter(row=>row.source_id===sourceId);
+      if(!subjects.length||subjects.length>32)return [];
+      const identity=row=>row.printed_page+':'+row.field,assigned=new Set(),heldPages=new Set(),claims=new Set();
+      if(new Set(own.map(identity)).size!==own.length||new Set(waiting.map(identity)).size!==waiting.length||waiting.some(row=>row.name_en!==reference.name_en||!/^\d{1,5}$/.test(row.printed_page||'')||row.status!=='hold'||row.field!=='cleavage'||row.reason!=='source_internal_ambiguity'||Object.prototype.hasOwnProperty.call(row,'value')||own.some(fact=>identity(fact)===identity(row))))return [];
+      for(const subject of subjects){
+        const reviewHash=subject.root_review_sha256===undefined?book.root_review_sha256:subject.root_review_sha256;
+        if(subject.name_en!==reference.name_en||!/^\d{1,5}$/.test(subject.printed_page||'')||!hash(reviewHash)||!Array.isArray(subject.approved_fields)||subject.approved_fields.length>7||new Set(subject.approved_fields).size!==subject.approved_fields.length||subject.approved_fields.some(field=>!labels.includes(field)||claims.has(subject.printed_page+':'+field)))return [];
+        subject.approved_fields.forEach(field=>claims.add(subject.printed_page+':'+field));
+        const selected=own.filter(row=>row.printed_page===subject.printed_page&&subject.approved_fields.includes(row.field));
+        if(selected.length!==subject.approved_fields.length||selected.some(row=>{
+          const review=row.review;
+          return row.name_en!==reference.name_en||row.status!=='reviewed_source_statement'||typeof row.value!=='string'||!row.value.trim()||row.value.length>250||review?.decision!=='approved_source_statement'||review.root_record_sha256!==reviewHash||review.source_book_sha256!==book.book_sha256||!hash(review.source_evidence_sha256)||!hash(review.proposal_field_sha256)||!Array.isArray(row.limits)||
+            (row.field==='hardness'&&(row.quantity_kind!=='hardness_scale_unspecified'||row.unit!==null||row.hardness_scale!==null||!row.limits.includes('hardness_scale_not_explicit_on_source_page')))||
+            (row.field==='relative_density'&&(row.quantity_kind!=='relative_density'||row.unit!=='dimensionless'||!row.limits.includes('relative_density_is_not_measured_density')))||
+            (!['hardness','relative_density'].includes(row.field)&&row.unit!==null);
+        }))return [];
+        selected.forEach(row=>assigned.add(identity(row)));
+        const markers=heldPages.has(subject.printed_page)?[]:waiting.filter(row=>row.printed_page===subject.printed_page);
+        if(markers.length)heldPages.add(subject.printed_page);
+        if(selected.length||markers.length)groups.push({book,subject,rows:selected,held:markers});
+      }
+      if(assigned.size!==own.length||waiting.some(row=>!heldPages.has(row.printed_page)))return [];
+    }
+    return groups;
+  }
+  function bookEvidenceSection(reference){
+    const labels={formula:'化学式',hardness:'硬度',relative_density:'相对密度',crystal_system:'晶系',cleavage:'解理',luster:'光泽',streak:'条痕'};
+    return reviewedBookGroups(reference).map(group=>{
+      const {book,subject}=group;
+      const values=group.rows.map(row=>{
+        const notes=[];
+        if(row.field==='hardness')notes.push('该页未明示硬度标度。');
+        if(row.field==='relative_density')notes.push('无量纲，不替代实测密度。');
+        if(row.limits.includes('retain_source_description_difference')||row.comparison_status==='source_description_differs')notes.push('与主资料表述不同，分别保留来源。');
+        const value=row.field==='formula'?formulaMarkup(row.value):html(row.value);
+        return `<div data-book-field="${html(row.field)}"><dt>${labels[row.field]}</dt><dd><div class="property-value">${value}</div>${notes.length?`<small class="property-source">${html(notes.join(' '))}</small>`:''}</dd></div>`;
+      }).join('')+group.held.map(()=>'<div data-book-field="cleavage" data-book-held><dt>解理</dt><dd>暂未采纳<small class="property-source">该页描述有歧义，暂不作为资料结论。</small></dd></div>').join('');
+      return `<section class="detail-section book-evidence-section" data-book-evidence="reviewed"><h3>书籍资料核对</h3><p>${html(book.title)}</p><p class="field-hint">作者：${html(book.authors.join('、'))} · 印刷页 ${html(subject.printed_page)}</p><p class="field-hint">供交叉查阅，主资料与书中表述分别保留。</p><dl class="detail-properties">${values}</dl></section>`;
+    }).join('');
+  }
   function literatureSection(reference,field,title) {
     const fact=reference?.literature_properties?.[field];if(!fact)return '';
     const url=safeLink(fact.source_url),pages=fact.source_pages;
@@ -642,7 +702,7 @@
     $('#detailType').textContent = `${types[detailKey] || (reference?'IMA 基础目录':'矿物资料')} · ${referenceModelSupported(reference,detailKey)?'图像模型支持':Object.keys(k).length||hasReviewedReferenceDetails(reference)?'有扩展资料':'资料查阅'}`;
     const referenceFields=reference?[['IMA 英文名称',reference.name_en],['IMA 状态（原表代码）',reference.ima_status],['IMA 编号 / 原表年份',reference.ima_number],['首次发现国家',reference.discovery_country],['矿物符号',reference.symbol]]:[];
     const handbook=safeLink(reference?.handbook_url);
-    $('#detailBody').innerHTML = `<p class="field-hint">${html(reference?.name_en||k.name_en||key)}</p>${k.summary?`<p class="field-hint" data-legacy-field="summary">概述（原项目资料，待复核）：${html(k.summary)}</p>`:''}${properties(k,reference)}${reference?`<section class="detail-section"><h3>官方目录字段</h3><dl class="detail-properties">${referenceFields.filter(([,value])=>value!==undefined&&value!=='').map(([label,value])=>`<div><dt>${html(label)}</dt><dd>${html(value)}</dd></div>`).join('')}</dl><p class="field-hint">以上按原表保留。IMA 编号中的年份不推算为批准时间；首次发现国家不代表当前标本产地。</p></section>`:''}${literatureSection(reference,'occurrence','产状与形成环境')||(k.formation?`<section class="detail-section" data-legacy-field="occurrence"><h3>形成与产出（原项目资料，待复核）</h3><p>${html(k.formation)}</p></section>`:reference?'<section class="detail-section"><h3>形成与产出</h3><p>未收录</p></section>':'')}${literatureSection(reference,'distribution','文献中的典型分布')||(k.typical_localities?.length?`<section class="detail-section" data-legacy-field="distribution"><h3>典型产地（原项目资料，待复核）</h3><p>${html(k.typical_localities.join('、'))}</p><p class="field-hint">所列地点不代表当前标本的真实采集地。</p></section>`:'')}${industrialUsesSection(k,reference)}${reference?`<section class="detail-section"><h3>原表参考文献</h3>${[reference.first_reference,reference.second_reference].filter(Boolean).map(text=>`<p>${html(text)}</p>`).join('')||'<p>未收录</p>'}</section>`:''}${handbook?`<section class="detail-section"><h3>在线详细资料</h3><p><a href="${html(handbook)}" target="_blank" rel="noopener noreferrer">打开官方矿物手册 PDF</a></p><p class="field-hint">需要联网，按官方英文名称匹配的详细资料链接。全文未打包进离线目录。</p></section>`:''}<section class="detail-section"><h3>资料来源</h3>${reference?catalogSourceMarkup(reference):''}${Object.keys(k).length?`<p class="field-hint">原项目扩展资料：${html((k.source_refs || []).join('；') || '项目原有矿物知识库')}。物性和已核对用途按字段标注来源；形成、产地、用途与其他未标官方出处的原项目资料仍待复核。未收录的物性不参与复核。</p>`:'<p class="field-hint">当前展示官方基础字段与已列明的文献数据。未补充的中文名和物性明确留空；目录范围不代表图像识别能力。</p>'}</section>`;
+    $('#detailBody').innerHTML = `<p class="field-hint">${html(reference?.name_en||k.name_en||key)}</p>${k.summary?`<p class="field-hint" data-legacy-field="summary">概述（原项目资料，待复核）：${html(k.summary)}</p>`:''}${properties(k,reference)}${bookEvidenceSection(reference)}${reference?`<section class="detail-section"><h3>官方目录字段</h3><dl class="detail-properties">${referenceFields.filter(([,value])=>value!==undefined&&value!=='').map(([label,value])=>`<div><dt>${html(label)}</dt><dd>${html(value)}</dd></div>`).join('')}</dl><p class="field-hint">以上按原表保留。IMA 编号中的年份不推算为批准时间；首次发现国家不代表当前标本产地。</p></section>`:''}${literatureSection(reference,'occurrence','产状与形成环境')||(k.formation?`<section class="detail-section" data-legacy-field="occurrence"><h3>形成与产出（原项目资料，待复核）</h3><p>${html(k.formation)}</p></section>`:reference?'<section class="detail-section"><h3>形成与产出</h3><p>未收录</p></section>':'')}${literatureSection(reference,'distribution','文献中的典型分布')||(k.typical_localities?.length?`<section class="detail-section" data-legacy-field="distribution"><h3>典型产地（原项目资料，待复核）</h3><p>${html(k.typical_localities.join('、'))}</p><p class="field-hint">所列地点不代表当前标本的真实采集地。</p></section>`:'')}${industrialUsesSection(k,reference)}${reference?`<section class="detail-section"><h3>原表参考文献</h3>${[reference.first_reference,reference.second_reference].filter(Boolean).map(text=>`<p>${html(text)}</p>`).join('')||'<p>未收录</p>'}</section>`:''}${handbook?`<section class="detail-section"><h3>在线详细资料</h3><p><a href="${html(handbook)}" target="_blank" rel="noopener noreferrer">打开官方矿物手册 PDF</a></p><p class="field-hint">需要联网，按官方英文名称匹配的详细资料链接。全文未打包进离线目录。</p></section>`:''}<section class="detail-section"><h3>资料来源</h3>${reference?catalogSourceMarkup(reference):''}${Object.keys(k).length?`<p class="field-hint">原项目扩展资料：${html((k.source_refs || []).join('；') || '项目原有矿物知识库')}。物性和已核对用途按字段标注来源；形成、产地、用途与其他未标官方出处的原项目资料仍待复核。未收录的物性不参与复核。</p>`:'<p class="field-hint">当前展示官方基础字段与已列明的文献数据。未补充的中文名和物性明确留空；目录范围不代表图像识别能力。</p>'}</section>`;
     if(translatedName)$('#detailBody').insertAdjacentHTML('afterbegin',`<p class="field-hint">中文名：${html(translatedName.name_zh)} · <a href="${html(translatedName.source_url)}" target="_blank" rel="noopener noreferrer">${html(translatedName.source_title||'中英文名称出处')}</a></p>`);
     selectedCrystals=reference?crystalById.get(reference.id)||[]:[];crystalsShown=0;
     if(reference){$('#detailBody').insertAdjacentHTML('beforeend',crystalSectionMarkup());appendCrystalRecords();}

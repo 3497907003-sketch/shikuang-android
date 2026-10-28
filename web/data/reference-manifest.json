@@ -14,13 +14,16 @@
     "catalog_species_with_physical_facts": 198,
     "verified_catalog_fields": 1027,
     "catalog_species_with_literature_facts": 113,
-    "verified_literature_fields": 224
+    "verified_literature_fields": 224,
+    "reviewed_book_source_statements": 27,
+    "reviewed_book_source_pages": 4,
+    "reviewed_book_withheld_fields": 1
   },
   "files": [
     {
       "path": "data/catalog.json",
-      "bytes": 4677751,
-      "sha256": "b89a219396f20cbe22cf726a85109fe77a801d0807587a1a05586f1560bfff52"
+      "bytes": 4699407,
+      "sha256": "9ad45ec629f2970328ac3b49d46171ed84022293054e2d76d956a64e4a8790f7"
     },
     {
       "path": "data/crystals.json",
