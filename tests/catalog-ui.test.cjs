@@ -29,6 +29,29 @@ test('expanded and image-model scopes retain original model keys while basic dir
   assert.doesNotMatch(body,/undefined|批准时间：2014|图像模型支持/);
 });
 
+test('reviewed Chinese directory names support search and show their source without adding model labels',async()=>{
+  const catalog=mockCatalog(1),original=JSON.stringify(catalog.minerals);
+  catalog.reviewed_names_zh={schema_version:1,records:[{catalog_id:'ima-test-1',name_en:'Test mineral 1',name_zh:'测试矿物',status:'reviewed',source_url:'https://example.org/bilingual-paper',source_title:'中英文矿物名称依据'}]};
+  const f=fixture({catalog});await f.settle();
+  f.node('librarySearch').value='测试矿物';f.node('librarySearch').fire('input');
+  assert.equal(cards(f),1);assert.match(f.node('libraryList').innerHTML,/测试矿物/);
+  await f.documentClick('[data-detail]',{detail:'catalog:ima-test-1'});
+  assert.equal(f.node('detailTitle').textContent,'测试矿物');assert.match(f.node('detailBody').innerHTML,/Test mineral 1/);
+  assert.match(f.node('detailBody').innerHTML,/https:\/\/example\.org\/bilingual-paper/);
+  assert.equal(JSON.stringify(catalog.minerals),original);assert.deepEqual(Object.keys(f.context.MINERAL_CLASSES),['quartz']);
+});
+
+test('expanded directory scope includes reviewed physical and literature facts while pending facts stay excluded',async()=>{
+  const catalog=mockCatalog(3);
+  catalog.minerals[1].physical_properties={hardness:{status:'verified',value:'6–7'}};
+  catalog.minerals[2].literature_properties={occurrence:{status:'verified',display_as_verified:true,value_zh:'经核对的产状',source_url:catalog.minerals[2].handbook_url,source_page:1,source_pages:[1],...Object.fromEntries(['source_pdf_sha256','proposal_field_sha256','evidence_sha256','render_index_sha256','root_ledger_sha256'].map(key=>[key,'a'.repeat(64)]))}};
+  catalog.minerals[3].physical_properties={hardness:{status:'needs_review',value:null}};
+  const f=fixture({catalog});await f.settle();f.node('libraryScope').value='expanded';f.node('libraryScope').fire('change');
+  assert.equal(cards(f),3);assert.match(f.node('libraryList').innerHTML,/catalog:ima-test-1/);assert.match(f.node('libraryList').innerHTML,/catalog:ima-test-2/);
+  assert.doesNotMatch(f.node('libraryList').innerHTML,/catalog:ima-test-3/);
+  f.node('libraryScope').value='model';f.node('libraryScope').fire('change');assert.equal(cards(f),1);
+});
+
 test('crystal scope shows measured samples in groups of five and excludes simulated records',async()=>{
   const catalog=mockCatalog(1),record=i=>({id:'sample-'+i,cell:{a:5.254,b:5.254,c:13.45,alpha:90,beta:90,gamma:120},space_group:'P6_3mc',authors:'Original authors',citation:'Journal 29 (2017), 915',article_title:'Measured specimen',experimental_notes:'Locality: original source\nT = 298 K',sample_origin:'原文未注明；未将缺少合成说明当作天然标本证明',source_file:'Specimen_'+i+'.amc',source_url:'https://www.rruff.net/amcsd/'});
   const crystals={source:{title:'AMCSD / RRUFF',url:'https://www.rruff.net/about/download-data/',scope:'测量事实与书目元数据'},by_species:{'ima-test-1':[...Array.from({length:7},(_,i)=>record(i)),{...record(8),article_title:'Hypothetical simulated specimen'}]}};

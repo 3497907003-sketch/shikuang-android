@@ -19,8 +19,8 @@
   "files": [
     {
       "path": "data/catalog.json",
-      "bytes": 4676574,
-      "sha256": "0a668da54d7c8a54b71cd548993533bc33ffdf37ccdf100a4aee248d557ffb25"
+      "bytes": 4677751,
+      "sha256": "b89a219396f20cbe22cf726a85109fe77a801d0807587a1a05586f1560bfff52"
     },
     {
       "path": "data/crystals.json",
