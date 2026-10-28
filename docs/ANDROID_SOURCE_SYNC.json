@@ -1,7 +1,7 @@
 {
-  "source_commit": "6f65a0c84a22dc8630d6e0432ff69dde13f4245e",
+  "source_commit": "ddcd6dd1fc10db2f744f0f5b7b25e6baa891dc22",
   "source_repository": "https://github.com/3497907003-sketch/shikuang-app",
-  "source_method": "Local canonical sync of immutable Web 6f65a0c: only raw inference.js changed for idle Worker failure recovery; 168 runtime assets and 11 unchanged build inputs staged and verified against independent canonical dist before existing build/Capacitor sync/verify. No native business, model, knowledge, historical CURRENT_R9, CI, device acceptance or publication change.",
+  "source_method": "Local immutable Web knowledge3 sync: only catalog.json, minerals.js and reference-manifest.json raw bytes change. 168 runtime assets and11 unchanged build inputs staged and canonical-compared before actual shared build, Capacitor sync and verification. No native business/model/inference/CURRENT_R9/CI/device/release claim.",
   "applicationVersion": "2.5.0-preview.1",
   "androidVersionCode": 25001,
   "packageName": "com.shikuang.app.preview",
@@ -28,8 +28,8 @@
       "path": "core.js"
     },
     {
-      "bytes": 4653375,
-      "sha256": "e656ed6035b35d08a74c0d86501b0e93d286127cd1055f087cf18e6b10f14e0b",
+      "bytes": 4676574,
+      "sha256": "0a668da54d7c8a54b71cd548993533bc33ffdf37ccdf100a4aee248d557ffb25",
       "path": "data/catalog.json"
     },
     {
@@ -63,13 +63,13 @@
       "path": "data/licenses/reviewed-photos-v25.txt"
     },
     {
-      "bytes": 671651,
-      "sha256": "d0b79f60e0919c9d48893dd2823522a751134a642f2f30cb0d2cdb93541737b5",
+      "bytes": 680522,
+      "sha256": "23d86ea611c06f2662c458f4391fe86c29aaa466ec8d500cc9bf0c2464accd52",
       "path": "data/minerals.js"
     },
     {
-      "bytes": 1569,
-      "sha256": "175c9a5d6baf8f1e016e30e6a548786d455ba1f8ea1d96141f7bd4a54e232380",
+      "bytes": 1643,
+      "sha256": "477438d9d7d694ab2479a0a4818bb2eb9eb2d1c2b46b4a45d73f1c09ce301307",
       "path": "data/reference-manifest.json"
     },
     {
@@ -851,7 +851,7 @@
   "assetCount": 168,
   "publishedPhotos": 117,
   "scope": "Local preview source and packaged-asset identity; not field accuracy, new model training, CI, physical-device acceptance or a public release",
-  "local_sync_at": "2026-10-28T07:55:27.414339+08:00",
+  "local_sync_at": "2026-10-28T09:29:54.569708+08:00",
   "developmentRevision": "r9",
   "public_deployment_verified_for_this_sync": false,
   "historical_production_web_merge": "95b4b4e4d1d9be561a18ed745c95eb60f0b6ab0f",

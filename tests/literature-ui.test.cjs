@@ -5,7 +5,7 @@ const escape=value=>String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&l
 
 test('all reviewed literature fields display Chinese source facts and exact pages while held values stay unavailable',async()=>{
   const before=JSON.stringify(catalog),rows=catalog.minerals.filter(row=>row.literature_properties),f=fixture({catalog});await f.settle();
-  assert.equal(rows.length,110);assert.equal(catalog.literature_stats.source_batches.length,2);let verified=0,withheld=0;
+  assert.equal(rows.length,113);assert.equal(catalog.literature_stats.source_batches.length,3);let verified=0,withheld=0;
   for(const row of rows){
     await f.documentClick('[data-detail]',{detail:'catalog:'+row.id});const body=f.node('detailBody').innerHTML;
     for(const [field,fact] of Object.entries(row.literature_properties)){
@@ -15,8 +15,8 @@ test('all reviewed literature fields display Chinese source facts and exact page
       if(field==='distribution')assert.match(section,/非完整或实时地点清单；不代表上传图片中标本的产地/);
     }
   }
-  assert.equal(verified,218);assert.equal(withheld,2);assert.equal(JSON.stringify(catalog),before);
-  assert.match(f.node('catalogIntro').innerHTML,/110 种矿物、218 项资料/);
+  assert.equal(verified,224);assert.equal(withheld,2);assert.equal(JSON.stringify(catalog),before);
+  assert.match(f.node('catalogIntro').innerHTML,/113 种矿物、224 项资料/);
   await f.documentClick('[data-detail]',{detail:'catalog:ima-realgar'});assert.doesNotMatch(f.node('detailBody').innerHTML,/未补猜|府县|\?\?/);
 });
 
