@@ -3,9 +3,10 @@
  * Large pixel payloads are skipped using Blob.slice offsets, not materialized.
  */
 (function(root,factory){
- if(typeof module==='object'&&module.exports)module.exports=factory();
- else root.ShikuangEncodedHeader=factory();
-})(typeof globalThis==='object'?globalThis:this,function(){
+ const api=factory(),commonJS=typeof module==='object'&&module&&module.exports;
+ if(commonJS)module.exports=api;
+ if(typeof window==='object'&&window||!commonJS)root.ShikuangEncodedHeader=api;
+})(typeof window==='object'&&window?window:typeof globalThis==='object'?globalThis:this,function(){
  'use strict';
  const ID='shikuang-encoded-native-header-seek002',MAX_BYTES=20*1024*1024,MAX_READ=512*1024,MAX_REQUESTS=512,MAX_CHUNKS=4096;
  const fail=m=>{throw new Error(m);},abort=()=>{const e=new Error('照片输入已停止');e.name='AbortError';return e;};

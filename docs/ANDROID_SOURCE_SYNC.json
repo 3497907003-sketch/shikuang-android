@@ -1,7 +1,7 @@
 {
-  "source_commit": "22f13d6a396c2e29e586efebd0833dcf3e538c7e",
+  "source_commit": "8825d14f0425c275ecbdb2b32115a1cacee5410c",
   "source_repository": "https://github.com/3497907003-sketch/shikuang-app",
-  "source_method": "Exact committed Web book-evidence27 statements+1HOLD and reviewed cumulative-index/expanded-scope UI; raw168/build11 exported only from fixed22f13d6. Staged canonical literal-byte comparison before writes; no native/model/inference/CI/device/release change.",
+  "source_method": "Exact committed browser/CommonJS export correction and sourced guide with fixed navigation; header factory and five frozen preprocessing dependencies unchanged; local immutable canonical168 comparison; no model or native inference change.",
   "applicationVersion": "2.5.0-preview.1",
   "androidVersionCode": 25001,
   "packageName": "com.shikuang.app.preview",
@@ -9,13 +9,13 @@
   "assets": [
     {
       "path": "app.js",
-      "bytes": 119131,
-      "sha256": "7c9bb615dfe9ee27422a59ca08ef08b4962792268009d6f3cdaecd99053deb04"
+      "bytes": 119181,
+      "sha256": "4f9ea59d2f16ec60e648ba7b5a3f153e54de079c6ac7a4cf84eef11ff9cb859a"
     },
     {
       "path": "compat.js",
-      "bytes": 1418,
-      "sha256": "377e2c79581ab2e59a603f8bd6b8268d3936bc34ff05bddd5e565cc08a9f254b"
+      "bytes": 1553,
+      "sha256": "0bff35b175b64b7f535481d264db0e2b3d4195f7272f31cac254177eefc9354c"
     },
     {
       "path": "config.js",
@@ -24,8 +24,8 @@
     },
     {
       "path": "core.js",
-      "bytes": 27480,
-      "sha256": "79ae0bfb0e2bafc3ddaeda531fb04b390e892e351e8c78d7f80d13f17ab6c4d2"
+      "bytes": 27617,
+      "sha256": "e4b6868858fc2a144319826a54a1d6fcd52d62caa1660813b6759aa9d499f288"
     },
     {
       "path": "data/catalog.json",
@@ -94,8 +94,8 @@
     },
     {
       "path": "history.js",
-      "bytes": 1158,
-      "sha256": "c182254c567c8d9c90e9707abb9772c52323809963f0fb70f0096bfde1e0fbb8"
+      "bytes": 1231,
+      "sha256": "25436fcba7d3c47dcbedb01a723bc221bc65f9f6c28560e6ee6c8e86326e300d"
     },
     {
       "path": "icon-192.png",
@@ -704,8 +704,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 28217,
-      "sha256": "6e6ba8bf55ae0dad62193dbb08d56cd037f6c68bc216f4f4165c9553407e3a0c"
+      "bytes": 29146,
+      "sha256": "bb2781d2d1ceabf73fbfd75ceb8aab9e8d8cb9bb620eda29c37e1b6b6b323add"
     },
     {
       "path": "inference.js",
@@ -719,8 +719,8 @@
     },
     {
       "path": "media.js",
-      "bytes": 17454,
-      "sha256": "fd28e2a93019ae4560c35e3e8e7cb47bb21a0ac4c94a4af2bcdd9b9d226b1d29"
+      "bytes": 17527,
+      "sha256": "e30b5829b440c0ffa785ba9a2f716efec3b8de51f0a367874dc22c07f1c51e91"
     },
     {
       "path": "model-manifest.json",
@@ -759,18 +759,18 @@
     },
     {
       "path": "research-input.js",
-      "bytes": 9561,
-      "sha256": "ae892d314078e2b03a85a07ed3d6b2f98655839fdc215c025f45a3390206182b"
+      "bytes": 9678,
+      "sha256": "dc32c426cb671e2ac91fde0dfb26d70023c96e30b837c172b754456031bbfc77"
     },
     {
       "path": "research-photo.js",
-      "bytes": 7432,
-      "sha256": "13b2d2251874608cdba44704c443e8b183bf13b7acc067bc25cd59104c40a812"
+      "bytes": 7605,
+      "sha256": "3e5f22db27944f4fb069882e0f2e1b878061878a05c51bdab62b66c02f0af738"
     },
     {
       "path": "research/shikuang-research-native-roi-q16-torchf32-v1/encoded-header.js",
-      "bytes": 9655,
-      "sha256": "e28e1456009e4266204731e135d1cbdfb73c12df295bef3c4820d718b2eabfb8"
+      "bytes": 9773,
+      "sha256": "d7d1d2993f740bf517e06ca44d98af85d245be0efcc507f6b1a13825193d6993"
     },
     {
       "path": "research/shikuang-research-native-roi-q16-torchf32-v1/frozen/native-roi-entry.js",
@@ -809,8 +809,8 @@
     },
     {
       "path": "styles.css",
-      "bytes": 36789,
-      "sha256": "e5a90ade05635d9d18927da7f1f72f7ff8eb3c3a7d9a50ec05b55802d79c35b2"
+      "bytes": 37102,
+      "sha256": "9ac6545b7f4466c14de4557d2b4a9f814efeb290dfd3d5ac9c199747a106bdf8"
     },
     {
       "path": "sw.js",
@@ -844,14 +844,14 @@
     },
     {
       "path": "viewport.js",
-      "bytes": 6072,
-      "sha256": "9555cff5288db54ab50771f7e2966406e4dae949c7efacbdd1a61288e8f52eae"
+      "bytes": 6176,
+      "sha256": "444410e635a556426de74e3f6814d5e4dbc3f1237897dec57f3703084d6a7ce9"
     }
   ],
   "assetCount": 168,
   "publishedPhotos": 117,
   "scope": "Local preview source and packaged-asset identity; not field accuracy, new model training, CI, physical-device acceptance or a public release",
-  "local_sync_at": "2026-10-28T14:31:01.679002+08:00",
+  "local_sync_at": "2026-10-29T14:23:43.723530+08:00",
   "developmentRevision": "r9",
   "public_deployment_verified_for_this_sync": false,
   "historical_production_web_merge": "95b4b4e4d1d9be561a18ed745c95eb60f0b6ab0f",
@@ -861,8 +861,8 @@
       "sha256": "7f2ce14e063fdcbfda5874da0b636a6b708dc5725da9161ad3b5368867843905"
     },
     "tools/research-input-contract.cjs": {
-      "bytes": 1625,
-      "sha256": "35e2afcf4c76761c901e202e964a8eb82dd94f97c8f1d2ce2e6ab25332f90784"
+      "bytes": 1728,
+      "sha256": "df6ffbeb5531ffa352f65f9fcc974bc46f56b033ef80e4b20ea6ac5a055403a2"
     },
     "tools/onnx-contract.cjs": {
       "bytes": 3073,

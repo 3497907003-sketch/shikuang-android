@@ -2,9 +2,10 @@
  * selects/loads a model, or treats the production 1536 preview as native input. */
 (function(root,factory){
   const api=factory();
-  if(typeof module==='object'&&module.exports)module.exports=api;
-  else root.ShikuangResearchInput=api;
-})(typeof globalThis==='object'?globalThis:this,function(){
+  const commonJS=typeof module==='object'&&module&&module.exports;
+  if(commonJS)module.exports=api;
+  if(typeof window==='object'&&window||!commonJS)root.ShikuangResearchInput=api;
+})(typeof window==='object'&&window?window:typeof globalThis==='object'?globalThis:this,function(){
   'use strict';
   const PROFILE_ID='shikuang-research-native-roi-q16-torchf32-v1';
   const RESOURCE_PATH='research/'+PROFILE_ID+'/worker.js';

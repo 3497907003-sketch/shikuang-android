@@ -1,20 +1,20 @@
 {
   "schema_version": 1,
   "source_repository": "https://github.com/3497907003-sketch/shikuang-app",
-  "source_commit": "22f13d6a396c2e29e586efebd0833dcf3e538c7e",
-  "raw_assets_sha256": "e58e20b9d0228516eef73374dc03ff0f1bf013a9f21a17958090edb2631fe606",
-  "build_inputs_sha256": "621da11bfa8fec957aec6b5768da28997b9626d5c71b703270673c984cfc475f",
+  "source_commit": "8825d14f0425c275ecbdb2b32115a1cacee5410c",
+  "raw_assets_sha256": "a736dff9fdb4b8c20d544682371ad019e527983ba7cfa709d9316a353d30ba63",
+  "build_inputs_sha256": "671e8bbd6cc9e5256b82ed7c3062185063f72ed1c75b99debe2ddc28c9c5695c",
   "assetCount": 168,
   "assets": [
     {
       "path": "app.js",
-      "bytes": 142722,
-      "sha256": "6a95bf69db3200aaf6394a664ab2a0f4485ebacb014c99596821ea3bc890df82"
+      "bytes": 142772,
+      "sha256": "883d53c24ae9178fd462dbe058af7fa8fcfa373f7e972060f177efdef8cd2e3e"
     },
     {
       "path": "compat.js",
-      "bytes": 1531,
-      "sha256": "6a83301482e471d46b0fe2f4b7c49a554d1fbbb3e20844699e04f7212432a384"
+      "bytes": 1669,
+      "sha256": "588c8817643b293e9abd91ce447b72304dc3bb646d434edbf8cf6cdfc198fb20"
     },
     {
       "path": "config.js",
@@ -23,8 +23,8 @@
     },
     {
       "path": "core.js",
-      "bytes": 32055,
-      "sha256": "effa14c2e035256a25fee7dc2fe3b7d29a46edb8683f4e22930d3d7d38a6b27a"
+      "bytes": 32195,
+      "sha256": "9d427134db14e8034f7ec606fb8be83d329214e0c930551bf44ab24f5d7e4b5a"
     },
     {
       "path": "data/catalog.json",
@@ -84,7 +84,7 @@
     {
       "path": "engine-worker.js",
       "bytes": 10096,
-      "sha256": "cf35afa8323841d8307a5b29aae05564289390c3cc2741fdc7f43e7aadfdc319"
+      "sha256": "835a3e6f6182a47783b610446b68db2635c681082514e0b8088d7e9b6c22f09f"
     },
     {
       "path": "gallery.js",
@@ -93,8 +93,8 @@
     },
     {
       "path": "history.js",
-      "bytes": 1453,
-      "sha256": "22183c825734d475e2d6d0306ee93451d214bd4e66f10e0cfd32cf198bfb5fcd"
+      "bytes": 1548,
+      "sha256": "6ee2bb36d92d72d01c1b1928ac603d082cf95cd44c7de848d1d22c51c709529d"
     },
     {
       "path": "icon-192.png",
@@ -703,8 +703,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 29150,
-      "sha256": "29c7c6519975796f3af855a08f817c5ab500f57e716e7a3b1d9621b81a0a3d13"
+      "bytes": 30079,
+      "sha256": "3aeb204fe21e80a65f4ae2263ee87552ec193c6ec47ed8a5aae03324e7ce7634"
     },
     {
       "path": "inference.js",
@@ -718,8 +718,8 @@
     },
     {
       "path": "media.js",
-      "bytes": 21690,
-      "sha256": "0bff7fe265824210166b04c4675339206e918ba2dd4bdf8b3ace558a3b23fbb3"
+      "bytes": 21785,
+      "sha256": "7a5db5640e382f5c45dae46f701e273862f8d39b39af62a857bc6fe34f3800f9"
     },
     {
       "path": "model-manifest.json",
@@ -758,18 +758,18 @@
     },
     {
       "path": "research-input.js",
-      "bytes": 11653,
-      "sha256": "e3004df629a8991ef1efdb1e7655500127f96212b06f3e46b69361b8974dbb4b"
+      "bytes": 11793,
+      "sha256": "e8b9d0dbd0b0693472c8ebba5ca48c71ba29e1ffd7cc5f797fe747dbee76a786"
     },
     {
       "path": "research-photo.js",
-      "bytes": 9284,
-      "sha256": "dd63b6fac04b28372e6f9cbc0d4b1a99d3869dde0d3d7e04d82f3ea053b124cf"
+      "bytes": 9495,
+      "sha256": "34bee6dd61e4d39c7cf73377940f9f83e0122db3d944a34d4385efeae93a4129"
     },
     {
       "path": "research/shikuang-research-native-roi-q16-torchf32-v1/encoded-header.js",
-      "bytes": 12309,
-      "sha256": "cdbb2b021f8a561b28f095fca5b62d24bcbcfabcac871b6850142e9fd4a66477"
+      "bytes": 12458,
+      "sha256": "0e45ed9a1672cac08308970aa1ff4d6576bd2b37bf989e3711ea10ada9f1c39a"
     },
     {
       "path": "research/shikuang-research-native-roi-q16-torchf32-v1/frozen/native-roi-entry.js",
@@ -799,7 +799,7 @@
     {
       "path": "research/shikuang-research-native-roi-q16-torchf32-v1/worker.js",
       "bytes": 2978,
-      "sha256": "43ab8f80832f95b9a11aa233396a0d993980794e74c42de940a3a6db15ab0a68"
+      "sha256": "a758b5764f318a4776511e223c4c0adb7e2b1b9e6971c5d77143e96d0bd35815"
     },
     {
       "path": "storage.js",
@@ -808,13 +808,13 @@
     },
     {
       "path": "styles.css",
-      "bytes": 36789,
-      "sha256": "e5a90ade05635d9d18927da7f1f72f7ff8eb3c3a7d9a50ec05b55802d79c35b2"
+      "bytes": 37102,
+      "sha256": "9ac6545b7f4466c14de4557d2b4a9f814efeb290dfd3d5ac9c199747a106bdf8"
     },
     {
       "path": "sw.js",
       "bytes": 13616,
-      "sha256": "e214b19b95da9e34370b20520f29c3cd77a74cc46c65041acc016dabb17177b0"
+      "sha256": "13fb185887bd038f06649d2ae0fab4e4d55278aa48ac132f95033e31ab933bb4"
     },
     {
       "path": "vendor/lucide.min.js",
@@ -843,8 +843,8 @@
     },
     {
       "path": "viewport.js",
-      "bytes": 6621,
-      "sha256": "5912a49ff6823ed32aace588ca4eb25f7eecfcaa8c55842dac8eab48c59dbf9c"
+      "bytes": 6732,
+      "sha256": "11bd5a1147ce25c1386f7b64cb198041d1e0cd3a121837d10830a9716023cabd"
     }
   ]
 }

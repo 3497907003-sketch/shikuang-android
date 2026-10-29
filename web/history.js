@@ -1,4 +1,4 @@
-(function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.SearchHistory=api;})(typeof window!=='undefined'?window:globalThis,function(){
+(function(root,factory){const api=factory(),commonJS=typeof module==='object'&&module&&module.exports;if(commonJS)module.exports=api;if(typeof window==='object'&&window||!commonJS)root.SearchHistory=api;})(typeof window==='object'&&window?window:globalThis,function(){
   'use strict';
   const KEY='shikuang-searches-v2';
   function normalize(rows){return Array.isArray(rows)?rows.filter(x=>x&&typeof x.query==='string'&&['library','records'].includes(x.kind)).slice(0,20).map(x=>({query:x.query.trim().slice(0,100),kind:x.kind,time:Number(x.time)||0})).filter(x=>x.query):[];}

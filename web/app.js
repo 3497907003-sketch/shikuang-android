@@ -389,6 +389,7 @@
     $('#guidePrev').disabled = guidePage === 0;
     $('#guideNext').textContent = guidePage === guidePages.length - 1 ? '开始识别' : '下一步 →';
     $('#guideDialog').scrollTop = 0;
+    $('#guideDialog .guide-pages').scrollTop = 0;
     if (focus) $('#guideTitle').focus({ preventScroll:true });
   }
   function showGuide() { guidePage = 0; renderGuide(); openDialog('#guideDialog'); $('#guideTitle').focus({ preventScroll:true }); }

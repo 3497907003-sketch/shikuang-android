@@ -10,9 +10,10 @@ const FROZEN=Object.freeze([
   ['frozen/vendor/normalization-lut.f32le.bin',3072,'9243928c3ab0dbc2609a421c65ce0ed601892a65d273f80dcc6d1e69c72ae159']
 ]);
 const ASSETS=Object.freeze(['research-input.js','research-photo.js',PREFIX+'encoded-header.js',PREFIX+'worker.js',...FROZEN.map(row=>PREFIX+row[0])]);
-// Unmodified canonical30/shared/encoded-header.js, inspected before its
-// research-provider integration. Keep decoder header semantics versioned.
-const HEADER_PIN=Object.freeze(['encoded-header.js',9655,'e28e1456009e4266204731e135d1cbdfb73c12df295bef3c4820d718b2eabfb8']);
+// canonical30/shared/encoded-header.js retains its exact factory body; only
+// host exports were updated for browsers that also expose module.exports.
+// Original wrapper: 9655 bytes, e28e1456009e4266204731e135d1cbdfb73c12df295bef3c4820d718b2eabfb8.
+const HEADER_PIN=Object.freeze(['encoded-header.js',9773,'d7d1d2993f740bf517e06ca44d98af85d245be0efcc507f6b1a13825193d6993']);
 function validate(root){
   for(const [name,size,hash] of [...FROZEN,HEADER_PIN]){const bytes=fs.readFileSync(path.join(root,PREFIX,name));if(bytes.length!==size||crypto.createHash('sha256').update(bytes).digest('hex')!==hash)throw new Error('Frozen research preprocessing dependency changed: '+name);}
   return ASSETS;

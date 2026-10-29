@@ -1,9 +1,10 @@
 /* Shared, testable decision rules. Model scores are not calibrated accuracy. */
 (function (root, factory) {
   const api = factory();
-  if (typeof module === 'object' && module.exports) module.exports = api;
-  else root.MineralCore = api;
-})(typeof globalThis === 'object' ? globalThis : this, function () {
+  const commonJS = typeof module === 'object' && module && module.exports;
+  if (commonJS) module.exports = api;
+  if (typeof window === 'object' && window || !commonJS) root.MineralCore = api;
+})(typeof window === 'object' && window ? window : typeof globalThis === 'object' ? globalThis : this, function () {
   'use strict';
   const POLICY = Object.freeze({ score: 0.65, margin: 0.20, agreement: 2/3, version: '2.0-preview' });
   const OFFLINE_CACHES = Object.freeze({ shell:'shikuang-static-2.5.0-preview.1-r9', models:'shikuang-models-v2-20261010' });

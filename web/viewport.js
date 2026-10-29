@@ -1,9 +1,10 @@
 // Keep editable fields visible when either the visual or layout viewport shrinks.
 // This observes geometry, not a device model or a claim that an IME is present.
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory();
-  else root.MineralViewport = factory();
-})(typeof window === 'object' ? window : globalThis, function () {
+  const api = factory(), commonJS = typeof module === 'object' && module && module.exports;
+  if (commonJS) module.exports = api;
+  if (typeof window === 'object' && window || !commonJS) root.MineralViewport = api;
+})(typeof window === 'object' && window ? window : globalThis, function () {
   'use strict';
   const textTypes = new Set(['text','search','email','url','tel','password','number']);
   function editable(element) {

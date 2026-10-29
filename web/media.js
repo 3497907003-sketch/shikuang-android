@@ -1,4 +1,4 @@
-(function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.MineralMedia=api;})(typeof window!=='undefined'?window:globalThis,function(){
+(function(root,factory){const api=factory(),commonJS=typeof module==='object'&&module&&module.exports;if(commonJS)module.exports=api;if(typeof window==='object'&&window||!commonJS)root.MineralMedia=api;})(typeof window==='object'&&window?window:globalThis,function(){
   'use strict';
   const MAX_IMAGE_PIXELS=40000000,MAX_IMAGE_EDGE=1536,MAX_IMAGE_BYTES=20*1024*1024,HEADER_BYTES=512*1024;
   function scaledDimensions(width,height,label='图像'){

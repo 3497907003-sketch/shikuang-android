@@ -21,6 +21,7 @@
     });
   }
   var api = {readText:readText};
-  if (typeof module === 'object' && module.exports) module.exports = api;
-  else root.MineralCompat = api;
-})(typeof globalThis === 'object' ? globalThis : typeof self === 'object' ? self : this);
+  var commonJS = typeof module === 'object' && module && module.exports;
+  if (commonJS) module.exports = api;
+  if (typeof window === 'object' && window || !commonJS) root.MineralCompat = api;
+})(typeof window === 'object' && window ? window : typeof globalThis === 'object' ? globalThis : typeof self === 'object' ? self : this);

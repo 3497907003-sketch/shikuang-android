@@ -2,9 +2,11 @@
  * canonical30 HTMLImageElement -> native sRGB Canvas path. It never calls the
  * production preview decoder, resizes, re-encodes, or loads a model. */
 (function(root,factory){
-  if(typeof module==='object'&&module.exports)module.exports=factory(require('./research/shikuang-research-native-roi-q16-torchf32-v1/encoded-header.js'),require('./research-input.js'));
-  else root.ShikuangResearchPhoto=factory(root.ShikuangEncodedHeader,root.ShikuangResearchInput);
-})(typeof globalThis==='object'?globalThis:this,function(Header,Input){
+  const browser=typeof window==='object'&&window,commonJS=typeof module==='object'&&module&&module.exports;
+  const api=browser||!commonJS?factory(root.ShikuangEncodedHeader,root.ShikuangResearchInput):factory(require('./research/shikuang-research-native-roi-q16-torchf32-v1/encoded-header.js'),require('./research-input.js'));
+  if(commonJS)module.exports=api;
+  if(browser||!commonJS)root.ShikuangResearchPhoto=api;
+})(typeof window==='object'&&window?window:typeof globalThis==='object'?globalThis:this,function(Header,Input){
   'use strict';
   const ID='shikuang-browser-native-srgb-research-photo-v1';
   const routes=['photo-camera','photo-file','native-photo-camera','native-photo-file'];
