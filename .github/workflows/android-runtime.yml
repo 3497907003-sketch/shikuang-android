@@ -16,6 +16,11 @@ on:
         required: false
         type: boolean
         default: false
+      runtime_api35_16k_only:
+        description: 'Run only the existing API35/16K runtime profile; network probe takes priority'
+        required: false
+        type: boolean
+        default: false
       native_dialog_diagnostic:
         description: "One API35 finite native-dialog diagnostic only; not product acceptance"
         required: false
@@ -51,7 +56,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJSON(inputs.network_probe && '[{"api":35,"id":"35","tag":"google_apis","pageSize":4096}]' || '[{"api":24,"id":"24","tag":"google_apis","pageSize":4096},{"api":30,"id":"30","tag":"google_apis","pageSize":4096},{"api":35,"id":"35","tag":"google_apis","pageSize":4096},{"api":35,"id":"35-16k","tag":"google_apis_ps16k","pageSize":16384}]') }}
+        include: ${{ fromJSON(inputs.network_probe && '[{"api":35,"id":"35","tag":"google_apis","pageSize":4096}]' || inputs.runtime_api35_16k_only && '[{"api":35,"id":"35-16k","tag":"google_apis_ps16k","pageSize":16384}]' || '[{"api":24,"id":"24","tag":"google_apis","pageSize":4096},{"api":30,"id":"30","tag":"google_apis","pageSize":4096},{"api":35,"id":"35","tag":"google_apis","pageSize":4096},{"api":35,"id":"35-16k","tag":"google_apis_ps16k","pageSize":16384}]') }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -74,6 +79,7 @@ jobs:
           python3 -B -m unittest discover -s tools -p test_android_cold_restart.py
           python3 -B -m unittest discover -s tools -p test_android_offline_setup.py
           python3 -B -m unittest discover -s tools -p test_android_pixel_launcher_setup.py
+          python3 -B -m unittest discover -s tools -p test_android_runtime_matrix.py
       - name: Install official Android emulator image
         shell: bash
         run: |
@@ -95,10 +101,16 @@ jobs:
         run: |
           mkdir -p runtime-artifacts
           SHIKUANG_ANDROID_SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          SHIKUANG_EMULATOR_MEMORY_MIB=3072
+          if [[ "${{ matrix.api }}" = 35 && "${{ matrix.id }}" = 35-16k && \
+                "${{ matrix.tag }}" = google_apis_ps16k && "${{ matrix.pageSize }}" = 16384 ]]; then
+            SHIKUANG_EMULATOR_MEMORY_MIB=4096
+          fi
+          printf '%s\n' "$SHIKUANG_EMULATOR_MEMORY_MIB" > runtime-artifacts/emulator-configured-memory-mib.txt
           nohup "$SHIKUANG_ANDROID_SDK/emulator/emulator" \
             -avd "shikuang-api${{ matrix.id }}" -no-window -no-audio \
             -no-boot-anim -no-snapshot -gpu swiftshader_indirect \
-            -camera-back none -camera-front none -memory 3072 -cores 2 -accel on \
+            -camera-back none -camera-front none -memory "$SHIKUANG_EMULATOR_MEMORY_MIB" -cores 2 -accel on \
             > runtime-artifacts/emulator.log 2>&1 &
           timeout 180 adb wait-for-device
           timeout 180 bash -c 'until [[ "$(adb shell getprop sys.boot_completed | tr -d "\r")" == "1" ]]; do sleep 2; done'
@@ -271,6 +283,21 @@ jobs:
           done
           test "$(timeout 15 adb get-state | tr -d '\r')" = device
           SHIKUANG_PROBE
+      - name: Record guest resources and package service before UTP installation
+        if: ${{ !inputs.network_probe }}
+        shell: bash
+        run: |
+          # Read-only evidence before connectedDebugAndroidTest starts UTP
+          # installation. Record failures too; do not repair/restart services.
+          set +e
+          timeout 15 adb -s emulator-5554 shell cat /proc/meminfo > runtime-artifacts/guest-meminfo-before-install.txt 2>&1
+          printf 'meminfo_exit=%s\n' "$?" >> runtime-artifacts/pre-install-command-status.txt
+          timeout 15 adb -s emulator-5554 shell getprop ro.build.fingerprint > runtime-artifacts/system-image-fingerprint-before-install.txt 2>&1
+          printf 'image_fingerprint_exit=%s\n' "$?" >> runtime-artifacts/pre-install-command-status.txt
+          timeout 15 adb -s emulator-5554 shell pidof system_server > runtime-artifacts/system-server-pid-before-install.txt 2>&1
+          printf 'system_server_pid_exit=%s\n' "$?" >> runtime-artifacts/pre-install-command-status.txt
+          timeout 15 adb -s emulator-5554 shell service check package > runtime-artifacts/package-service-before-install.txt 2>&1
+          printf 'package_service_exit=%s\n' "$?" >> runtime-artifacts/pre-install-command-status.txt
       - name: Run packaged WebView with actual native ONNX inference
         if: ${{ !inputs.network_probe }}
         working-directory: android
