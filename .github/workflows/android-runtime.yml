@@ -73,6 +73,7 @@ jobs:
         run: |
           python3 -B -m unittest discover -s tools -p test_android_cold_restart.py
           python3 -B -m unittest discover -s tools -p test_android_offline_setup.py
+          python3 -B -m unittest discover -s tools -p test_android_pixel_launcher_setup.py
       - name: Install official Android emulator image
         shell: bash
         run: |
@@ -187,6 +188,14 @@ jobs:
           finally:
               (folder/'setup-report.json').write_text(json.dumps(report,indent=2)+'\n')
           PYMESSENGER
+          fi
+          # Only this fresh ordinary API35/4K Google APIs AVD: prevent the
+          # confirmed external Pixel Launcher ANR, without hiding error dialogs
+          # or changing any App, focus, offline, or cold-process assertion.
+          if [[ "${{ matrix.api }}" = 35 && "${{ matrix.id }}" = 35 && \
+                "${{ matrix.tag }}" = google_apis && "${{ matrix.pageSize }}" = 4096 && \
+                "${{ inputs.network_probe }}" != true ]]; then
+            python3 -B tools/android_pixel_launcher_setup.py --out runtime-artifacts/external-pixel-launcher-setup
           fi
           # The Google API image carries MOBILE[LTE] on eth0. Wait for SIM setup
           # before disabling its radio, so first-boot telephony cannot restore it.
