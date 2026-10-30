@@ -638,8 +638,9 @@
     const rows=bookEvidenceIndex.rows.get(reference.id)||[],held=bookEvidenceIndex.held.get(reference.id)||[];
     // Per-species bounds protect this detail view, without limiting the full library.
     if((!rows.length&&!held.length)||rows.length>128||held.length>32)return [];
-    const labels=['formula','hardness','relative_density','density','crystal_system','cleavage','luster','streak','uses'],hash=value=>/^[a-f0-9]{64}$/.test(value||'');
-    const intakeHashes={'new-book-03':'6b61c081c7f630e787486cadb2fcaf40539f746a47f69f2aa43a42e16c9765f1','new-book-08':'af7dc5ce2fd8e6c9c1d05025521d249fecb5afcbad5490f3ee642c5eb5132a89'};
+    const labels=['formula','hardness','relative_density','density','crystal_system','cleavage','luster','streak','uses','occurrence','habit'],hash=value=>/^[a-f0-9]{64}$/.test(value||'');
+    const intakeHashes={'new-book-03':'6b61c081c7f630e787486cadb2fcaf40539f746a47f69f2aa43a42e16c9765f1','new-book-08':'af7dc5ce2fd8e6c9c1d05025521d249fecb5afcbad5490f3ee642c5eb5132a89','new-book-11':'0106f3f8fd882fd4b5b3e4dbb7cafc11abba909af4ff7c863a27592bbabefdf6','new-book-13':'d2a548bd548e4995d8bd92f21568e2e0d7c7e15afc0da832af9cdf48e4ad456c'};
+    const intakeAliases={'new-book-02':['user-book-17','66b43cd348f1f902380d86a3fb2c1db005990ece468c6428cff82d44d57c9702'],'new-book-12':['user-book-07','e3e256234aaec3ff754b8d36f1bdea4993b4ef93d59bf0a2a4df04c0e93a9011']};
     const publicText=value=>typeof value==='string'&&!/\/Users\/|file:\/\/|EPUB\/|private-sources\/|private-books\.sqlite3/.test(value);
     const sourceIds=[...new Set([...rows,...held].map(row=>row.source_id))],groups=[];
     if(sourceIds.length>16)return [];
@@ -647,7 +648,12 @@
       const sources=bookEvidenceIndex.books.get(sourceId)||[],book=sources.length===1?sources[0]:null;
       if(typeof sourceId!=='string'||(!/^user-book-\d{2,}$/.test(sourceId)&&intakeHashes[sourceId]!==book?.book_sha256))return [];
       if(book?.status!=='reviewed_selected_pages'||book.full_book_reviewed!==false||!hash(book.book_sha256)||!hash(book.root_review_sha256)||!publicText(book.title)||!book.title.trim()||book.title.length>200||!Array.isArray(book.authors)||!book.authors.length||book.authors.length>8||book.authors.some(author=>!publicText(author)||!author.trim()||author.length>80)||!Array.isArray(book.subjects)||!['author','editor'].includes(book.credit_role||'author'))return [];
-      if(book.intake_aliases!==undefined&&(sourceId!=='user-book-17'||book.book_sha256!=='66b43cd348f1f902380d86a3fb2c1db005990ece468c6428cff82d44d57c9702'||!Array.isArray(book.intake_aliases)||book.intake_aliases.length!==1||book.intake_aliases[0]!=='new-book-02'))return [];
+      if(book.bibliography_note!==undefined&&(!publicText(book.bibliography_note)||!book.bibliography_note.trim()||book.bibliography_note.length>200))return [];
+      if(book.intake_aliases!==undefined){
+        if(!Array.isArray(book.intake_aliases)||book.intake_aliases.length!==1)return [];
+        const alias=intakeAliases[book.intake_aliases[0]];
+        if(!alias||alias[0]!==sourceId||alias[1]!==book.book_sha256)return [];
+      }
       const subjects=book.subjects.filter(subject=>subject?.catalog_id===reference.id),own=rows.filter(row=>row.source_id===sourceId),waiting=held.filter(row=>row.source_id===sourceId);
       if(!subjects.length||subjects.length>32)return [];
       const identity=row=>bookPageKey(row)+':'+row.field,assigned=new Set(),heldPages=new Set(),claims=new Set();
@@ -655,7 +661,7 @@
       for(const subject of subjects){
         const reviewHash=subject.root_review_sha256===undefined?book.root_review_sha256:subject.root_review_sha256;
         const pageKey=bookPageKey(subject);
-        if(subject.name_en!==reference.name_en||!bookPageValid(subject)||(subject.pdf_page_1based!==undefined&&book.source_format!=='PDF')||!hash(reviewHash)||!Array.isArray(subject.approved_fields)||subject.approved_fields.length>9||new Set(subject.approved_fields).size!==subject.approved_fields.length||subject.approved_fields.some(field=>!labels.includes(field)||claims.has(pageKey+':'+field)))return [];
+        if(subject.name_en!==reference.name_en||!bookPageValid(subject)||(subject.pdf_page_1based!==undefined&&book.source_format!=='PDF')||!hash(reviewHash)||!Array.isArray(subject.approved_fields)||subject.approved_fields.length>11||new Set(subject.approved_fields).size!==subject.approved_fields.length||subject.approved_fields.some(field=>!labels.includes(field)||claims.has(pageKey+':'+field)))return [];
         subject.approved_fields.forEach(field=>claims.add(pageKey+':'+field));
         const selected=own.filter(row=>bookPageKey(row)===pageKey&&subject.approved_fields.includes(row.field));
         if(selected.length!==subject.approved_fields.length||selected.some(row=>{
@@ -666,6 +672,7 @@
             (row.field==='relative_density'&&(row.quantity_kind!=='relative_density'||row.unit!=='dimensionless'||!row.limits.includes('relative_density_is_not_measured_density')))||
             (row.field==='density'&&(row.quantity_kind!=='mass_density_method_unspecified'||row.unit!=='g/cm³'||!['mass_density_not_dimensionless_relative_density','measurement_method_temperature_and_uncertainty_not_reported','do_not_label_measured_or_calculated'].every(limit=>row.limits.includes(limit))))||
             (row.field==='uses'&&(row.quantity_kind!=='literature_use_statement'||!row.limits.includes('no_current_specimen_measurement')))||
+            (['occurrence','habit'].includes(row.field)&&(row.quantity_kind!=='literal_source_statement'||!['no_current_specimen_measurement','no_primary_property_replacement','no_model_score_or_training_use'].every(limit=>row.limits.includes(limit))))||
             (!['hardness','relative_density','density'].includes(row.field)&&row.unit!==null);
         }))return [];
         selected.forEach(row=>assigned.add(identity(row)));
@@ -678,7 +685,7 @@
     return groups;
   }
   function bookEvidenceSection(reference){
-    const labels={formula:'化学式',hardness:'硬度',relative_density:'相对密度',density:'密度（测法未注明）',crystal_system:'晶系',cleavage:'解理',luster:'光泽',streak:'条痕',uses:'用途'};
+    const labels={formula:'化学式',hardness:'硬度',relative_density:'相对密度',density:'密度（测法未注明）',crystal_system:'晶系',cleavage:'解理',luster:'光泽',streak:'条痕',uses:'用途',occurrence:'成因与产出（书籍陈述）',habit:'晶体习性'};
     return reviewedBookGroups(reference).map(group=>{
       const {book,subject}=group;
       const values=group.rows.map(row=>{
@@ -687,11 +694,14 @@
         if(row.field==='relative_density')notes.push('无量纲，不替代实测密度。');
         if(row.field==='density')notes.push('单位 g/cm³；测定方式未注明，不替代主资料的实测密度。');
         if(row.field==='uses')notes.push('用途为该书一般资料，不代表当前标本的工业品级。');
-        if(row.limits.includes('retain_source_description_difference')||row.comparison_status==='source_description_differs')notes.push('与主资料表述不同，分别保留来源。');
+        if(row.field==='occurrence')notes.push('书中列举的一般形成环境，不代表当前标本的形成环境、产地或物相。');
+        if(row.field==='habit')notes.push('书中列举的晶体与集合体形态，不是对当前标本的测量。');
+        if(row.comparison_status==='source_internal_description_differs')notes.push('该书表格与正文措辞不同，两处分别保留。');
+        else if(row.limits.includes('retain_source_description_difference')||row.comparison_status==='source_description_differs')notes.push('与主资料表述不同，分别保留来源。');
         const value=row.field==='formula'?formulaMarkup(row.value):html(row.value);
         return `<div data-book-field="${html(row.field)}"><dt>${labels[row.field]}</dt><dd><div class="property-value">${value}</div>${notes.length?`<small class="property-source">${html(notes.join(' '))}</small>`:''}</dd></div>`;
       }).join('')+group.held.map(()=>'<div data-book-field="cleavage" data-book-held><dt>解理</dt><dd>暂未采纳<small class="property-source">该页描述有歧义，暂不作为资料结论。</small></dd></div>').join('');
-      return `<section class="detail-section book-evidence-section" data-book-evidence="reviewed"><h3>书籍资料核对</h3><p>${html(book.title)}</p><p class="field-hint">${book.credit_role==='editor'?'主编':'作者'}：${html(book.authors.join('、'))} · ${html(bookPageLabel(subject))}</p><p class="field-hint">供交叉查阅，主资料与书中表述分别保留。</p><dl class="detail-properties">${values}</dl></section>`;
+      return `<section class="detail-section book-evidence-section" data-book-evidence="reviewed"><h3>书籍资料核对</h3><p>${html(book.title)}</p><p class="field-hint">${book.credit_role==='editor'?'主编':'作者'}：${html(book.authors.join('、'))} · ${html(bookPageLabel(subject))}</p>${book.bibliography_note?`<p class="field-hint">${html(book.bibliography_note)}</p>`:''}<p class="field-hint">供交叉查阅，主资料与书中表述分别保留。</p><dl class="detail-properties">${values}</dl></section>`;
     }).join('');
   }
   function literatureSection(reference,field,title) {

@@ -136,3 +136,44 @@ test('new book-only species gain reference detail without model scope or evidenc
   assert.deepEqual(Core.evidenceFor({reviewed_book_evidence:c.reviewed_book_evidence},{hardness:'6',luster:'metal'}),[]);
   assert.deepEqual(Object.keys(f.context.MINERAL_CLASSES),['quartz']);
 });
+
+test('the three OCR-reviewed mineral pages show27 separate statements with source and specimen limits',async()=>{
+  const f=fixture({catalog});await f.settle();
+  for(const [id,pdf,print,count] of [['ima-clinoclase',130,127,7],['ima-erythrite',130,127,7],['ima-millerite',85,78,7]]){
+    assert.equal(catalog.minerals.find(r=>r.id===id).physical_properties,undefined);
+    await f.documentClick('[data-detail]',{detail:'catalog:'+id});const text=section(f.node('detailBody').innerHTML);
+    assert.equal((text.match(/data-book-field=/g)||[]).length,count);assert.ok(text.includes(`PDF 第 ${pdf} 页 · 印刷页 ${print}`));
+    assert.match(text,/无量纲，不替代实测密度/);assert.match(text,/该页未明示硬度标度/);assert.match(text,/书目版本尚待复核；所列条目已按标注原页核对/);
+    if(id==='ima-millerite'){
+      assert.match(text,/晶体习性/);assert.match(text,/不是对当前标本的测量/);assert.match(text,/黑绿色/);assert.match(text,/绿黑色/);
+      assert.match(text,/该书表格与正文措辞不同，两处分别保留/);assert.doesNotMatch(text,/与主资料表述不同/);
+    }else{assert.match(text,/成因与产出（书籍陈述）/);assert.match(text,/不代表当前标本的形成环境、产地或物相/);}
+    assert.doesNotMatch(text,/Garnierite|\/Users\/|OCR_trace|native_text/);
+  }
+  await f.documentClick('[data-detail]',{detail:'catalog:ima-andalusite'});
+  const sections=[...f.node('detailBody').innerHTML.matchAll(/<section class="detail-section book-evidence-section"[\s\S]*?<\/section>/g)].map(m=>m[0]);
+  assert.equal(sections.length,2);const added=sections.find(s=>s.includes('PDF 第 59 页 · 印刷页 53'));
+  assert.equal((added.match(/data-book-field=/g)||[]).length,6);assert.match(added,/3\.1～3\.2 g\/cm³/);assert.match(added,/测定方式未注明/);
+});
+
+test('new environment and habit claims require specimen limits and exact source aliases',async()=>{
+  for(const mode of ['phase-kind','missing-limit','wrong-SHA','wrong-alias']){
+    const c=structuredClone(catalog),o=c.reviewed_book_evidence,id=mode==='wrong-alias'?'ima-andalusite':'ima-clinoclase';
+    const row=o.records.find(r=>r.catalog_id===id&&r.field==='occurrence');
+    if(mode==='phase-kind')row.quantity_kind='current_specimen_phase';
+    if(mode==='missing-limit')row.limits=row.limits.filter(x=>x!=='no_current_specimen_measurement');
+    if(mode==='wrong-SHA')o.books.find(b=>b.source_id==='new-book-11').book_sha256='51256632b45d54a53231d1cb6f8e6338743da918984dcc7edcdd37b900f65c47';
+    if(mode==='wrong-alias')o.books.find(b=>b.source_id==='user-book-07').intake_aliases=['new-book-02'];
+    const before=JSON.stringify(c.minerals),f=fixture({catalog:c});await f.settle();await f.documentClick('[data-detail]',{detail:'catalog:'+id});
+    assert.equal(section(f.node('detailBody').innerHTML),'',mode);assert.equal(JSON.stringify(c.minerals),before);
+  }
+});
+
+test('OCR-reviewed occurrence and habit never become physical evidence or image-model coverage',async()=>{
+  const actual=catalog.minerals.find(r=>r.id==='ima-clinoclase'),bare={id:actual.id,name_en:actual.name_en,formula:actual.formula};
+  const c={...catalog,minerals:[{id:'ima-quartz',name_en:'Quartz',detail_key:'quartz'},bare]},f=fixture({catalog:c});await f.settle();
+  for(const [scope,count] of [['expanded',2],['model',1]]){f.node('libraryScope').value=scope;f.node('libraryScope').fire('change');assert.equal((f.node('libraryList').innerHTML.match(/data-detail=/g)||[]).length,count);}
+  const sourceRows=catalog.reviewed_book_evidence.records.filter(r=>r.catalog_id==='ima-clinoclase');
+  assert.deepEqual(Core.evidenceFor({reviewed_book_evidence:sourceRows},{hardness:'2.5',luster:'glass'}),[]);
+  assert.deepEqual(Object.keys(f.context.MINERAL_CLASSES),['quartz']);
+});
