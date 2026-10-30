@@ -621,56 +621,77 @@
     overlay.records.forEach(row=>add(rows,row?.catalog_id,row));overlay.withheld.forEach(row=>add(held,row?.catalog_id,row));overlay.books.forEach(book=>add(books,book?.source_id,book));
     bookEvidenceIndex={rows,held,books};
   }
+  function bookPageValid(row){
+    const printed=typeof row.printed_page==='string'&&/^\d{1,5}$/.test(row.printed_page);
+    return row.pdf_page_1based===undefined?printed:Number.isInteger(row.pdf_page_1based)&&row.pdf_page_1based>0&&row.pdf_page_1based<=100000&&(row.printed_page===null||printed);
+  }
+  function bookPageKey(row){return row.pdf_page_1based===undefined?'printed:'+row.printed_page:'pdf:'+row.pdf_page_1based;}
+  function bookPageLabel(row){
+    const parts=[];
+    if(row.pdf_page_1based!==undefined)parts.push('PDF 第 '+row.pdf_page_1based+' 页');
+    parts.push(row.printed_page===null?'印刷页未注明':'印刷页 '+row.printed_page);
+    if(row.table_number)parts.push('表 '+row.table_number);
+    return parts.join(' · ');
+  }
   function reviewedBookGroups(reference){
     if(!reference||!bookEvidenceIndex)return [];
     const rows=bookEvidenceIndex.rows.get(reference.id)||[],held=bookEvidenceIndex.held.get(reference.id)||[];
     // Per-species bounds protect this detail view, without limiting the full library.
     if((!rows.length&&!held.length)||rows.length>128||held.length>32)return [];
-    const labels=['formula','hardness','relative_density','crystal_system','cleavage','luster','streak'],hash=value=>/^[a-f0-9]{64}$/.test(value||'');
+    const labels=['formula','hardness','relative_density','density','crystal_system','cleavage','luster','streak','uses'],hash=value=>/^[a-f0-9]{64}$/.test(value||'');
+    const intakeHashes={'new-book-03':'6b61c081c7f630e787486cadb2fcaf40539f746a47f69f2aa43a42e16c9765f1','new-book-08':'af7dc5ce2fd8e6c9c1d05025521d249fecb5afcbad5490f3ee642c5eb5132a89'};
+    const publicText=value=>typeof value==='string'&&!/\/Users\/|file:\/\/|EPUB\/|private-sources\/|private-books\.sqlite3/.test(value);
     const sourceIds=[...new Set([...rows,...held].map(row=>row.source_id))],groups=[];
     if(sourceIds.length>16)return [];
     for(const sourceId of sourceIds){
-      if(typeof sourceId!=='string'||!/^user-book-\d{2,}$/.test(sourceId))return [];
       const sources=bookEvidenceIndex.books.get(sourceId)||[],book=sources.length===1?sources[0]:null;
-      if(book?.status!=='reviewed_selected_pages'||book.full_book_reviewed!==false||!hash(book.book_sha256)||!hash(book.root_review_sha256)||typeof book.title!=='string'||!book.title.trim()||book.title.length>200||!Array.isArray(book.authors)||!book.authors.length||book.authors.length>8||book.authors.some(author=>typeof author!=='string'||!author.trim()||author.length>80)||!Array.isArray(book.subjects))return [];
+      if(typeof sourceId!=='string'||(!/^user-book-\d{2,}$/.test(sourceId)&&intakeHashes[sourceId]!==book?.book_sha256))return [];
+      if(book?.status!=='reviewed_selected_pages'||book.full_book_reviewed!==false||!hash(book.book_sha256)||!hash(book.root_review_sha256)||!publicText(book.title)||!book.title.trim()||book.title.length>200||!Array.isArray(book.authors)||!book.authors.length||book.authors.length>8||book.authors.some(author=>!publicText(author)||!author.trim()||author.length>80)||!Array.isArray(book.subjects)||!['author','editor'].includes(book.credit_role||'author'))return [];
+      if(book.intake_aliases!==undefined&&(sourceId!=='user-book-17'||book.book_sha256!=='66b43cd348f1f902380d86a3fb2c1db005990ece468c6428cff82d44d57c9702'||!Array.isArray(book.intake_aliases)||book.intake_aliases.length!==1||book.intake_aliases[0]!=='new-book-02'))return [];
       const subjects=book.subjects.filter(subject=>subject?.catalog_id===reference.id),own=rows.filter(row=>row.source_id===sourceId),waiting=held.filter(row=>row.source_id===sourceId);
       if(!subjects.length||subjects.length>32)return [];
-      const identity=row=>row.printed_page+':'+row.field,assigned=new Set(),heldPages=new Set(),claims=new Set();
-      if(new Set(own.map(identity)).size!==own.length||new Set(waiting.map(identity)).size!==waiting.length||waiting.some(row=>row.name_en!==reference.name_en||!/^\d{1,5}$/.test(row.printed_page||'')||row.status!=='hold'||row.field!=='cleavage'||row.reason!=='source_internal_ambiguity'||Object.prototype.hasOwnProperty.call(row,'value')||own.some(fact=>identity(fact)===identity(row))))return [];
+      const identity=row=>bookPageKey(row)+':'+row.field,assigned=new Set(),heldPages=new Set(),claims=new Set();
+      if(new Set(own.map(identity)).size!==own.length||new Set(waiting.map(identity)).size!==waiting.length||waiting.some(row=>row.name_en!==reference.name_en||!bookPageValid(row)||row.status!=='hold'||row.field!=='cleavage'||row.reason!=='source_internal_ambiguity'||Object.prototype.hasOwnProperty.call(row,'value')||own.some(fact=>identity(fact)===identity(row))))return [];
       for(const subject of subjects){
         const reviewHash=subject.root_review_sha256===undefined?book.root_review_sha256:subject.root_review_sha256;
-        if(subject.name_en!==reference.name_en||!/^\d{1,5}$/.test(subject.printed_page||'')||!hash(reviewHash)||!Array.isArray(subject.approved_fields)||subject.approved_fields.length>7||new Set(subject.approved_fields).size!==subject.approved_fields.length||subject.approved_fields.some(field=>!labels.includes(field)||claims.has(subject.printed_page+':'+field)))return [];
-        subject.approved_fields.forEach(field=>claims.add(subject.printed_page+':'+field));
-        const selected=own.filter(row=>row.printed_page===subject.printed_page&&subject.approved_fields.includes(row.field));
+        const pageKey=bookPageKey(subject);
+        if(subject.name_en!==reference.name_en||!bookPageValid(subject)||(subject.pdf_page_1based!==undefined&&book.source_format!=='PDF')||!hash(reviewHash)||!Array.isArray(subject.approved_fields)||subject.approved_fields.length>9||new Set(subject.approved_fields).size!==subject.approved_fields.length||subject.approved_fields.some(field=>!labels.includes(field)||claims.has(pageKey+':'+field)))return [];
+        subject.approved_fields.forEach(field=>claims.add(pageKey+':'+field));
+        const selected=own.filter(row=>bookPageKey(row)===pageKey&&subject.approved_fields.includes(row.field));
         if(selected.length!==subject.approved_fields.length||selected.some(row=>{
           const review=row.review;
-          return row.name_en!==reference.name_en||row.status!=='reviewed_source_statement'||typeof row.value!=='string'||!row.value.trim()||row.value.length>250||review?.decision!=='approved_source_statement'||review.root_record_sha256!==reviewHash||review.source_book_sha256!==book.book_sha256||!hash(review.source_evidence_sha256)||!hash(review.proposal_field_sha256)||!Array.isArray(row.limits)||
+          return row.name_en!==reference.name_en||row.status!=='reviewed_source_statement'||!publicText(row.value)||!row.value.trim()||row.value.length>250||!bookPageValid(row)||row.printed_page!==subject.printed_page||row.table_number!==subject.table_number||review?.decision!=='approved_source_statement'||review.root_record_sha256!==reviewHash||review.source_book_sha256!==book.book_sha256||!hash(review.source_evidence_sha256)||!hash(review.proposal_field_sha256)||!Array.isArray(row.limits)||
+            (row.printed_page===null&&!row.limits.includes('printed_folio_not_visible_do_not_invent'))||
             (row.field==='hardness'&&(row.quantity_kind!=='hardness_scale_unspecified'||row.unit!==null||row.hardness_scale!==null||!row.limits.includes('hardness_scale_not_explicit_on_source_page')))||
             (row.field==='relative_density'&&(row.quantity_kind!=='relative_density'||row.unit!=='dimensionless'||!row.limits.includes('relative_density_is_not_measured_density')))||
-            (!['hardness','relative_density'].includes(row.field)&&row.unit!==null);
+            (row.field==='density'&&(row.quantity_kind!=='mass_density_method_unspecified'||row.unit!=='g/cm³'||!['mass_density_not_dimensionless_relative_density','measurement_method_temperature_and_uncertainty_not_reported','do_not_label_measured_or_calculated'].every(limit=>row.limits.includes(limit))))||
+            (row.field==='uses'&&(row.quantity_kind!=='literature_use_statement'||!row.limits.includes('no_current_specimen_measurement')))||
+            (!['hardness','relative_density','density'].includes(row.field)&&row.unit!==null);
         }))return [];
         selected.forEach(row=>assigned.add(identity(row)));
-        const markers=heldPages.has(subject.printed_page)?[]:waiting.filter(row=>row.printed_page===subject.printed_page);
-        if(markers.length)heldPages.add(subject.printed_page);
+        const markers=heldPages.has(pageKey)?[]:waiting.filter(row=>bookPageKey(row)===pageKey);
+        if(markers.length)heldPages.add(pageKey);
         if(selected.length||markers.length)groups.push({book,subject,rows:selected,held:markers});
       }
-      if(assigned.size!==own.length||waiting.some(row=>!heldPages.has(row.printed_page)))return [];
+      if(assigned.size!==own.length||waiting.some(row=>!heldPages.has(bookPageKey(row))))return [];
     }
     return groups;
   }
   function bookEvidenceSection(reference){
-    const labels={formula:'化学式',hardness:'硬度',relative_density:'相对密度',crystal_system:'晶系',cleavage:'解理',luster:'光泽',streak:'条痕'};
+    const labels={formula:'化学式',hardness:'硬度',relative_density:'相对密度',density:'密度（测法未注明）',crystal_system:'晶系',cleavage:'解理',luster:'光泽',streak:'条痕',uses:'用途'};
     return reviewedBookGroups(reference).map(group=>{
       const {book,subject}=group;
       const values=group.rows.map(row=>{
         const notes=[];
         if(row.field==='hardness')notes.push('该页未明示硬度标度。');
         if(row.field==='relative_density')notes.push('无量纲，不替代实测密度。');
+        if(row.field==='density')notes.push('单位 g/cm³；测定方式未注明，不替代主资料的实测密度。');
+        if(row.field==='uses')notes.push('用途为该书一般资料，不代表当前标本的工业品级。');
         if(row.limits.includes('retain_source_description_difference')||row.comparison_status==='source_description_differs')notes.push('与主资料表述不同，分别保留来源。');
         const value=row.field==='formula'?formulaMarkup(row.value):html(row.value);
         return `<div data-book-field="${html(row.field)}"><dt>${labels[row.field]}</dt><dd><div class="property-value">${value}</div>${notes.length?`<small class="property-source">${html(notes.join(' '))}</small>`:''}</dd></div>`;
       }).join('')+group.held.map(()=>'<div data-book-field="cleavage" data-book-held><dt>解理</dt><dd>暂未采纳<small class="property-source">该页描述有歧义，暂不作为资料结论。</small></dd></div>').join('');
-      return `<section class="detail-section book-evidence-section" data-book-evidence="reviewed"><h3>书籍资料核对</h3><p>${html(book.title)}</p><p class="field-hint">作者：${html(book.authors.join('、'))} · 印刷页 ${html(subject.printed_page)}</p><p class="field-hint">供交叉查阅，主资料与书中表述分别保留。</p><dl class="detail-properties">${values}</dl></section>`;
+      return `<section class="detail-section book-evidence-section" data-book-evidence="reviewed"><h3>书籍资料核对</h3><p>${html(book.title)}</p><p class="field-hint">${book.credit_role==='editor'?'主编':'作者'}：${html(book.authors.join('、'))} · ${html(bookPageLabel(subject))}</p><p class="field-hint">供交叉查阅，主资料与书中表述分别保留。</p><dl class="detail-properties">${values}</dl></section>`;
     }).join('');
   }
   function literatureSection(reference,field,title) {

@@ -81,3 +81,58 @@ test('unreviewed or marker-only book records do not grant expanded or model scop
     for(const scope of ['expanded','model']){f.node('libraryScope').value=scope;f.node('libraryScope').fire('change');assert.equal((f.node('libraryList').innerHTML.match(/data-detail=/g)||[]).length,1,mode);}
   }
 });
+
+test('five PDF-only mineral pages keep unknown hardness and typed mass density separate from primary properties',async()=>{
+  const f=fixture({catalog});await f.settle();let calls=0;f.context.fetch=()=>{calls++;throw new Error('unexpected book request');};
+  for(const id of ['ima-clinoenstatite','ima-tschermakite','ima-edenite','ima-pargasite','ima-anthophyllite']){
+    const primary=catalog.minerals.find(r=>r.id===id);assert.equal(primary.physical_properties,undefined);
+    await f.documentClick('[data-detail]',{detail:'catalog:'+id});const text=section(f.node('detailBody').innerHTML);
+    assert.equal((text.match(/data-book-field=/g)||[]).length,4);assert.match(text,/PDF 第 496 页 · 印刷页未注明 · 表 28\.2/);
+    assert.match(text,/Wenk、Andrei Bulakh/);assert.match(text,/该页未明示硬度标度/);assert.match(text,/g\/cm³/);
+    assert.match(text,/测定方式未注明，不替代主资料的实测密度/);assert.doesNotMatch(text,/相对密度|无量纲|印刷页 481|\/Users\/|[a-f0-9]{64}/);
+  }
+  assert.equal(calls,0);
+});
+
+test('PDF locator, unknown scale, quantity type and exact new-source identity are required for secondary display',async()=>{
+  for(const mode of ['no-pdf','false-folio','Mohs','dimensionless','measured','unknown-source','missing-review']){
+    const c=structuredClone(catalog),o=c.reviewed_book_evidence,rows=o.records.filter(r=>r.catalog_id==='ima-clinoenstatite');
+    const density=rows.find(r=>r.field==='density'),hardness=rows.find(r=>r.field==='hardness');
+    if(mode==='no-pdf')delete rows[0].pdf_page_1based;
+    if(mode==='false-folio')rows[0].printed_page='481';
+    if(mode==='Mohs')hardness.hardness_scale='Mohs';
+    if(mode==='dimensionless')density.unit='dimensionless';
+    if(mode==='measured')density.quantity_kind='density_measured';
+    if(mode==='missing-review')delete density.review;
+    if(mode==='unknown-source'){o.books.find(b=>b.source_id==='new-book-03').source_id='new-book-99';rows.forEach(r=>r.source_id='new-book-99');}
+    const before=JSON.stringify(c.minerals),f=fixture({catalog:c});await f.settle();await f.documentClick('[data-detail]',{detail:'catalog:ima-clinoenstatite'});
+    assert.equal(section(f.node('detailBody').innerHTML),'',mode);assert.equal(JSON.stringify(c.minerals),before);
+  }
+});
+
+test('book uses and streak descriptions show exact PDF and print locators with duplicate intake credited once',async()=>{
+  const o=catalog.reviewed_book_evidence;assert.equal(o.books.filter(b=>b.book_sha256==='66b43cd348f1f902380d86a3fb2c1db005990ece468c6428cff82d44d57c9702').length,1);
+  const f=fixture({catalog});await f.settle();await f.documentClick('[data-detail]',{detail:'catalog:ima-quartz'});
+  let text=section(f.node('detailBody').innerHTML);assert.match(text,/主编：John P\. Rafferty/);assert.match(text,/PDF 第 252 页 · 印刷页 233/);
+  assert.match(text,/data-book-field="uses"/);assert.match(text,/砂纸和喷砂磨料/);assert.match(text,/不代表当前标本的工业品级/);
+  await f.documentClick('[data-detail]',{detail:'catalog:ima-orpiment'});text=section(f.node('detailBody').innerHTML);
+  assert.match(text,/Tom Jackson/);assert.match(text,/PDF 第 14 页 · 印刷页 14/);assert.match(text,/金黄色/);assert.match(text,/与主资料表述不同/);
+});
+
+test('PDF book strings are escaped and private paths are rejected before display',async()=>{
+  for(const mode of ['escape','private']){
+    const c=structuredClone(catalog),book=c.reviewed_book_evidence.books.find(b=>b.source_id==='new-book-03'),row=c.reviewed_book_evidence.records.find(r=>r.catalog_id==='ima-clinoenstatite'&&r.field==='density');
+    book.title='<img src=x onerror=bad()> 书';row.value=mode==='escape'?'<svg onload=bad()>密度</svg>':'file:///Users/UNIT_ONLY/private.pdf';
+    const f=fixture({catalog:c});await f.settle();await f.documentClick('[data-detail]',{detail:'catalog:ima-clinoenstatite'});const text=section(f.node('detailBody').innerHTML);
+    if(mode==='escape'){assert.match(text,/&lt;img/);assert.match(text,/&lt;svg/);assert.doesNotMatch(text,/<img|<svg/);}else assert.equal(text,'');
+  }
+});
+
+test('new book-only species gain reference detail without model scope or evidenceFor influence',async()=>{
+  const actual=catalog.minerals.find(r=>r.id==='ima-clinoenstatite'),bare={id:actual.id,name_en:actual.name_en,formula:actual.formula};
+  const c={...catalog,minerals:[{id:'ima-quartz',name_en:'Quartz',detail_key:'quartz'},bare]},f=fixture({catalog:c});await f.settle();
+  for(const [scope,count] of [['expanded',2],['model',1]]){f.node('libraryScope').value=scope;f.node('libraryScope').fire('change');assert.equal((f.node('libraryList').innerHTML.match(/data-detail=/g)||[]).length,count);}
+  await f.documentClick('[data-detail]',{detail:'catalog:ima-clinoenstatite'});
+  assert.deepEqual(Core.evidenceFor({reviewed_book_evidence:c.reviewed_book_evidence},{hardness:'6',luster:'metal'}),[]);
+  assert.deepEqual(Object.keys(f.context.MINERAL_CLASSES),['quartz']);
+});

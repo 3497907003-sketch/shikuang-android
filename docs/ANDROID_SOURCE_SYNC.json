@@ -1,7 +1,7 @@
 {
-  "source_commit": "8825d14f0425c275ecbdb2b32115a1cacee5410c",
+  "source_commit": "bf27b071e70b21b383bb27205105ecdb46137ac1",
   "source_repository": "https://github.com/3497907003-sketch/shikuang-app",
-  "source_method": "Exact committed browser/CommonJS export correction and sourced guide with fixed navigation; header factory and five frozen preprocessing dependencies unchanged; local immutable canonical168 comparison; no model or native inference change.",
+  "source_method": "Exact committed Root-reviewed book24 plus sourced-guide3 update; four raw assets only,11 unchanged build inputs,168 immutable canonical assets staged and compared before writes. Primary6239 objects and old27 book records preserved. No native/model/inference/CI/device/release change.",
   "applicationVersion": "2.5.0-preview.1",
   "androidVersionCode": 25001,
   "packageName": "com.shikuang.app.preview",
@@ -9,8 +9,8 @@
   "assets": [
     {
       "path": "app.js",
-      "bytes": 119181,
-      "sha256": "4f9ea59d2f16ec60e648ba7b5a3f153e54de079c6ac7a4cf84eef11ff9cb859a"
+      "bytes": 121636,
+      "sha256": "f2381037787303910035ee56282363ea0c1013d647a8429ec3c39053d0dd7fcb"
     },
     {
       "path": "compat.js",
@@ -29,8 +29,8 @@
     },
     {
       "path": "data/catalog.json",
-      "bytes": 4699407,
-      "sha256": "9ad45ec629f2970328ac3b49d46171ed84022293054e2d76d956a64e4a8790f7"
+      "bytes": 4729028,
+      "sha256": "1bbdc95c4eecc992a745325cf9466d98ab2cf6785cfa243b7b981b1115fd8310"
     },
     {
       "path": "data/classes.js",
@@ -70,7 +70,7 @@
     {
       "path": "data/reference-manifest.json",
       "bytes": 1763,
-      "sha256": "5f0e3c2a26b43a6b3dfdf65d9de696894cbead016342537f849c8407b0d29c76"
+      "sha256": "d8fdd220515f95f595f9597d948ab905ecf2d2b53d0b6e1c8ec9b12002205bb3"
     },
     {
       "path": "data/reviewed-photo-assets.json",
@@ -704,8 +704,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 29146,
-      "sha256": "bb2781d2d1ceabf73fbfd75ceb8aab9e8d8cb9bb620eda29c37e1b6b6b323add"
+      "bytes": 30273,
+      "sha256": "4b9c95bc849431ebbc3ba8140bc83e9bfc802b602f688558d698d28cdc83caa5"
     },
     {
       "path": "inference.js",
@@ -851,7 +851,7 @@
   "assetCount": 168,
   "publishedPhotos": 117,
   "scope": "Local preview source and packaged-asset identity; not field accuracy, new model training, CI, physical-device acceptance or a public release",
-  "local_sync_at": "2026-10-29T14:23:43.723530+08:00",
+  "local_sync_at": "2026-10-30T08:17:03.025591+08:00",
   "developmentRevision": "r9",
   "public_deployment_verified_for_this_sync": false,
   "historical_production_web_merge": "95b4b4e4d1d9be561a18ed745c95eb60f0b6ab0f",
