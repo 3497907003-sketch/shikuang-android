@@ -520,6 +520,7 @@ jobs:
       ANDROID_AVD_HOME: /tmp/shikuang-avd
       SHIKUANG_EXPECTED_SOURCE: ${{ inputs.expected_source_sha }}
       SHIKUANG_UNIT_NONCE: ${{ inputs.unit_nonce }}
+      SHIKUANG_DIAGNOSTIC_MEMORY_MIB: '4096'
     steps:
       - uses: actions/checkout@v4
       - name: Require the exact reviewed commit and one new run
@@ -592,7 +593,9 @@ jobs:
       - name: Boot once and establish route-free offline environment
         run: |
           SHIKUANG_ANDROID_SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
-          nohup "$SHIKUANG_ANDROID_SDK/emulator/emulator" -avd shikuang-api35-16k -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect -camera-back none -camera-front none -memory 3072 -cores 2 -accel on > lifecycle-artifacts/emulator.log 2>&1 &
+          test "$SHIKUANG_DIAGNOSTIC_MEMORY_MIB" = 4096
+          printf '%s\n' "$SHIKUANG_DIAGNOSTIC_MEMORY_MIB" > lifecycle-artifacts/emulator-configured-memory-mib.txt
+          nohup "$SHIKUANG_ANDROID_SDK/emulator/emulator" -avd shikuang-api35-16k -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect -camera-back none -camera-front none -memory "$SHIKUANG_DIAGNOSTIC_MEMORY_MIB" -cores 2 -accel on > lifecycle-artifacts/emulator.log 2>&1 &
           timeout 180 adb wait-for-device
           timeout 180 bash -c 'until [[ "$(adb shell getprop sys.boot_completed | tr -d "\r")" == 1 ]]; do sleep 2; done'
           # Match the ordinary matrix's bounded adbd connection transition.
@@ -626,6 +629,10 @@ jobs:
           adb shell 'for device in eth0 eth1 wlan0; do if ip link show "$device" >/dev/null 2>&1; then ip link set "$device" down; fi; done'
           timeout 60 bash -c 'until [[ "$(adb shell dumpsys connectivity)" == *"Active default network: none"* ]]; do sleep 2; done'
           python3 -B tools/android_offline_setup.py --out lifecycle-artifacts/offline-network-setup
+          timeout 20 adb shell cat /proc/meminfo > lifecycle-artifacts/guest-meminfo-before-install.txt
+          timeout 20 adb shell getprop ro.build.fingerprint > lifecycle-artifacts/image-fingerprint-before-install.txt
+          timeout 20 adb shell pidof system_server > lifecycle-artifacts/system-server-pid-before-install.txt
+          timeout 20 adb shell service check package > lifecycle-artifacts/package-service-before-install.txt
           adb logcat -c
           nohup adb logcat -b all -v threadtime > lifecycle-artifacts/logcat-stream.txt 2>&1 &
       - name: Install once and invoke each declared arm once
@@ -636,7 +643,7 @@ jobs:
           adb shell appops set androidx.test.services MANAGE_EXTERNAL_STORAGE allow
           adb shell appops get androidx.test.services MANAGE_EXTERNAL_STORAGE > lifecycle-artifacts/helper-storage-appop.txt
           grep -Eq '^MANAGE_EXTERNAL_STORAGE: allow([; ].*)?$' lifecycle-artifacts/helper-storage-appop.txt
-          python3 -B tools/android_lifecycle_diagnostic.py --out lifecycle-artifacts/pair --source-sha "$SHIKUANG_EXPECTED_SOURCE" --unit-nonce "$SHIKUANG_UNIT_NONCE"
+          python3 -B tools/android_lifecycle_diagnostic.py --out lifecycle-artifacts/pair --source-sha "$SHIKUANG_EXPECTED_SOURCE" --unit-nonce "$SHIKUANG_UNIT_NONCE" --case-set missing-capability-v1 --configured-memory-record lifecycle-artifacts/emulator-configured-memory-mib.txt
       - name: Preserve final failure diagnostics
         if: always()
         run: |
@@ -647,6 +654,10 @@ jobs:
           timeout 20 adb shell dumpsys connectivity > lifecycle-artifacts/connectivity-final.txt 2>&1 || true
           timeout 20 adb shell ip route show table all > lifecycle-artifacts/routes-final.txt 2>&1 || true
           timeout 20 adb shell ip -6 route show table all > lifecycle-artifacts/routes6-final.txt 2>&1 || true
+          timeout 20 adb shell cat /proc/meminfo > lifecycle-artifacts/guest-meminfo-final.txt 2>&1 || true
+          timeout 20 adb shell getprop ro.build.fingerprint > lifecycle-artifacts/image-fingerprint-final.txt 2>&1 || true
+          timeout 20 adb shell pidof system_server > lifecycle-artifacts/system-server-pid-final.txt 2>&1 || true
+          timeout 20 adb shell service check package > lifecycle-artifacts/package-service-final.txt 2>&1 || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:

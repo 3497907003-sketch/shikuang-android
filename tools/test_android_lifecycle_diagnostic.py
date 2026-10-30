@@ -5,13 +5,14 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from android_lifecycle_diagnostic import CLASS, collect_fixed_reports, command, environment, reject_observed_crash, run_arm, terminal, verify_report
+from android_lifecycle_diagnostic import (CASE_SETS, CLASS, FAILED_IMAGE, collect_fixed_reports, command,
+    configured_memory, environment, reject_observed_crash, run_arm, terminal, verify_auxiliary, verify_report)
 
 NONCE = 'a' * 32
 PID = 2345
 
 
-def synthetic_report(arm, old_view_destroy=True, old_activity_detach=False, completed=True):
+def synthetic_report(arm, old_view_destroy=True, old_activity_detach=False, completed=True, case_set='migration-v1'):
     events = []
     def row(phase, owner, view, kind='activity', activity=None, window=None, decor=None):
         seq = len(events) + 1
@@ -48,11 +49,13 @@ def synthetic_report(arm, old_view_destroy=True, old_activity_detach=False, comp
             row(prefix + 'detach-enter', owner, view)
             row(prefix + 'detach-exit', owner, view)
         if owner == 101: row('decor-detach', 900, 0, 'decor', owner)
-    return {'schema': 'shikuang-native-lifecycle-diagnostic-v2', 'arm': arm, 'nonce': NONCE,
+    return {'schema': 'shikuang-native-lifecycle-diagnostic-v3', 'arm': arm, 'nonce': NONCE,
+        'caseSet': case_set, 'delegatedMethod': CASE_SETS[case_set]['delegatedMethod'] if arm == 'packaged' else None,
         'completed': completed, 'plannedAttempts': 1, 'fullProductAcceptance': False,
         'originalFailureRemainsRecorded': True, 'startedElapsedRealtimeNanos': 100,
         'endedElapsedRealtimeNanos': 1000, 'initialPageReady': True,
         'recreatedPageReady': True, 'scenarioCloseReturned': True, 'legacyMethodReturned': True,
+        'delegatedMethodReturned': True,
         'ownership': {'schema': 'shikuang-direct-WebView-ownership-v2', 'ownershipComplete': old_view_destroy},
         'environment': {'sdk': 35, 'pageSize': 16384, 'providerPackage': 'com.google.android.webview',
             'providerVersion': '124.0.6367.219', 'providerVersionCode': 636771938,
@@ -88,7 +91,7 @@ class DiagnosticEvidenceTests(unittest.TestCase):
                 b'OK (1 test)', b'FAILURES!!!\nTests run: 1,  Failures: 1')
             stdout.write(raw); stdout.flush()
             return FixtureProcess()
-        def fake_environment(host, label, *args): probes.append(label)
+        def fake_environment(host, label, *args, **kwargs): probes.append(label)
         def fake_capture(host, label):
             (folder / 'final-exit-info.stdout.bin').write_bytes(b'')
             (folder / 'final-logcat.stdout.bin').write_bytes(b'')
@@ -160,8 +163,10 @@ class DiagnosticEvidenceTests(unittest.TestCase):
                 fixture = {
                     'devices': b'List of devices attached\nemulator-5554\tdevice\n',
                     'qemu': b'1', 'sdk': b'35', 'abi': b'x86_64', 'page': b'16384',
-                    'root': b'0', 'image-fingerprint': b'UNIT_ONLY_FIXED_FINGERPRINT',
+                    'root': b'0', 'image-fingerprint': FAILED_IMAGE,
                     'avd': b'shikuang-api35-16k\nOK\n', 'boot': boot,
+                    'guest-meminfo': b'MemTotal: 4014396 kB\nMemAvailable: 2000000 kB\n',
+                    'system-server-pid': b'548', 'package-service': b'Service package: found\n',
                     'provider': b'Current WebView package (name, version): (com.google.android.webview, 124.0.6367.219)',
                     'provider-package': b'versionCode=636771938 minSdk=29',
                 }
@@ -169,13 +174,35 @@ class DiagnosticEvidenceTests(unittest.TestCase):
                 return self.replacements.get(key, fixture[key])
             def network(self, label): pass
         host = FixtureHost()
-        self.assertEqual(environment(host, 'test', boot, b'UNIT_ONLY_FIXED_FINGERPRINT'), boot)
+        context = environment(host, 'test', boot, FAILED_IMAGE, configured_memory_mib=4096)
+        self.assertEqual(context['bootId'], boot.decode())
+        self.assertEqual(context['memTotalKiB'], 4014396)
+        self.assertEqual(context['configuredMemoryMiB'], 4096)
+        for memory in (None, 3072):
+            with self.assertRaises(ValueError): environment(host, 'test', configured_memory_mib=memory)
         for replacement in ({'boot': b'99999999-1234-1234-1234-123456789abc'},
                             {'image-fingerprint': b'CHANGED'},
                             {'provider': b'Current WebView package (name, version): (com.google.android.webview, 125.0)'},
+                            {'provider-package': b'versionCode=9999'},
+                            {'guest-meminfo': b''},
+                            {'guest-meminfo': b'MemTotal: 4014396 kB\nMemTotal: 4014396 kB\n'},
+                            {'guest-meminfo': b'MemTotal: 4014400 kB\n'},
+                            {'system-server-pid': b''}, {'system-server-pid': b'548 999'},
+                            {'system-server-pid': b'549'}, {'package-service': b'Service package: not found'},
                             {'devices': b'List of devices attached\nemulator-5554\tdevice\nother-device\tdevice\n'}):
             host.replacements = replacement
-            with self.assertRaises(ValueError): environment(host, 'test', boot, b'UNIT_ONLY_FIXED_FINGERPRINT')
+            with self.assertRaises(ValueError):
+                environment(host, 'test', boot, FAILED_IMAGE, expected_context=context, configured_memory_mib=4096)
+
+    def test_configuration_record_cannot_be_missing_or_3072(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / 'configured-memory.txt'
+            with self.assertRaises(FileNotFoundError): configured_memory(path)
+            for raw in (b'', b'3072\n', b'4096\n3072\n'):
+                path.write_bytes(raw)
+                with self.assertRaises(ValueError): configured_memory(path)
+            path.write_bytes(b'4096\n')
+            self.assertEqual(configured_memory(path)['configuredMemoryMiB'], 4096)
 
     def test_valid_two_distinct_closed_activities_are_diagnostic_only(self):
         for arm in ('plain', 'packaged'):
@@ -243,6 +270,100 @@ class DiagnosticEvidenceTests(unittest.TestCase):
                        ('emulator-5554', 'plain', 'otherTest', NONCE),
                        ('emulator-5554', 'plain', 'plainWebViewSingleRecreateAndClose', ';unsafe')]:
             with self.assertRaises(ValueError): command(*params)
+
+    def test_fixed_case_sets_select_exact_plain_then_packaged_methods(self):
+        for case_set, expected in (
+                ('migration-v1', 'packagedMigrationSingleRecreateAndClose'),
+                ('missing-capability-v1', 'packagedMissingCapabilitySingleRecreateAndClose')):
+            arms = CASE_SETS[case_set]['arms']
+            self.assertEqual([(a, m) for a, m, _ in arms], [
+                ('plain', 'plainWebViewSingleRecreateAndClose'), ('packaged', expected)])
+            for arm, method, _ in arms:
+                argv = command('emulator-5554', arm, method, NONCE, case_set)
+                self.assertIn(CLASS + '#' + method, argv)
+                self.assertEqual(argv[argv.index('diagnosticCaseSet') + 1], case_set)
+            other = 'packagedMissingCapabilitySingleRecreateAndClose' if case_set == 'migration-v1' else 'packagedMigrationSingleRecreateAndClose'
+            with self.assertRaises(ValueError): command('emulator-5554', 'packaged', other, NONCE, case_set)
+        with self.assertRaises(ValueError): command('emulator-5554', 'plain', 'plainWebViewSingleRecreateAndClose', NONCE, 'arbitrary')
+
+    def test_recovery_requires_exact_wrapper_case_method_and_return(self):
+        report = synthetic_report('packaged', case_set='missing-capability-v1')
+        self.assertTrue(verify_report(report, 'packaged', NONCE, PID, 'missing-capability-v1')['ownershipComplete'])
+        for mutate in (lambda r: r.update(caseSet='migration-v1'),
+                       lambda r: r.update(delegatedMethod='legacyNativeAssetMigrationPreservesSpecimens'),
+                       lambda r: r.update(delegatedMethodReturned=False),
+                       lambda r: r.update(completed=False),
+                       lambda r: r.update(nonce='b' * 32),
+                       lambda r: r['environment'].update(pid=9999)):
+            report = synthetic_report('packaged', case_set='missing-capability-v1'); mutate(report)
+            with self.assertRaises(ValueError): verify_report(report, 'packaged', NONCE, PID, 'missing-capability-v1')
+        with self.assertRaises(ValueError):
+            verify_report(synthetic_report('packaged'), 'packaged', NONCE, PID, 'missing-capability-v1')
+
+    def test_migration_auxiliary_cannot_satisfy_recovery_gate(self):
+        valid = {'collected': True, 'filename': 'missing-capability-recovery-report.json',
+            'contextualOnlyNoOwnNonce': True, 'phase': 'expected-missing-capability-recovery-verified',
+            'historyPreserved': True, 'fullProductAcceptance': False, 'intentionalMissingCapability': 'AbortController'}
+        verify_auxiliary(valid, 'missing-capability-v1')
+        for replacement in ({'filename': 'asset-migration-report.json', 'phase': 'migration-passed'},
+                            {'phase': 'migration-passed'}, {'historyPreserved': None},
+                            {'fullProductAcceptance': True}, {'collected': False},
+                            {'intentionalMissingCapability': 'other'}, {'contextualOnlyNoOwnNonce': False}):
+            with self.assertRaises(ValueError): verify_auxiliary({**valid, **replacement}, 'missing-capability-v1')
+
+    def test_recovery_single_attempt_retains_missing_JSON_crash_and_reused_PID_failures(self):
+        case_set = 'missing-capability-v1'; method = 'packagedMissingCapabilitySingleRecreateAndClose'
+        for mode in ('success', 'missing-native', 'missing-auxiliary', 'current-crash', 'reused-pid', 'failed-junit'):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as temp:
+                folder = Path(temp) / 'packaged'; starts = []
+                report = synthetic_report('packaged', case_set=case_set)
+                auxiliary = {'phase': 'expected-missing-capability-recovery-verified',
+                    'historyPreserved': True, 'fullProductAcceptance': False, 'intentionalMissingCapability': 'AbortController'}
+                class FixtureHost:
+                    def __init__(self, serial, out): self.receipts = []
+                    def pid(self, label): return PID if label.startswith('live-pid-') else None
+                    def command(self, label, argv):
+                        if label == 'force-stop-once': return b''
+                        if (mode == 'missing-native' and label == 'current-native-report') or (
+                                mode == 'missing-auxiliary' and label == 'current-missing-capability-report'):
+                            raise ValueError('current report absent after native failure')
+                        return json.dumps(report if label == 'current-native-report' else auxiliary).encode()
+                class FixtureProcess:
+                    pid = 98765
+                    returncode = None
+                    def poll(self): return self.returncode
+                    def kill(self): self.returncode = -9
+                    def wait(self, timeout): self.returncode = 0; return 0
+                def popen(argv, stdout, stderr):
+                    starts.append(argv)
+                    raw = synthetic_terminal(method)
+                    if mode == 'failed-junit':
+                        raw = raw.replace(b'INSTRUMENTATION_STATUS_CODE: 0', b'INSTRUMENTATION_STATUS_CODE: -2')
+                    stdout.write(raw); stdout.flush()
+                    return FixtureProcess()
+                def fake_capture(host, label):
+                    (folder / 'final-exit-info.stdout.bin').write_bytes(b'')
+                    (folder / 'final-logcat.stdout.bin').write_bytes(
+                        b'Fatal signal 5 (SIGTRAP), pid 2345 (ng.app.preview)\n' if mode == 'current-crash' else b'')
+                    return []
+                with patch('android_lifecycle_diagnostic.Host', FixtureHost), \
+                        patch('android_lifecycle_diagnostic.environment', return_value={'offlineVerified': True}), \
+                        patch('android_lifecycle_diagnostic.subprocess.Popen', popen), \
+                        patch('android_lifecycle_diagnostic.capture', fake_capture), \
+                        patch('android_lifecycle_diagnostic.secrets.token_hex', return_value=NONCE):
+                    result = run_arm(folder, 'packaged', method, 240, b'boot', FAILED_IMAGE,
+                        {PID} if mode == 'reused-pid' else set(), case_set=case_set,
+                        expected_context={'offlineVerified': True}, configured_memory_mib=4096)
+                self.assertEqual(len(starts), 1); self.assertEqual(result['attempts'], 1)
+                self.assertEqual(result['passed'], mode == 'success')
+                self.assertFalse(result['fullProductAcceptance'])
+                self.assertEqual(result['caseSet'], case_set)
+                self.assertTrue(result['postEnvironmentVerified'])
+                if mode == 'failed-junit':
+                    self.assertTrue(result['nativeEvidence']['currentNativeEvidenceIntegrityValid'])
+                    self.assertFalse(result['junitTerminalPassed'])
+                if mode == 'current-crash': self.assertIn('current-native-crash', result['failure'])
+                if mode.startswith('missing-'): self.assertTrue(result['evidenceCollectionProblems'])
 
 
 if __name__ == '__main__': unittest.main()

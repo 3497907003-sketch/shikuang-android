@@ -38,10 +38,12 @@ public final class NativeLifecycleDiagnosticInstrumentedTest {
 
     private interface Probe { void run(JSONObject proof) throws Throwable; }
 
-    private JSONObject requireExactEnvironment(String arm) throws Exception {
+    private JSONObject requireExactEnvironment(String arm, String caseSet) throws Exception {
         Bundle args = InstrumentationRegistry.getArguments();
         assertEquals("Explicit diagnostic opt-in is required", "true", args.getString("nativeLifecycleDiagnostic"));
         assertEquals("Select exactly one diagnostic arm per instrumentation process", arm, args.getString("diagnosticArm"));
+        assertTrue("Only fixed diagnostic case sets are allowed", "migration-v1".equals(caseSet) || "missing-capability-v1".equals(caseSet));
+        assertEquals("Exact diagnostic case set is required", caseSet, args.getString("diagnosticCaseSet", "migration-v1"));
         assertTrue("Fresh receipt nonce is required", args.getString("diagnosticNonce", "").matches("[a-f0-9]{32}"));
         assertTrue("No second diagnostic arm or retry in the same process", STARTED.compareAndSet(false, true));
         assertTrue("Debug-only observer required", RuntimeLifecycleDiagnostics.ENABLED);
@@ -65,15 +67,16 @@ public final class NativeLifecycleDiagnosticInstrumentedTest {
             .put("activeNetwork", JSONObject.NULL);
     }
 
-    private void runAndRecord(String arm, Probe probe) throws Throwable {
-        JSONObject proof = new JSONObject().put("schema", "shikuang-native-lifecycle-diagnostic-v2")
+    private void runAndRecord(String arm, String caseSet, String delegatedMethod, Probe probe) throws Throwable {
+        JSONObject proof = new JSONObject().put("schema", "shikuang-native-lifecycle-diagnostic-v3")
             .put("arm", arm).put("startedElapsedRealtimeNanos", SystemClock.elapsedRealtimeNanos())
+            .put("caseSet", caseSet).put("delegatedMethod", delegatedMethod == null ? JSONObject.NULL : delegatedMethod)
             .put("nonce", InstrumentationRegistry.getArguments().getString("diagnosticNonce", "missing"))
             .put("fullProductAcceptance", false).put("originalFailureRemainsRecorded", true)
             .put("plannedAttempts", 1).put("completed", false);
         Throwable primary = null;
         try {
-            proof.put("environment", requireExactEnvironment(arm));
+            proof.put("environment", requireExactEnvironment(arm, caseSet));
             probe.run(proof);
             proof.put("completed", true);
         } catch (Throwable failure) {
@@ -231,7 +234,7 @@ public final class NativeLifecycleDiagnosticInstrumentedTest {
     }
 
     @Test public void plainWebViewSingleRecreateAndClose() throws Throwable {
-        runAndRecord("plain", proof -> {
+        runAndRecord("plain", InstrumentationRegistry.getArguments().getString("diagnosticCaseSet", "migration-v1"), null, proof -> {
             try (ActivityScenario<PlainWebViewDiagnosticActivity> scenario = ActivityScenario.launch(PlainWebViewDiagnosticActivity.class)) {
                 awaitPlainPage(scenario);
                 proof.put("initialPageReady", true);
@@ -245,11 +248,21 @@ public final class NativeLifecycleDiagnosticInstrumentedTest {
     }
 
     @Test public void packagedMigrationSingleRecreateAndClose() throws Throwable {
-        runAndRecord("packaged", proof -> {
+        runAndRecord("packaged", "migration-v1", "legacyNativeAssetMigrationPreservesSpecimens", proof -> {
             // Invoke the existing exact migration test, including every original
             // fixture, migration assertion and cleanup. No duplicate substitute.
             new MineralEngineInstrumentedTest().legacyNativeAssetMigrationPreservesSpecimens();
             proof.put("legacyMethodReturned", true);
+            awaitLifecycleCompletion("", true);
+        });
+    }
+
+    @Test public void packagedMissingCapabilitySingleRecreateAndClose() throws Throwable {
+        runAndRecord("packaged", "missing-capability-v1", "explicitlyMissingCapabilityRecoveryDoesNotReplaceProductAcceptance", proof -> {
+            // Delegate the exact original recovery negative, including screenshot,
+            // history-preservation assertions and finally cleanup/close.
+            new MineralEngineInstrumentedTest().explicitlyMissingCapabilityRecoveryDoesNotReplaceProductAcceptance();
+            proof.put("delegatedMethodReturned", true);
             awaitLifecycleCompletion("", true);
         });
     }

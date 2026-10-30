@@ -3,6 +3,7 @@ package com.shikuang.app;
 import android.app.Activity;
 import android.os.Bundle;
 import android.view.ViewGroup;
+import android.view.ViewParent;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
@@ -14,6 +15,8 @@ public final class PlainWebViewDiagnosticActivity extends Activity {
     private int windowIdentity;
     private int decorIdentity;
     private boolean changingConfigurations;
+    // 0=open, 1=retiring, 2=retired, 3=failed; a failed close is never retried.
+    private int webViewRetirement;
 
     private void receipt(String phase) {
         RuntimeLifecycleDiagnostics.activity("plain-" + phase, this, webViewIdentity,
@@ -64,22 +67,60 @@ public final class PlainWebViewDiagnosticActivity extends Activity {
 
     @Override public void onDestroy() {
         if (RuntimeLifecycleDiagnostics.ENABLED) changingConfigurations = isChangingConfigurations();
-        receipt("destroy-enter"); super.onDestroy(); receipt("destroy-exit");
+        receipt("destroy-enter");
+        Throwable teardownFailure = null;
+        try {
+            retireWebViewOnce();
+        } catch (RuntimeException | Error failure) {
+            teardownFailure = failure;
+        }
+        try {
+            super.onDestroy();
+        } catch (RuntimeException | Error failure) {
+            if (teardownFailure == null) teardownFailure = failure;
+            else if (teardownFailure != failure) teardownFailure.addSuppressed(failure);
+        }
+        if (teardownFailure instanceof RuntimeException) throw (RuntimeException) teardownFailure;
+        if (teardownFailure != null) throw (Error) teardownFailure;
+        receipt("destroy-exit");
+    }
+
+    private void retireWebViewOnce() {
+        if (webViewRetirement == 1 || webViewRetirement == 2) return;
+        if (webViewRetirement == 3) throw new IllegalStateException("Prior control WebView retirement failed; not retrying");
+        webViewRetirement = 1;
+        WebView retiring = webView;
+        // Remove the live handle before any provider call, including reentrant detach.
+        webView = null;
+        receipt("owner-close-enter");
+        try {
+            if (retiring == null) throw new IllegalStateException("Control WebView owner has no view");
+            ViewParent parent = retiring.getParent();
+            if (parent != null) {
+                if (!(parent instanceof ViewGroup)) throw new IllegalStateException("Control WebView parent is not removable");
+                ((ViewGroup) parent).removeView(retiring);
+                if (retiring.getParent() != null) throw new IllegalStateException("Control WebView parent removal did not complete");
+            }
+            retiring.stopLoading();
+            retiring.setWebViewClient(new WebViewClient());
+            retiring.setWebChromeClient(null);
+            retiring.removeAllViews();
+            retiring.destroy();
+            webViewRetirement = 2;
+            receipt("owner-close-exit");
+        } catch (RuntimeException | Error failure) {
+            webViewRetirement = 3;
+            receipt("owner-close-failed");
+            throw failure;
+        }
     }
 
     @Override public void onDetachedFromWindow() {
         receipt("detach-enter");
         super.onDetachedFromWindow();
-        // Match Capacitor's window-detach destruction boundary, while retaining
-        // sole ownership of this control view. Never call destroy a second time.
-        WebView retiring = webView;
-        webView = null;
-        if (retiring != null) {
-            if (retiring.getParent() instanceof ViewGroup) ((ViewGroup) retiring.getParent()).removeView(retiring);
-            retiring.stopLoading();
-            retiring.removeAllViews();
-            retiring.destroy();
-        }
+        // Preserved-window recreation may skip this callback for the old Activity.
+        // Only an owner not yet closed can use this bounded fallback.
+        retireWebViewOnce();
         receipt("detach-exit");
     }
 }
