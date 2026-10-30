@@ -479,6 +479,128 @@ public class MineralEngineInstrumentedTest {
         evaluate("window.__shikuangRuntimeSmoke.coldProcessBaseline="+baseline+";window.__shikuangRuntimeSmoke.phase='passed';");
     }
 
+    /** Checks versioned public book metadata/UI only; never touches saved specimens. */
+    static String book174ReadOnlyScript(String expectedJSON) {
+        return script(
+            "(async(expected)=>{const s=window.__shikuangRuntimeSmoke;s.phase='book174-checking';",
+            "const need=(condition,message)=>{if(!condition)throw Error('Book174: '+message);};const content=node=>node?node.textContent:'';",
+            "const digest=async value=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(value)))),b=>b.toString(16).padStart(2,'0')).join('');",
+            "const stable=value=>Array.isArray(value)?value.map(stable):value&&typeof value==='object'?Object.keys(value).sort().reduce((o,k)=>{o[k]=stable(value[k]);return o;},{}):value;const same=(a,b)=>JSON.stringify(stable(a))===JSON.stringify(stable(b));",
+            "const page=r=>[(r.pdf_page_1based===undefined?'':'PDF 第 '+r.pdf_page_1based+' 页'),r.printed_page===null?'印刷页未注明':'印刷页 '+r.printed_page,r.table_number?'表 '+r.table_number:''].filter(Boolean).join(' · ');",
+            "const labels={formula:'化学式',occurrence:'成因与产出（书籍陈述）',aggregate_and_occurrence_example:'集合体与产状示例',aggregate_habit:'集合体习性',cleavage:'解理',color:'颜色示例',crystal_habit:'晶体习性',crystal_system:'晶系',density_comparison:'密度定性比较',form_and_use_description:'形态与用途',form_description:'形态描述',formation:'形成条件与途径',fracture:'断口',hardness:'硬度',hardness_comparison:'硬度定性比较',luster:'光泽',optical_effect:'光学现象示例',processed_material_use:'加工材料使用',processing:'加工过程',streak:'条痕',structure_description:'结构模型描述',surface_finish_example:'抛光外观示例',twin_example:'双晶示例',uses:'用途'};",
+            "const scope=document.getElementById('libraryScope'),search=document.getElementById('librarySearch'),filter=document.getElementById('classFilter');",
+            "const original={scope:scope.value,search:search.value,filter:filter.value};",
+            "const selectScope=(value)=>{scope.value=value;filter.value='';search.value='';scope.dispatchEvent(new Event('change',{bubbles:true}));search.dispatchEvent(new Event('input',{bubbles:true}));};",
+            "try{",
+            " const c=MINERAL_CATALOG,o=c.reviewed_book_evidence,primaryBefore=await digest(c.minerals);",
+            " need(c.minerals.length===6239,'primary species count');need(o.records.length===174&&o.books.length===10&&o.counts.selected_source_pages===20,'overlay 174/10/20');",
+            " need(o.counts.reviewed_source_statements===174&&o.counts.withheld_fields===1&&o.withheld.length===1,'overlay statement/HOLD counts');",
+            " need(expected.schema==='android-currentbook174-Root56-fixed-public-expectations-v1'&&expected.root_review_sha256==='be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf'&&expected.source_book_sha256==='6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25','fixed174 public expectation profile');",
+            " const legacyRows=o.records.filter(r=>r.source_id!==expected.source_id),legacyBooks=o.books.filter(b=>b.source_id!==expected.source_id),legacyPages=new Set(legacyRows.map(r=>JSON.stringify([r.source_id,r.pdf_page_1based===undefined?null:r.pdf_page_1based,r.printed_page,r.table_number===undefined?null:r.table_number])));",
+            " need(legacyRows.length===118&&legacyBooks.length===9&&legacyPages.size===16,'preserve original118/9/16 subset');",
+            " need(await digest(stable({books:legacyBooks,records:legacyRows,withheld:o.withheld}))===expected.legacy118_overlay_compact_sorted_SHA256,'all original118 records/books/HOLD unchanged');",
+            " const rows=o.records.filter(r=>r.review&&r.review.root_record_sha256==='ac37968d5d88c49cef73182cd5cf5426991922540fce73d7c4f190ae5cb3fe56');",
+            " const candidateIds=rows.map(r=>r.review.approved_candidate_id).sort(),expectedIds=Array.from({length:40},(_,i)=>'book42-'+String(i+1).padStart(3,'0'));",
+            " need(JSON.stringify(candidateIds)===JSON.stringify(expectedIds),'all forty unique approved statements');",
+            " const ids=[...new Set(rows.map(r=>r.catalog_id))];need(ids.length===13,'new statement species');",
+            " selectScope('books');const cards=[...document.querySelectorAll('#libraryList [data-detail]')];",
+            " const bookIds=[...new Set(o.records.map(r=>r.catalog_id))],keys=bookIds.map(id=>{const m=c.minerals.find(m=>m.id===id);need(m,'book species exists');return m.detail_key&&MINERAL_KB[m.detail_key]?m.detail_key:'catalog:'+id;}).sort();",
+            " need(cards.length===61&&bookIds.length===61&&JSON.stringify(cards.map(card=>card.dataset.detail).sort())===JSON.stringify(keys),'61 actual book cards');",
+            " const legacyBookIds=[...new Set(legacyRows.map(r=>r.catalog_id))],legacyKeys=legacyBookIds.map(id=>{const m=c.minerals.find(m=>m.id===id);return m.detail_key&&MINERAL_KB[m.detail_key]?m.detail_key:'catalog:'+id;});",
+            " need(legacyKeys.length===28&&cards.filter(card=>legacyKeys.includes(card.dataset.detail)).length===28,'preserve28 original book cards');",
+            " const open=id=>{const m=c.minerals.find(m=>m.id===id),key=m.detail_key&&MINERAL_KB[m.detail_key]?m.detail_key:'catalog:'+id,card=cards.find(card=>card.dataset.detail===key);need(card,'detail card '+id);card.click();need(document.getElementById('detailDialog').open,'detail dialog '+id);};",
+            " const close=()=>document.getElementById('closeDetail').click();",
+            " const sectionFor=(row,book)=>[...document.querySelectorAll('#detailBody .book-evidence-section')].find(section=>content(section.querySelector('p'))===book.title&&content(section.querySelector('.field-hint')).includes(page(row)));",
+            " let checkedFields=0,mohsFields=0;const bibliography=new Set();",
+            " for(const id of ids){open(id);",
+            "  for(const row of rows.filter(r=>r.catalog_id===id)){",
+            "   const book=o.books.find(b=>b.source_id===row.source_id),section=sectionFor(row,book);need(section,'source/page section '+row.review.approved_candidate_id);",
+            "   const field=section.querySelector('[data-book-field=\"'+row.field+'\"]');need(field&&content(field.querySelector('.property-value'))===row.value,'complete field value '+row.review.approved_candidate_id);",
+            "   need(content(field.querySelector('dt'))===labels[row.field],'Chinese field label '+row.field);",
+            "   for(const source of row.source_pages)need(section.textContent.includes(page(source)),'visible source page '+row.review.approved_candidate_id);",
+            "   need(section.textContent.includes(book.edition)&&section.textContent.includes(book.isbn)&&section.textContent.includes('书目页：PDF 第 '+book.bibliographic_pdf_pages.join('、')+' 页'),'visible edition and bibliography '+book.source_id);",
+            "   if(book.source_id==='new-book-04'){need(JSON.stringify(book.authors)===JSON.stringify(['Dr R. F. Symes','伦敦自然历史博物馆工作人员'])&&book.edition==='美国修订版，2008','04 author/year metadata');need(section.textContent.includes('作者：Dr R. F. Symes、伦敦自然历史博物馆工作人员'),'04 author display');}",
+            "   else{need(book.source_id==='new-book-07'&&book.authors.length===0&&book.author_credit_status==='not_stated_on_reviewed_bibliographic_pages'&&book.edition==='美国第一版，2016','07 unknown author/year metadata');need(!/作者：|主编：|Dan Green|Dr R[.] F[.] Symes/.test(section.textContent),'07 must not invent author');}",
+            "   bibliography.add(book.source_id);",
+            "   if(row.field==='hardness'){need(row.unit==='Mohs'&&row.hardness_scale==='Mohs'&&field.textContent.includes('莫氏硬度')&&field.textContent.includes('顺序标度，不表示硬度倍数')&&!field.textContent.includes('该页未明示硬度标度'),'explicit ordinal Mohs');mohsFields++;}",
+            "   checkedFields++;",
+            "  }close();",
+            " }",
+            " open('ima-jadeite');const unknown=o.records.find(r=>r.catalog_id==='ima-jadeite'&&r.field==='hardness'),oldBook=o.books.find(b=>b.source_id===unknown.source_id),oldSection=sectionFor(unknown,oldBook),oldField=oldSection&&oldSection.querySelector('[data-book-field=\"hardness\"]');",
+            " need(unknown.unit===null&&unknown.hardness_scale===null&&oldField&&oldField.textContent.includes('该页未明示硬度标度')&&!oldField.textContent.includes('顺序标度'),'legacy unknown scale remains unknown');close();",
+            " need(checkedFields===40&&mohsFields===10&&bibliography.size===2,'complete checked fields and sources');",
+            " const chinese=o.records.filter(r=>r.source_id===expected.source_id).sort((a,b)=>a.review.approved_candidate_id.localeCompare(b.review.approved_candidate_id)),chineseIds=chinese.map(r=>r.review.approved_candidate_id),expectedChineseIds=Array.from({length:57},(_,i)=>'Chinese42-'+String(i+1).padStart(3,'0')).filter(id=>id!=='Chinese42-023');",
+            " need(chinese.length===56&&same(chineseIds,expectedChineseIds)&&same(chinese,expected.records),'all56 exact public values and Root/source/proposal/page proofs');",
+            " need(!o.records.some(r=>r.review&&r.review.approved_candidate_id==='Chinese42-023')&&!chinese.some(r=>r.catalog_id==='ima-qusongite'&&r.field==='occurrence'),'023 unresolved occurrence absent');",
+            " const chineseSpecies=[...new Set(chinese.map(r=>r.catalog_id))],chineseBook=o.books.find(b=>b.source_id===expected.source_id);need(chineseSpecies.length===34&&same(chineseBook,expected.book),'34 exact species and approved source book');",
+            " const pageProofs={};for(const row of chinese)for(const locator of row.source_pages)pageProofs[String(locator.pdf_page_1based)]=locator;",
+            " need(Object.keys(pageProofs).length===4&&same(pageProofs,expected.pages),'all4 complete approved source page pins');",
+            " let chineseChecked=0;const chineseFields={crystal_habit:0,cleavage:0,formula:0,occurrence:0},formulaDOM={},formulaFontSizes={};",
+            " for(const id of chineseSpecies){open(id);",
+            "  for(const row of chinese.filter(r=>r.catalog_id===id)){",
+            "   const section=sectionFor(row,chineseBook),field=section&&section.querySelector('[data-book-field=\"'+row.field+'\"]'),property=field&&field.querySelector('.property-value');",
+            "   need(property&&content(field.querySelector('dt'))===labels[row.field],'Chinese56 field and label '+row.review.approved_candidate_id);",
+            "   need(row.unit===null&&row.hardness_scale===null&&row.review.decision==='approved_source_statement'&&row.review.root_record_sha256===expected.root_review_sha256&&row.review.source_book_sha256===expected.source_book_sha256,'Root56 literal field proof');",
+            "   for(const locator of row.source_pages)need(section.textContent.includes(page(locator)),'Chinese56 visible PDF/printed locator');",
+            "   if(row.field==='formula'){",
+            "    const formula=property.querySelector('[data-book-formula]'),statement=property.querySelector('small.field-hint');",
+            "    need(formula&&formula.textContent===row.formula_display&&statement&&statement.textContent===row.value&&formula.textContent!==row.value,'separate literal formula and full narrative '+row.review.approved_candidate_id);",
+            "    need(field.textContent.includes('不改主资料的化学式'),'secondary formula boundary');",
+            "    if(id==='ima-zircon'||id==='ima-ottensite'){",
+            "     const markup=formula.innerHTML;",
+            "     if(id==='ima-zircon'){need(/SiO<sub>4<\\/sub>/.test(markup),'Zircon SiO4 semantic subscript');formulaDOM.zirconSiO4Subscript=true;}",
+            "     else{need(/·3H<sub>2<\\/sub>O/.test(markup)&&!/·<sub>3<\\/sub>/.test(markup),'Ottensite H2 subscript and baseline hydrate3');formulaDOM.ottensiteH2SubscriptBaseline3=true;}",
+            "     if(typeof getComputedStyle==='function'){const fontSize=getComputedStyle(formula).fontSize;need(fontSize==='18px','actual formula font18 '+id);formulaFontSizes[id]=fontSize;}",
+            "    }",
+            "   }else need(property.textContent===row.value&&!property.querySelector('[data-book-formula]'),'complete nonformula narrative '+row.review.approved_candidate_id);",
+            "   if(row.field==='cleavage')need(row.review.approved_candidate_id==='Chinese42-002'&&property.textContent.includes('{100}')&&field.textContent.includes('不是完整解理清单'),'explicit100 family only');",
+            "   if(row.field==='occurrence')need(field.textContent.includes('历史产地产状')&&field.textContent.includes('不代表完整分布'),'historical occurrence scope');",
+            "   if(id==='ima-qusongite')need(!section.querySelector('[data-book-field=\"occurrence\"]'),'023 must not render');",
+            "   chineseFields[row.field]++;chineseChecked++;",
+            "  }close();",
+            " }",
+            " need(chineseChecked===56&&same(chineseFields,{crystal_habit:5,cleavage:1,formula:23,occurrence:27}),'all56 fixed field counts');need(formulaDOM.zirconSiO4Subscript===true&&formulaDOM.ottensiteH2SubscriptBaseline3===true,'both formula DOM examples checked');",
+            " selectScope(original.scope);filter.value=original.filter;search.value=original.search;search.dispatchEvent(new Event('input',{bubbles:true}));",
+            " const primaryAfter=await digest(c.minerals);need(primaryBefore===primaryAfter,'all 6239 primary objects unchanged');",
+            " s.bookEvidence174={statements:o.records.length,books:o.books.length,pages:o.counts.selected_source_pages,cards:cards.length,legacy118:{statements:legacyRows.length,books:legacyBooks.length,pages:legacyPages.size,cards:legacyKeys.length,checkedFields,checkedSpecies:ids.length,mohsFields,candidateIds,bibliography:[...bibliography].sort(),legacyUnknownScalePreserved:true,allRecordsBooksAndHoldUnchanged:true},chinese56:{checkedFields:chineseChecked,checkedSpecies:chineseSpecies.length,fieldCounts:chineseFields,candidateIds:chineseIds,rootReviewSHA256:expected.root_review_sha256,sourceBookSHA256:expected.source_book_sha256,approvedPages:Object.keys(pageProofs).sort(),formulaNarrativesSeparate:true,formulaReadability:{zirconSiO4Subscript:formulaDOM.zirconSiO4Subscript,ottensiteH2SubscriptBaseline3:formulaDOM.ottensiteH2SubscriptBaseline3,computedStyleAvailable:typeof getComputedStyle==='function',fontSizes:formulaFontSizes},cleavage100FamilyOnly:true,excluded023Absent:true,allPublicProofsEqualFixedExpected:true},primarySpecies:c.minerals.length,primaryBeforeSHA256:primaryBefore,primaryAfterSHA256:primaryAfter,readOnly:true};s.phase='book174-checked';",
+            "}catch(e){s.phase='failed';s.failure=String(e);}}",
+            ")("+expectedJSON+");"
+        );
+    }
+
+    private void checkBookReferenceCatalog(JSONObject reference) throws Exception {
+        JSONObject counts=reference.getJSONObject("counts");
+        assertEquals(174,counts.getInt("reviewed_book_source_statements"));
+        assertEquals(20,counts.getInt("reviewed_book_source_pages"));
+        assertEquals(1,counts.getInt("reviewed_book_withheld_fields"));
+        JSONObject expected;
+        try (InputStream stream=InstrumentationRegistry.getInstrumentation().getContext().getAssets().open("book174-expected.json")) {
+            java.io.ByteArrayOutputStream bytes=new java.io.ByteArrayOutputStream();byte[] buffer=new byte[4096];int count;
+            while ((count=stream.read(buffer))!=-1) {bytes.write(buffer,0,count);assertTrue("Bounded public test expectation",bytes.size()<=262144);}
+            expected=new JSONObject(new String(bytes.toByteArray(),StandardCharsets.UTF_8));
+        }
+        JSONObject catalogPin=expected.getJSONObject("catalog_pin");
+        assertEquals("0ec5ec2d6cf44da6e3d5dc1425cdf40c2d9cb1282192a11e6283053c1745d00d",catalogPin.getString("sha256"));
+        assertEquals(4909626,catalogPin.getInt("bytes"));
+        boolean exactCatalog=false;JSONArray files=reference.getJSONArray("files");
+        for(int i=0;i<files.length();i++) {JSONObject file=files.getJSONObject(i);if("data/catalog.json".equals(file.getString("path")))exactCatalog=file.getString("sha256").equals(catalogPin.getString("sha256"))&&file.getInt("bytes")==catalogPin.getInt("bytes");}
+        assertTrue("Exact currentbook174 catalogue descriptor",exactCatalog);
+        evaluate(book174ReadOnlyScript(expected.toString()));
+        JSONObject proof=awaitPhase("book174-checked",30000).getJSONObject("bookEvidence174");
+        assertEquals(174,proof.getInt("statements"));assertEquals(10,proof.getInt("books"));assertEquals(20,proof.getInt("pages"));assertEquals(61,proof.getInt("cards"));
+        JSONObject legacy=proof.getJSONObject("legacy118"),chinese=proof.getJSONObject("chinese56");
+        assertEquals(118,legacy.getInt("statements"));assertEquals(28,legacy.getInt("cards"));assertEquals(40,legacy.getInt("checkedFields"));assertEquals(13,legacy.getInt("checkedSpecies"));
+        assertEquals(56,chinese.getInt("checkedFields"));assertEquals(34,chinese.getInt("checkedSpecies"));assertTrue(chinese.getBoolean("excluded023Absent"));
+        JSONObject readability=chinese.getJSONObject("formulaReadability"),fontSizes=readability.getJSONObject("fontSizes");
+        assertTrue("Zircon must have semantic SiO4 subscript",readability.getBoolean("zirconSiO4Subscript"));
+        assertTrue("Ottensite must retain baseline hydrate3 and subscript H2",readability.getBoolean("ottensiteH2SubscriptBaseline3"));
+        assertTrue("Real WebView must measure formula CSS",readability.getBoolean("computedStyleAvailable"));
+        assertEquals(2,fontSizes.length());
+        assertEquals("18px",fontSizes.getString("ima-zircon"));assertEquals("18px",fontSizes.getString("ima-ottensite"));
+        assertEquals(6239,proof.getInt("primarySpecies"));assertTrue(legacy.getBoolean("legacyUnknownScalePreserved"));assertTrue(legacy.getBoolean("allRecordsBooksAndHoldUnchanged"));
+        assertEquals(proof.getString("primaryBeforeSHA256"),proof.getString("primaryAfterSHA256"));
+    }
+
     /** Exercise the real lazy loader, SHA-256 checks, searches and detail dialogs while disconnected. */
     private void checkOfflineReferenceCatalog() throws Exception {
         JSONObject reference = bundledJson("data/reference-manifest.json"),counts=reference.getJSONObject("counts");
@@ -519,6 +641,7 @@ public class MineralEngineInstrumentedTest {
         assertEquals(state().getJSONObject("modelContract").getInt("labels"),Integer.parseInt(evaluate("Object.keys(MINERAL_CLASSES).length")));
         evaluate("window.__shikuangRuntimeSmoke.catalog=" + catalog + ";window.scrollTo({top:0,behavior:'instant'});");
         screenshot("library-offline-overview.png", "#catalogIntro");
+        checkBookReferenceCatalog(reference);
 
         evaluate("const quartzSearch=document.getElementById('librarySearch');quartzSearch.value='Quartz';quartzSearch.dispatchEvent(new Event('input',{bubbles:true}));");
         awaitUi("document.querySelector('#libraryList [data-detail=quartz]')", "Quartz search card", 10000);

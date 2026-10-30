@@ -79,6 +79,7 @@ dialog[open]{position:fixed;top:50%;bottom:auto;left:0;right:0;margin:0 auto;tra
 .formula sub{bottom:-.25em}.formula sup{top:-.5em}
 .formula-property{grid-column:1/-1}
 .formula-property .formula{display:block;font-size:18px;line-height:2;letter-spacing:.25px}
+.book-evidence-section [data-book-formula]{font-size:18px;line-height:2;max-width:100%;word-wrap:break-word;overflow-wrap:break-word}
 .formula-property .property-raw{font-size:11px;line-height:1.8}
 .copy-formula{display:inline-block;min-height:36px;margin:8px 0 3px;padding:5px 10px;border:1px solid var(--line);border-radius:7px;background:var(--accent-light);color:var(--accent);font-size:11px}
 .property-original{display:block;color:var(--muted);font-size:10px;line-height:1.6;margin-top:8px;padding-top:0}

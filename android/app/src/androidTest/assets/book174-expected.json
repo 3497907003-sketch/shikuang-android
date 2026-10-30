@@ -1,0 +1,2876 @@
+{
+  "schema": "android-currentbook174-Root56-fixed-public-expectations-v1",
+  "catalog_pin": {
+    "path": "data/catalog.json",
+    "bytes": 4909626,
+    "sha256": "0ec5ec2d6cf44da6e3d5dc1425cdf40c2d9cb1282192a11e6283053c1745d00d"
+  },
+  "root_review_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+  "source_id": "user-book-04",
+  "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+  "pages": {
+    "341": {
+      "pdf_page_1based": 341,
+      "printed_page": "325",
+      "render_sha256": "5783130246ce9ca1660538877a806de8f2ca134da80c5340edc13d9d529eb010"
+    },
+    "342": {
+      "pdf_page_1based": 342,
+      "printed_page": "326",
+      "render_sha256": "7e5e29304da283d2601619deb0a81a28a493118eed0dc297664b44c5acaac3d9"
+    },
+    "445": {
+      "pdf_page_1based": 445,
+      "printed_page": "429",
+      "render_sha256": "2433667dfd81f64e6f1266515e72a933700754eaa861f6252094ee9ab8cff7e6"
+    },
+    "446": {
+      "pdf_page_1based": 446,
+      "printed_page": "430",
+      "render_sha256": "dbeacc7149dab63a4555ad1963eff7e6569dd3594283b0197f180db1b3a4f6b9"
+    }
+  },
+  "records": [
+    {
+      "catalog_id": "ima-kyanite",
+      "name_en": "Kyanite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 341,
+      "printed_page": "325",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 341,
+          "printed_page": "325",
+          "render_sha256": "5783130246ce9ca1660538877a806de8f2ca134da80c5340edc13d9d529eb010"
+        }
+      ],
+      "field": "crystal_habit",
+      "value": "本书以蓝晶石板状晶体为例，说明结构中八面体成层对晶体习性的影响。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "named_source_crystal_habit_example",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "named_example_not_universal_description_of_all_specimens"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-001",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "2b065eb4ce68b8bbc11f650a8817249843aa45df41754e14c575ad0048c114aa",
+        "proposal_field_sha256": "bfe722ee05cafa32d040f556d1d6b4628fc599eac77d7e6e3e18b59bd782be3e"
+      }
+    },
+    {
+      "catalog_id": "ima-kyanite",
+      "name_en": "Kyanite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 341,
+      "printed_page": "325",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 341,
+          "printed_page": "325",
+          "render_sha256": "5783130246ce9ca1660538877a806de8f2ca134da80c5340edc13d9d529eb010"
+        }
+      ],
+      "field": "cleavage",
+      "value": "本书列蓝晶石 {100} 完全解理，并把它与结构中的八面体层联系起来。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "cleavage_source_description_with_explicit_plane_family",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "only_reported_plane_family_not_a_complete_cleavage_inventory",
+        "OCR_1100_pipe_corrected_by_actual_full_page_visual_read"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-002",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "2b065eb4ce68b8bbc11f650a8817249843aa45df41754e14c575ad0048c114aa",
+        "proposal_field_sha256": "cbb254333b2c76b873ccf15f867698cb8e4224ae7e9df719de7bbad8583f65a0"
+      }
+    },
+    {
+      "catalog_id": "ima-andalusite",
+      "name_en": "Andalusite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 341,
+      "printed_page": "325",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 341,
+          "printed_page": "325",
+          "render_sha256": "5783130246ce9ca1660538877a806de8f2ca134da80c5340edc13d9d529eb010"
+        }
+      ],
+      "field": "crystal_habit",
+      "value": "本书把红柱石的柱状晶体与结构中八面体链联系起来。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "named_source_crystal_habit_example",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "named_example_not_all_specimens"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-003",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "2b065eb4ce68b8bbc11f650a8817249843aa45df41754e14c575ad0048c114aa",
+        "proposal_field_sha256": "837703e448d5304a59f0841df0251e5f87df410f027ae67211073614a2dfb06a"
+      }
+    },
+    {
+      "catalog_id": "ima-epidote",
+      "name_en": "Epidote",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 341,
+      "printed_page": "325",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 341,
+          "printed_page": "325",
+          "render_sha256": "5783130246ce9ca1660538877a806de8f2ca134da80c5340edc13d9d529eb010"
+        }
+      ],
+      "field": "crystal_habit",
+      "value": "本书把绿帘石的柱状晶体与结构中八面体链联系起来。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "named_source_crystal_habit_example",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "named_example_not_all_specimens"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-004",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "2b065eb4ce68b8bbc11f650a8817249843aa45df41754e14c575ad0048c114aa",
+        "proposal_field_sha256": "2be45b74da58cd4974fdf526c4e1e60f2ef73f512e2e83cef9cc769c2582d10f"
+      }
+    },
+    {
+      "catalog_id": "ima-beryl",
+      "name_en": "Beryl",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 341,
+      "printed_page": "325",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 341,
+          "printed_page": "325",
+          "render_sha256": "5783130246ce9ca1660538877a806de8f2ca134da80c5340edc13d9d529eb010"
+        }
+      ],
+      "field": "crystal_habit",
+      "value": "本书以绿柱石为环状硅酸盐的例子，说明柱状晶体习性。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "named_source_crystal_habit_example",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "do_not_assign_group_level_sixfold_or_threefold_crystal_system_to_individual_species",
+        "named_example_not_all_specimens"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-005",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "2b065eb4ce68b8bbc11f650a8817249843aa45df41754e14c575ad0048c114aa",
+        "proposal_field_sha256": "3e340821289842b69448cce7bdffb874b61579d2878173f945f51b21f147197a"
+      }
+    },
+    {
+      "catalog_id": "ima-prehnite",
+      "name_en": "Prehnite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 341,
+      "printed_page": "325",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 341,
+          "printed_page": "325",
+          "render_sha256": "5783130246ce9ca1660538877a806de8f2ca134da80c5340edc13d9d529eb010"
+        }
+      ],
+      "field": "crystal_habit",
+      "value": "本书以葡萄石作例，描述层状硅酸盐的板状、片状至鳞片状晶体习性。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "named_source_crystal_habit_example",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "source_class_description_with_explicit_named_example_not_all_prehnite_crystals"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-006",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "2b065eb4ce68b8bbc11f650a8817249843aa45df41754e14c575ad0048c114aa",
+        "proposal_field_sha256": "ce1f4f06eebb1b0eeb12047bc1269b5778c990d3763b9c2472574d5e9ec7752a"
+      }
+    },
+    {
+      "catalog_id": "ima-zircon",
+      "name_en": "Zircon",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 342,
+      "printed_page": "326",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 342,
+          "printed_page": "326",
+          "render_sha256": "7e5e29304da283d2601619deb0a81a28a493118eed0dc297664b44c5acaac3d9"
+        }
+      ],
+      "field": "formula",
+      "value": "本书锆石条目把化学式写作 Zr[SiO₄]。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "literal_book_formula_not_primary_revision",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "square_bracket_source_notation_retained",
+        "chemical_composition_percent_sentence_continues_off_selected_page_not_imported"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-007",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "aa2d48c0f748fb3608281221d93b04b3f0574bd324217e1e835076e2c3acaf7b",
+        "proposal_field_sha256": "fa622f84149c81cdeeccd4e12d77615ab8ae9ab36c38e3e31ae740d6e056888b"
+      },
+      "formula_display": "Zr[SiO4]"
+    },
+    {
+      "catalog_id": "ima-hunchunite",
+      "name_en": "Hunchunite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 445,
+      "printed_page": "429",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 445,
+          "printed_page": "429",
+          "render_sha256": "2433667dfd81f64e6f1266515e72a933700754eaa861f6252094ee9ab8cff7e6"
+        }
+      ],
+      "field": "formula",
+      "value": "本书名录表将珲春矿（Hunchunite）的化学式列为 Au2Pb。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "literal_book_formula_not_primary_revision",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "source_notation_matches_current_catalog_after_subscripts_brackets_spaces_only",
+        "no_charge_occupancy_or_hydration_inference"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-008",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "daabce8ccd36a009b6f604679a398471a1291b738a4f8ee7fcd58777a03a02cf",
+        "proposal_field_sha256": "f3b0e65ad1df72aa9de28643ef4bf60214f3719207bf10caa6fe5c2ec85b9f45"
+      },
+      "formula_display": "Au2Pb"
+    },
+    {
+      "catalog_id": "ima-hunchunite",
+      "name_en": "Hunchunite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 445,
+      "printed_page": "429",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 445,
+          "printed_page": "429",
+          "render_sha256": "2433667dfd81f64e6f1266515e72a933700754eaa861f6252094ee9ab8cff7e6"
+        }
+      ],
+      "field": "occurrence",
+      "value": "本书名录表为珲春矿记载的产地或产状是：吉林延边珲春河砂金矿。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "historical_book_locality_occurrence_not_specimen_origin",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "book_reported_location_or_occurrence_not_current_specimen_origin",
+        "not_complete_global_distribution",
+        "source_unspecified_location_words_preserved"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-009",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "daabce8ccd36a009b6f604679a398471a1291b738a4f8ee7fcd58777a03a02cf",
+        "proposal_field_sha256": "aceecbd8455f6655c06d79f3c57ecdd48686ba2d2bbdcd907eab45edf6d3e44f"
+      }
+    },
+    {
+      "catalog_id": "ima-yuanjiangite",
+      "name_en": "Yuanjiangite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 445,
+      "printed_page": "429",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 445,
+          "printed_page": "429",
+          "render_sha256": "2433667dfd81f64e6f1266515e72a933700754eaa861f6252094ee9ab8cff7e6"
+        }
+      ],
+      "field": "formula",
+      "value": "本书名录表将沅江矿（Yuanjiangite）的化学式列为 AuSn。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "literal_book_formula_not_primary_revision",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "source_notation_matches_current_catalog_after_subscripts_brackets_spaces_only",
+        "no_charge_occupancy_or_hydration_inference"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-010",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "daabce8ccd36a009b6f604679a398471a1291b738a4f8ee7fcd58777a03a02cf",
+        "proposal_field_sha256": "322cfd53877d02d4a8a84787d001cff94270bf0374a98b049a8992b22041a7ad"
+      },
+      "formula_display": "AuSn"
+    },
+    {
+      "catalog_id": "ima-yuanjiangite",
+      "name_en": "Yuanjiangite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 445,
+      "printed_page": "429",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 445,
+          "printed_page": "429",
+          "render_sha256": "2433667dfd81f64e6f1266515e72a933700754eaa861f6252094ee9ab8cff7e6"
+        }
+      ],
+      "field": "occurrence",
+      "value": "本书名录表为沅江矿记载的产地或产状是：湖南沅陵中更新世砂砾层中，与砂金连生。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "historical_book_locality_occurrence_not_specimen_origin",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "book_reported_location_or_occurrence_not_current_specimen_origin",
+        "not_complete_global_distribution",
+        "source_unspecified_location_words_preserved"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-011",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "daabce8ccd36a009b6f604679a398471a1291b738a4f8ee7fcd58777a03a02cf",
+        "proposal_field_sha256": "0e8f1947c2c332d9fab5a234c6b600d9ea1ce8dc651179c1f3e581264d6ca9f5"
+      }
+    },
+    {
+      "catalog_id": "ima-chengdeite",
+      "name_en": "Chengdeite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 445,
+      "printed_page": "429",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 445,
+          "printed_page": "429",
+          "render_sha256": "2433667dfd81f64e6f1266515e72a933700754eaa861f6252094ee9ab8cff7e6"
+        }
+      ],
+      "field": "formula",
+      "value": "本书名录表将承德矿（Chengdeite）的化学式列为 Ir3Fe。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "literal_book_formula_not_primary_revision",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "source_notation_matches_current_catalog_after_subscripts_brackets_spaces_only",
+        "no_charge_occupancy_or_hydration_inference"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-012",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "daabce8ccd36a009b6f604679a398471a1291b738a4f8ee7fcd58777a03a02cf",
+        "proposal_field_sha256": "ed3841509107678bf6d9535713c5b225af7c141242d8ff6f222080f45cf654b0"
+      },
+      "formula_display": "Ir3Fe"
+    },
+    {
+      "catalog_id": "ima-chengdeite",
+      "name_en": "Chengdeite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 445,
+      "printed_page": "429",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 445,
+          "printed_page": "429",
+          "render_sha256": "2433667dfd81f64e6f1266515e72a933700754eaa861f6252094ee9ab8cff7e6"
+        }
+      ],
+      "field": "occurrence",
+      "value": "本书名录表为承德矿记载的产地或产状是：河北滦河高台铂砂矿。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "historical_book_locality_occurrence_not_specimen_origin",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "book_reported_location_or_occurrence_not_current_specimen_origin",
+        "not_complete_global_distribution",
+        "source_unspecified_location_words_preserved"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-013",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "daabce8ccd36a009b6f604679a398471a1291b738a4f8ee7fcd58777a03a02cf",
+        "proposal_field_sha256": "e1b53c8030e53903c92914d45adb9bd446ffc930958be66df22b4adc0a6b6589"
+      }
+    },
+    {
+      "catalog_id": "ima-damiaoite",
+      "name_en": "Damiaoite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 445,
+      "printed_page": "429",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 445,
+          "printed_page": "429",
+          "render_sha256": "2433667dfd81f64e6f1266515e72a933700754eaa861f6252094ee9ab8cff7e6"
+        }
+      ],
+      "field": "formula",
+      "value": "本书名录表将大庙矿（Damiaoite）的化学式列为 PtIn2。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "literal_book_formula_not_primary_revision",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "source_notation_matches_current_catalog_after_subscripts_brackets_spaces_only",
+        "no_charge_occupancy_or_hydration_inference"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-014",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "daabce8ccd36a009b6f604679a398471a1291b738a4f8ee7fcd58777a03a02cf",
+        "proposal_field_sha256": "da9a4b43775ee6b6c170f236902074789ed1851721b0f2436685935935297d93"
+      },
+      "formula_display": "PtIn2"
+    },
+    {
+      "catalog_id": "ima-damiaoite",
+      "name_en": "Damiaoite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 445,
+      "printed_page": "429",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 445,
+          "printed_page": "429",
+          "render_sha256": "2433667dfd81f64e6f1266515e72a933700754eaa861f6252094ee9ab8cff7e6"
+        }
+      ],
+      "field": "occurrence",
+      "value": "本书名录表为大庙矿记载的产地或产状是：河北滦平大庙村，石榴石辉石岩的含钴铜铂矿脉中，与伊逊矿紧密共生。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "historical_book_locality_occurrence_not_specimen_origin",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "book_reported_location_or_occurrence_not_current_specimen_origin",
+        "not_complete_global_distribution",
+        "source_unspecified_location_words_preserved"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-015",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "daabce8ccd36a009b6f604679a398471a1291b738a4f8ee7fcd58777a03a02cf",
+        "proposal_field_sha256": "26af19e39fe2150e019db0c4eaced4b81f6c8c2aee35caf7dd27f8d1659e2a9c"
+      }
+    },
+    {
+      "catalog_id": "ima-yixunite",
+      "name_en": "Yixunite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 445,
+      "printed_page": "429",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 445,
+          "printed_page": "429",
+          "render_sha256": "2433667dfd81f64e6f1266515e72a933700754eaa861f6252094ee9ab8cff7e6"
+        }
+      ],
+      "field": "formula",
+      "value": "本书名录表将伊逊矿（Yixunite）的化学式列为 Pt3In。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "literal_book_formula_not_primary_revision",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "source_notation_matches_current_catalog_after_subscripts_brackets_spaces_only",
+        "no_charge_occupancy_or_hydration_inference"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-016",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "daabce8ccd36a009b6f604679a398471a1291b738a4f8ee7fcd58777a03a02cf",
+        "proposal_field_sha256": "65752832657767dfd89e636cce0a2518cd64d6b1c4d457a2a4ef880f25c6452c"
+      },
+      "formula_display": "Pt3In"
+    },
+    {
+      "catalog_id": "ima-yixunite",
+      "name_en": "Yixunite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 445,
+      "printed_page": "429",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 445,
+          "printed_page": "429",
+          "render_sha256": "2433667dfd81f64e6f1266515e72a933700754eaa861f6252094ee9ab8cff7e6"
+        }
+      ],
+      "field": "occurrence",
+      "value": "本书名录表为伊逊矿记载的产地或产状是：河北滦河支流伊逊河砂矿。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "historical_book_locality_occurrence_not_specimen_origin",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "book_reported_location_or_occurrence_not_current_specimen_origin",
+        "not_complete_global_distribution",
+        "source_unspecified_location_words_preserved"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-017",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "daabce8ccd36a009b6f604679a398471a1291b738a4f8ee7fcd58777a03a02cf",
+        "proposal_field_sha256": "56b60cb6a124cac956114cd1de396f7045ace3ea31032347776aec3511c6e7e1"
+      }
+    },
+    {
+      "catalog_id": "ima-titanium",
+      "name_en": "Titanium",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 445,
+      "printed_page": "429",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 445,
+          "printed_page": "429",
+          "render_sha256": "2433667dfd81f64e6f1266515e72a933700754eaa861f6252094ee9ab8cff7e6"
+        }
+      ],
+      "field": "formula",
+      "value": "本书名录表将自然钛（Titanium）的化学式列为 Ti。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "literal_book_formula_not_primary_revision",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "source_notation_matches_current_catalog_after_subscripts_brackets_spaces_only",
+        "no_charge_occupancy_or_hydration_inference"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-018",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "daabce8ccd36a009b6f604679a398471a1291b738a4f8ee7fcd58777a03a02cf",
+        "proposal_field_sha256": "bc443d511e1945a430145a1d08c879873d3d3564b9ee0bc344f3727de74be4ed"
+      },
+      "formula_display": "Ti"
+    },
+    {
+      "catalog_id": "ima-titanium",
+      "name_en": "Titanium",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 445,
+      "printed_page": "429",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 445,
+          "printed_page": "429",
+          "render_sha256": "2433667dfd81f64e6f1266515e72a933700754eaa861f6252094ee9ab8cff7e6"
+        }
+      ],
+      "field": "occurrence",
+      "value": "本书名录表为自然钛记载的产地或产状是：西藏曲松罗布莎铬铁矿区。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "historical_book_locality_occurrence_not_specimen_origin",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "book_reported_location_or_occurrence_not_current_specimen_origin",
+        "not_complete_global_distribution",
+        "source_unspecified_location_words_preserved"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-019",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "daabce8ccd36a009b6f604679a398471a1291b738a4f8ee7fcd58777a03a02cf",
+        "proposal_field_sha256": "2b42cab673cc7941571624b8420e4c4d091da9a6da0f8bb1dc4e992e90ee1ba5"
+      }
+    },
+    {
+      "catalog_id": "ima-tongbaite",
+      "name_en": "Tongbaite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 445,
+      "printed_page": "429",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 445,
+          "printed_page": "429",
+          "render_sha256": "2433667dfd81f64e6f1266515e72a933700754eaa861f6252094ee9ab8cff7e6"
+        }
+      ],
+      "field": "formula",
+      "value": "本书名录表将桐柏矿（Tongbaite）的化学式列为 Cr3C2。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "literal_book_formula_not_primary_revision",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "source_notation_matches_current_catalog_after_subscripts_brackets_spaces_only",
+        "no_charge_occupancy_or_hydration_inference"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-020",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "daabce8ccd36a009b6f604679a398471a1291b738a4f8ee7fcd58777a03a02cf",
+        "proposal_field_sha256": "31a62579bb547171e4084e0d655983880a99699efb613a359b44fd3b9980ad07"
+      },
+      "formula_display": "Cr3C2"
+    },
+    {
+      "catalog_id": "ima-tongbaite",
+      "name_en": "Tongbaite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 445,
+      "printed_page": "429",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 445,
+          "printed_page": "429",
+          "render_sha256": "2433667dfd81f64e6f1266515e72a933700754eaa861f6252094ee9ab8cff7e6"
+        }
+      ],
+      "field": "occurrence",
+      "value": "本书名录表为桐柏矿记载的产地或产状是：河南桐柏柳庄。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "historical_book_locality_occurrence_not_specimen_origin",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "book_reported_location_or_occurrence_not_current_specimen_origin",
+        "not_complete_global_distribution",
+        "source_unspecified_location_words_preserved"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-021",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "daabce8ccd36a009b6f604679a398471a1291b738a4f8ee7fcd58777a03a02cf",
+        "proposal_field_sha256": "f9c649f5ef3491aa7f3b0ae91ef4bb3ae37307584ea1e6773d6a7b4e19044bc1"
+      }
+    },
+    {
+      "catalog_id": "ima-qusongite",
+      "name_en": "Qusongite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 445,
+      "printed_page": "429",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 445,
+          "printed_page": "429",
+          "render_sha256": "2433667dfd81f64e6f1266515e72a933700754eaa861f6252094ee9ab8cff7e6"
+        }
+      ],
+      "field": "formula",
+      "value": "本书名录表将曲松矿（Qusongite）的化学式列为 WC。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "literal_book_formula_not_primary_revision",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "source_notation_matches_current_catalog_after_subscripts_brackets_spaces_only",
+        "no_charge_occupancy_or_hydration_inference"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-022",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "daabce8ccd36a009b6f604679a398471a1291b738a4f8ee7fcd58777a03a02cf",
+        "proposal_field_sha256": "1de2b2aa6a6777d540a563f5f7159e9532354cbe80afc1567aea1bb8c8a8d7be"
+      },
+      "formula_display": "WC"
+    },
+    {
+      "catalog_id": "ima-yarlongite",
+      "name_en": "Yarlongite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 445,
+      "printed_page": "429",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 445,
+          "printed_page": "429",
+          "render_sha256": "2433667dfd81f64e6f1266515e72a933700754eaa861f6252094ee9ab8cff7e6"
+        }
+      ],
+      "field": "occurrence",
+      "value": "本书名录表为雅鲁矿记载的产地或产状是：西藏曲松罗布莎铬铁矿区。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "historical_book_locality_occurrence_not_specimen_origin",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "book_reported_location_or_occurrence_not_current_specimen_origin",
+        "not_complete_global_distribution",
+        "source_unspecified_location_words_preserved"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-024",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "daabce8ccd36a009b6f604679a398471a1291b738a4f8ee7fcd58777a03a02cf",
+        "proposal_field_sha256": "e4aa7b6ecc1b411575f18f3c69a84feb6bc4b679b40655df6fa3696c75dd41da"
+      }
+    },
+    {
+      "catalog_id": "ima-xifengite",
+      "name_en": "Xifengite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 445,
+      "printed_page": "429",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 445,
+          "printed_page": "429",
+          "render_sha256": "2433667dfd81f64e6f1266515e72a933700754eaa861f6252094ee9ab8cff7e6"
+        }
+      ],
+      "field": "formula",
+      "value": "本书名录表将喜峰矿（Xifengite）的化学式列为 Fe5Si3。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "literal_book_formula_not_primary_revision",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "source_notation_matches_current_catalog_after_subscripts_brackets_spaces_only",
+        "no_charge_occupancy_or_hydration_inference"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-025",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "daabce8ccd36a009b6f604679a398471a1291b738a4f8ee7fcd58777a03a02cf",
+        "proposal_field_sha256": "d0a76b4ae6ba3a17db84e3da18bcbe3722bf2875b8f5ad85b2b0af068afca79a"
+      },
+      "formula_display": "Fe5Si3"
+    },
+    {
+      "catalog_id": "ima-xifengite",
+      "name_en": "Xifengite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 445,
+      "printed_page": "429",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 445,
+          "printed_page": "429",
+          "render_sha256": "2433667dfd81f64e6f1266515e72a933700754eaa861f6252094ee9ab8cff7e6"
+        }
+      ],
+      "field": "occurrence",
+      "value": "本书名录表为喜峰矿记载的产地或产状是：河北燕山滦河、潮河水系砂矿。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "historical_book_locality_occurrence_not_specimen_origin",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "book_reported_location_or_occurrence_not_current_specimen_origin",
+        "not_complete_global_distribution",
+        "source_unspecified_location_words_preserved"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-026",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "daabce8ccd36a009b6f604679a398471a1291b738a4f8ee7fcd58777a03a02cf",
+        "proposal_field_sha256": "d7c230c96dc09f86074dc3bb4c25c5c89a1f976f4f35acaea2f65499cfe15fdb"
+      }
+    },
+    {
+      "catalog_id": "ima-zangboite",
+      "name_en": "Zangboite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 445,
+      "printed_page": "429",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 445,
+          "printed_page": "429",
+          "render_sha256": "2433667dfd81f64e6f1266515e72a933700754eaa861f6252094ee9ab8cff7e6"
+        }
+      ],
+      "field": "formula",
+      "value": "本书名录表将藏布矿（Zangboite）的化学式列为 TiFeSi2。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "literal_book_formula_not_primary_revision",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "source_notation_matches_current_catalog_after_subscripts_brackets_spaces_only",
+        "no_charge_occupancy_or_hydration_inference"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-027",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "daabce8ccd36a009b6f604679a398471a1291b738a4f8ee7fcd58777a03a02cf",
+        "proposal_field_sha256": "580fa15e5820e932dab975e2f40c93e1f90f0d0bf421752e20fb5cd0a739c2e1"
+      },
+      "formula_display": "TiFeSi2"
+    },
+    {
+      "catalog_id": "ima-zangboite",
+      "name_en": "Zangboite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 445,
+      "printed_page": "429",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 445,
+          "printed_page": "429",
+          "render_sha256": "2433667dfd81f64e6f1266515e72a933700754eaa861f6252094ee9ab8cff7e6"
+        }
+      ],
+      "field": "occurrence",
+      "value": "本书名录表为藏布矿记载的产地或产状是：西藏曲松罗布莎铬铁矿区。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "historical_book_locality_occurrence_not_specimen_origin",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "book_reported_location_or_occurrence_not_current_specimen_origin",
+        "not_complete_global_distribution",
+        "source_unspecified_location_words_preserved"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-028",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "daabce8ccd36a009b6f604679a398471a1291b738a4f8ee7fcd58777a03a02cf",
+        "proposal_field_sha256": "7d26a1ab308e8a12ee7e41c094e03993118834bb06153cde429ff65cf0c4e110"
+      }
+    },
+    {
+      "catalog_id": "ima-naquite",
+      "name_en": "Naquite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 445,
+      "printed_page": "429",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 445,
+          "printed_page": "429",
+          "render_sha256": "2433667dfd81f64e6f1266515e72a933700754eaa861f6252094ee9ab8cff7e6"
+        }
+      ],
+      "field": "formula",
+      "value": "本书名录表将那曲矿（Naquite）的化学式列为 FeSi。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "literal_book_formula_not_primary_revision",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "source_notation_matches_current_catalog_after_subscripts_brackets_spaces_only",
+        "no_charge_occupancy_or_hydration_inference"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-029",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "daabce8ccd36a009b6f604679a398471a1291b738a4f8ee7fcd58777a03a02cf",
+        "proposal_field_sha256": "3685a8011229ed804c2946d3f558d3fd4edec10e8b352c46107ce6c902beb849"
+      },
+      "formula_display": "FeSi"
+    },
+    {
+      "catalog_id": "ima-naquite",
+      "name_en": "Naquite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 445,
+      "printed_page": "429",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 445,
+          "printed_page": "429",
+          "render_sha256": "2433667dfd81f64e6f1266515e72a933700754eaa861f6252094ee9ab8cff7e6"
+        }
+      ],
+      "field": "occurrence",
+      "value": "本书名录表为那曲矿记载的产地或产状是：西藏曲松罗布莎铬铁矿区。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "historical_book_locality_occurrence_not_specimen_origin",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "book_reported_location_or_occurrence_not_current_specimen_origin",
+        "not_complete_global_distribution",
+        "source_unspecified_location_words_preserved"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-030",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "daabce8ccd36a009b6f604679a398471a1291b738a4f8ee7fcd58777a03a02cf",
+        "proposal_field_sha256": "a2e144679a1bb2c5a4d92679d47d9cd20002283ea5392f409cf91f4e777cb7f3"
+      }
+    },
+    {
+      "catalog_id": "ima-linzhiite",
+      "name_en": "Linzhiite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 445,
+      "printed_page": "429",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 445,
+          "printed_page": "429",
+          "render_sha256": "2433667dfd81f64e6f1266515e72a933700754eaa861f6252094ee9ab8cff7e6"
+        }
+      ],
+      "field": "formula",
+      "value": "本书名录表将林芝矿（Linzhiite）的化学式列为 FeSi2。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "literal_book_formula_not_primary_revision",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "source_notation_matches_current_catalog_after_subscripts_brackets_spaces_only",
+        "no_charge_occupancy_or_hydration_inference"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-031",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "daabce8ccd36a009b6f604679a398471a1291b738a4f8ee7fcd58777a03a02cf",
+        "proposal_field_sha256": "ff8fb89012fe460d87a94020619a5e52a699d88b4e239cfdac025c56c11304bd"
+      },
+      "formula_display": "FeSi2"
+    },
+    {
+      "catalog_id": "ima-linzhiite",
+      "name_en": "Linzhiite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 445,
+      "printed_page": "429",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 445,
+          "printed_page": "429",
+          "render_sha256": "2433667dfd81f64e6f1266515e72a933700754eaa861f6252094ee9ab8cff7e6"
+        }
+      ],
+      "field": "occurrence",
+      "value": "本书名录表为林芝矿记载的产地或产状是：西藏曲松罗布莎铬铁矿区。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "historical_book_locality_occurrence_not_specimen_origin",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "book_reported_location_or_occurrence_not_current_specimen_origin",
+        "not_complete_global_distribution",
+        "source_unspecified_location_words_preserved"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-032",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "daabce8ccd36a009b6f604679a398471a1291b738a4f8ee7fcd58777a03a02cf",
+        "proposal_field_sha256": "799cb9d472611202ad2e62e055c7aa16974d2111cc6f184508a1256d413fb0d5"
+      }
+    },
+    {
+      "catalog_id": "ima-qingsongite",
+      "name_en": "Qingsongite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 445,
+      "printed_page": "429",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 445,
+          "printed_page": "429",
+          "render_sha256": "2433667dfd81f64e6f1266515e72a933700754eaa861f6252094ee9ab8cff7e6"
+        }
+      ],
+      "field": "occurrence",
+      "value": "本书名录表为青松矿记载的产地或产状是：西藏罗布莎蛇绿岩带的铬铁矿中。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "historical_book_locality_occurrence_not_specimen_origin",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "book_reported_location_or_occurrence_not_current_specimen_origin",
+        "not_complete_global_distribution",
+        "source_unspecified_location_words_preserved"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-033",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "daabce8ccd36a009b6f604679a398471a1291b738a4f8ee7fcd58777a03a02cf",
+        "proposal_field_sha256": "e75dede061d21c9de2e039a6d0fb48b6441f95f2757a3cab142b8a38c02c927e"
+      }
+    },
+    {
+      "catalog_id": "ima-daomanite",
+      "name_en": "Daomanite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 446,
+      "printed_page": "430",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 446,
+          "printed_page": "430",
+          "render_sha256": "dbeacc7149dab63a4555ad1963eff7e6569dd3594283b0197f180db1b3a4f6b9"
+        }
+      ],
+      "field": "occurrence",
+      "value": "本书名录表为道马矿记载的产地或产状是：河北滦平三道村含铂岩体。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "historical_book_locality_occurrence_not_specimen_origin",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "book_reported_location_or_occurrence_not_current_specimen_origin",
+        "not_complete_global_distribution",
+        "source_unspecified_location_words_preserved"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-034",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "863057badd89dc38e9d7df90e5fb6dafb50b38565dee83c738327d6396917d01",
+        "proposal_field_sha256": "3ecd75546d28cb1136c0630f6700266fc47701aeaaf66f3fb50c227f830aac87"
+      }
+    },
+    {
+      "catalog_id": "ima-xingzhongite",
+      "name_en": "Xingzhongite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 446,
+      "printed_page": "430",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 446,
+          "printed_page": "430",
+          "render_sha256": "dbeacc7149dab63a4555ad1963eff7e6569dd3594283b0197f180db1b3a4f6b9"
+        }
+      ],
+      "field": "occurrence",
+      "value": "本书名录表为兴中矿记载的产地或产状是：河北某基性—超基性岩体。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "historical_book_locality_occurrence_not_specimen_origin",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "book_reported_location_or_occurrence_not_current_specimen_origin",
+        "not_complete_global_distribution",
+        "source_unspecified_location_words_preserved"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-035",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "863057badd89dc38e9d7df90e5fb6dafb50b38565dee83c738327d6396917d01",
+        "proposal_field_sha256": "039f1d75c977d398c38c5eb65a45d0a7951d178f07397531802ad14e5d12ccd4"
+      }
+    },
+    {
+      "catalog_id": "ima-ruarsite",
+      "name_en": "Ruarsite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 446,
+      "printed_page": "430",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 446,
+          "printed_page": "430",
+          "render_sha256": "dbeacc7149dab63a4555ad1963eff7e6569dd3594283b0197f180db1b3a4f6b9"
+        }
+      ],
+      "field": "formula",
+      "value": "本书名录表将硫砷钌矿（Ruarsite）的化学式列为 RuAsS。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "literal_book_formula_not_primary_revision",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "source_notation_matches_current_catalog_after_subscripts_brackets_spaces_only",
+        "no_charge_occupancy_or_hydration_inference"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-036",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "863057badd89dc38e9d7df90e5fb6dafb50b38565dee83c738327d6396917d01",
+        "proposal_field_sha256": "50d2ee5be8234fe23667eba6258e843de8582419136cb130c1a25fa294e8297a"
+      },
+      "formula_display": "RuAsS"
+    },
+    {
+      "catalog_id": "ima-ruarsite",
+      "name_en": "Ruarsite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 446,
+      "printed_page": "430",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 446,
+          "printed_page": "430",
+          "render_sha256": "dbeacc7149dab63a4555ad1963eff7e6569dd3594283b0197f180db1b3a4f6b9"
+        }
+      ],
+      "field": "occurrence",
+      "value": "本书名录表为硫砷钌矿记载的产地或产状是：西藏北部含铬超基性岩体。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "historical_book_locality_occurrence_not_specimen_origin",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "book_reported_location_or_occurrence_not_current_specimen_origin",
+        "not_complete_global_distribution",
+        "source_unspecified_location_words_preserved"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-037",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "863057badd89dc38e9d7df90e5fb6dafb50b38565dee83c738327d6396917d01",
+        "proposal_field_sha256": "a0fa9f2ba61da7318ffa5c3891ad5cabb1900b9ece3694f362c576ce7d8f5c20"
+      }
+    },
+    {
+      "catalog_id": "ima-xilingolite",
+      "name_en": "Xilingolite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 446,
+      "printed_page": "430",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 446,
+          "printed_page": "430",
+          "render_sha256": "dbeacc7149dab63a4555ad1963eff7e6569dd3594283b0197f180db1b3a4f6b9"
+        }
+      ],
+      "field": "formula",
+      "value": "本书名录表将锡林郭勒矿（Xilingolite）的化学式列为 Pb3Bi2S6。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "literal_book_formula_not_primary_revision",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "source_notation_matches_current_catalog_after_subscripts_brackets_spaces_only",
+        "no_charge_occupancy_or_hydration_inference"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-038",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "863057badd89dc38e9d7df90e5fb6dafb50b38565dee83c738327d6396917d01",
+        "proposal_field_sha256": "db1595a7df99d00692a1b71f1c0bf3f98b5a779632f7d61bee5c8550f917f4f0"
+      },
+      "formula_display": "Pb3Bi2S6"
+    },
+    {
+      "catalog_id": "ima-xilingolite",
+      "name_en": "Xilingolite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 446,
+      "printed_page": "430",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 446,
+          "printed_page": "430",
+          "render_sha256": "dbeacc7149dab63a4555ad1963eff7e6569dd3594283b0197f180db1b3a4f6b9"
+        }
+      ],
+      "field": "occurrence",
+      "value": "本书名录表为锡林郭勒矿记载的产地或产状是：内蒙古锡林郭勒盟东乌旗朝不楞矿区夕卡岩铁矿中。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "historical_book_locality_occurrence_not_specimen_origin",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "book_reported_location_or_occurrence_not_current_specimen_origin",
+        "not_complete_global_distribution",
+        "source_unspecified_location_words_preserved"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-039",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "863057badd89dc38e9d7df90e5fb6dafb50b38565dee83c738327d6396917d01",
+        "proposal_field_sha256": "b8db14e682832f9953cc5759f856218319763cb4bb0c00dcd51e4becb7eeac1b"
+      }
+    },
+    {
+      "catalog_id": "ima-malanite",
+      "name_en": "Malanite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 446,
+      "printed_page": "430",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 446,
+          "printed_page": "430",
+          "render_sha256": "dbeacc7149dab63a4555ad1963eff7e6569dd3594283b0197f180db1b3a4f6b9"
+        }
+      ],
+      "field": "occurrence",
+      "value": "本书名录表为马兰矿记载的产地或产状是：河北遵化市马兰峪。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "historical_book_locality_occurrence_not_specimen_origin",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "book_reported_location_or_occurrence_not_current_specimen_origin",
+        "not_complete_global_distribution",
+        "source_unspecified_location_words_preserved"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-040",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "863057badd89dc38e9d7df90e5fb6dafb50b38565dee83c738327d6396917d01",
+        "proposal_field_sha256": "35c9df4a922b817c993cd8ef3f838f9b986f3e2f346948df48d186287d613106"
+      }
+    },
+    {
+      "catalog_id": "ima-changchengite",
+      "name_en": "Changchengite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 446,
+      "printed_page": "430",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 446,
+          "printed_page": "430",
+          "render_sha256": "dbeacc7149dab63a4555ad1963eff7e6569dd3594283b0197f180db1b3a4f6b9"
+        }
+      ],
+      "field": "formula",
+      "value": "本书名录表将长城矿（Changchengite）的化学式列为 IrBiS。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "literal_book_formula_not_primary_revision",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "source_notation_matches_current_catalog_after_subscripts_brackets_spaces_only",
+        "no_charge_occupancy_or_hydration_inference"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-041",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "863057badd89dc38e9d7df90e5fb6dafb50b38565dee83c738327d6396917d01",
+        "proposal_field_sha256": "3f5129ed667e5c2ac8815d60d1a7a0fcb77c61010dddc8d7a5d979532de7023e"
+      },
+      "formula_display": "IrBiS"
+    },
+    {
+      "catalog_id": "ima-changchengite",
+      "name_en": "Changchengite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 446,
+      "printed_page": "430",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 446,
+          "printed_page": "430",
+          "render_sha256": "dbeacc7149dab63a4555ad1963eff7e6569dd3594283b0197f180db1b3a4f6b9"
+        }
+      ],
+      "field": "occurrence",
+      "value": "本书名录表为长城矿记载的产地或产状是：河北滦河，纯橄榄岩铬铁矿体及邻近铂砂矿中。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "historical_book_locality_occurrence_not_specimen_origin",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "book_reported_location_or_occurrence_not_current_specimen_origin",
+        "not_complete_global_distribution",
+        "source_unspecified_location_words_preserved"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-042",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "863057badd89dc38e9d7df90e5fb6dafb50b38565dee83c738327d6396917d01",
+        "proposal_field_sha256": "f114077ab8a0a4cf0c634252f34363d3a428638b8f27dff0259dfa304e43c065"
+      }
+    },
+    {
+      "catalog_id": "ima-chenguodaite",
+      "name_en": "Chenguodaite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 446,
+      "printed_page": "430",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 446,
+          "printed_page": "430",
+          "render_sha256": "dbeacc7149dab63a4555ad1963eff7e6569dd3594283b0197f180db1b3a4f6b9"
+        }
+      ],
+      "field": "formula",
+      "value": "本书名录表将陈国达矿（Chenguodaite）的化学式列为 Ag9FeTe2S4。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "literal_book_formula_not_primary_revision",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "source_notation_matches_current_catalog_after_subscripts_brackets_spaces_only",
+        "no_charge_occupancy_or_hydration_inference"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-043",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "863057badd89dc38e9d7df90e5fb6dafb50b38565dee83c738327d6396917d01",
+        "proposal_field_sha256": "4653db75c44024b70576705f0229d8e79eb556b5b6ade0ca565e3991f447b613"
+      },
+      "formula_display": "Ag9FeTe2S4"
+    },
+    {
+      "catalog_id": "ima-chenguodaite",
+      "name_en": "Chenguodaite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 446,
+      "printed_page": "430",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 446,
+          "printed_page": "430",
+          "render_sha256": "dbeacc7149dab63a4555ad1963eff7e6569dd3594283b0197f180db1b3a4f6b9"
+        }
+      ],
+      "field": "occurrence",
+      "value": "本书名录表为陈国达矿记载的产地或产状是：山东胶东金矿区含金—银的黄铜矿石英脉中。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "historical_book_locality_occurrence_not_specimen_origin",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "book_reported_location_or_occurrence_not_current_specimen_origin",
+        "not_complete_global_distribution",
+        "source_unspecified_location_words_preserved"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-044",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "863057badd89dc38e9d7df90e5fb6dafb50b38565dee83c738327d6396917d01",
+        "proposal_field_sha256": "3640f6531017232a6a524f41a9bee3383ca1d00e252d90f7ad26800e640eeb58"
+      }
+    },
+    {
+      "catalog_id": "ima-ottensite",
+      "name_en": "Ottensite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 446,
+      "printed_page": "430",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 446,
+          "printed_page": "430",
+          "render_sha256": "dbeacc7149dab63a4555ad1963eff7e6569dd3594283b0197f180db1b3a4f6b9"
+        }
+      ],
+      "field": "formula",
+      "value": "本书名录表将欧特恩矿（Ottensite）的化学式列为 Na3(Sb2O3)3(SbS3)·3H2O。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "literal_book_formula_not_primary_revision",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "source_notation_matches_current_catalog_after_subscripts_brackets_spaces_only",
+        "no_charge_occupancy_or_hydration_inference"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-045",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "863057badd89dc38e9d7df90e5fb6dafb50b38565dee83c738327d6396917d01",
+        "proposal_field_sha256": "59e0ee375e3143eb850a06a0233c0d29879c336a2663d2e69372bfdc5cfc97fc"
+      },
+      "formula_display": "Na3(Sb2O3)3(SbS3)·3H2O"
+    },
+    {
+      "catalog_id": "ima-ottensite",
+      "name_en": "Ottensite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 446,
+      "printed_page": "430",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 446,
+          "printed_page": "430",
+          "render_sha256": "dbeacc7149dab63a4555ad1963eff7e6569dd3594283b0197f180db1b3a4f6b9"
+        }
+      ],
+      "field": "occurrence",
+      "value": "本书名录表为欧特恩矿记载的产地或产状是：贵州晴隆锑矿氧化带。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "historical_book_locality_occurrence_not_specimen_origin",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "book_reported_location_or_occurrence_not_current_specimen_origin",
+        "not_complete_global_distribution",
+        "source_unspecified_location_words_preserved"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-046",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "863057badd89dc38e9d7df90e5fb6dafb50b38565dee83c738327d6396917d01",
+        "proposal_field_sha256": "a2516b1848977a7561ae2d5d59284a9d52f658978a29c010018cbbdca4da0c04"
+      }
+    },
+    {
+      "catalog_id": "ima-lisiguangite",
+      "name_en": "Lisiguangite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 446,
+      "printed_page": "430",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 446,
+          "printed_page": "430",
+          "render_sha256": "dbeacc7149dab63a4555ad1963eff7e6569dd3594283b0197f180db1b3a4f6b9"
+        }
+      ],
+      "field": "formula",
+      "value": "本书名录表将李四光矿（Lisiguangite）的化学式列为 CuPtBiS3。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "literal_book_formula_not_primary_revision",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "source_notation_matches_current_catalog_after_subscripts_brackets_spaces_only",
+        "no_charge_occupancy_or_hydration_inference"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-047",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "863057badd89dc38e9d7df90e5fb6dafb50b38565dee83c738327d6396917d01",
+        "proposal_field_sha256": "4043ee6e11b325af2de2b7a2a2514fd58dbd4fc3ac1dca5fcabb55f5f55e67a3"
+      },
+      "formula_display": "CuPtBiS3"
+    },
+    {
+      "catalog_id": "ima-lisiguangite",
+      "name_en": "Lisiguangite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 446,
+      "printed_page": "430",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 446,
+          "printed_page": "430",
+          "render_sha256": "dbeacc7149dab63a4555ad1963eff7e6569dd3594283b0197f180db1b3a4f6b9"
+        }
+      ],
+      "field": "occurrence",
+      "value": "本书名录表为李四光矿记载的产地或产状是：河北滦平石榴石辉石岩体的含铂钴铜硫化物脉中。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "historical_book_locality_occurrence_not_specimen_origin",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "book_reported_location_or_occurrence_not_current_specimen_origin",
+        "not_complete_global_distribution",
+        "source_unspecified_location_words_preserved"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-048",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "863057badd89dc38e9d7df90e5fb6dafb50b38565dee83c738327d6396917d01",
+        "proposal_field_sha256": "c41f63ed77fafc0233ca23773e47a757f67c210c1530dc5672beb80386358b46"
+      }
+    },
+    {
+      "catalog_id": "ima-antimonselite",
+      "name_en": "Antimonselite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 446,
+      "printed_page": "430",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 446,
+          "printed_page": "430",
+          "render_sha256": "dbeacc7149dab63a4555ad1963eff7e6569dd3594283b0197f180db1b3a4f6b9"
+        }
+      ],
+      "field": "formula",
+      "value": "本书名录表将硒锑矿（Antimonselite）的化学式列为 Sb2Se3。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "literal_book_formula_not_primary_revision",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "source_notation_matches_current_catalog_after_subscripts_brackets_spaces_only",
+        "no_charge_occupancy_or_hydration_inference"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-049",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "863057badd89dc38e9d7df90e5fb6dafb50b38565dee83c738327d6396917d01",
+        "proposal_field_sha256": "de29c053316034664830796a37ace362e9dad1aaac412a0dc258ad5947415fec"
+      },
+      "formula_display": "Sb2Se3"
+    },
+    {
+      "catalog_id": "ima-antimonselite",
+      "name_en": "Antimonselite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 446,
+      "printed_page": "430",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 446,
+          "printed_page": "430",
+          "render_sha256": "dbeacc7149dab63a4555ad1963eff7e6569dd3594283b0197f180db1b3a4f6b9"
+        }
+      ],
+      "field": "occurrence",
+      "value": "本书名录表为硒锑矿记载的产地或产状是：贵州504铀汞钼多金属矿。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "historical_book_locality_occurrence_not_specimen_origin",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "book_reported_location_or_occurrence_not_current_specimen_origin",
+        "not_complete_global_distribution",
+        "source_unspecified_location_words_preserved"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-050",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "863057badd89dc38e9d7df90e5fb6dafb50b38565dee83c738327d6396917d01",
+        "proposal_field_sha256": "71ce814faf6c5dc53df2a04dd5988d7e52e9bf88106451c75da2776a74d5d2d1"
+      }
+    },
+    {
+      "catalog_id": "ima-omeiite",
+      "name_en": "Omeiite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 446,
+      "printed_page": "430",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 446,
+          "printed_page": "430",
+          "render_sha256": "dbeacc7149dab63a4555ad1963eff7e6569dd3594283b0197f180db1b3a4f6b9"
+        }
+      ],
+      "field": "occurrence",
+      "value": "本书名录表为峨眉矿记载的产地或产状是：四川某铜镍硫化物型铂矿。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "historical_book_locality_occurrence_not_specimen_origin",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "book_reported_location_or_occurrence_not_current_specimen_origin",
+        "not_complete_global_distribution",
+        "source_unspecified_location_words_preserved"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-051",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "863057badd89dc38e9d7df90e5fb6dafb50b38565dee83c738327d6396917d01",
+        "proposal_field_sha256": "44ca524de4ba3cfe41e75b6c2500e9601b564e58d6626cf8c351f09692b8738b"
+      }
+    },
+    {
+      "catalog_id": "ima-anduoite",
+      "name_en": "Anduoite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 446,
+      "printed_page": "430",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 446,
+          "printed_page": "430",
+          "render_sha256": "dbeacc7149dab63a4555ad1963eff7e6569dd3594283b0197f180db1b3a4f6b9"
+        }
+      ],
+      "field": "formula",
+      "value": "本书名录表将安多矿（Anduoite）的化学式列为 RuAs2。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "literal_book_formula_not_primary_revision",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "source_notation_matches_current_catalog_after_subscripts_brackets_spaces_only",
+        "no_charge_occupancy_or_hydration_inference"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-052",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "863057badd89dc38e9d7df90e5fb6dafb50b38565dee83c738327d6396917d01",
+        "proposal_field_sha256": "798540235effdf90d430551491cc2eb1417259c35ee9c9b8d7185b161bf8c816"
+      },
+      "formula_display": "RuAs2"
+    },
+    {
+      "catalog_id": "ima-anduoite",
+      "name_en": "Anduoite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 446,
+      "printed_page": "430",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 446,
+          "printed_page": "430",
+          "render_sha256": "dbeacc7149dab63a4555ad1963eff7e6569dd3594283b0197f180db1b3a4f6b9"
+        }
+      ],
+      "field": "occurrence",
+      "value": "本书名录表为安多矿记载的产地或产状是：西藏与斜辉辉橄岩和纯橄榄岩有关的铬矿床。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "historical_book_locality_occurrence_not_specimen_origin",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "book_reported_location_or_occurrence_not_current_specimen_origin",
+        "not_complete_global_distribution",
+        "source_unspecified_location_words_preserved"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-053",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "863057badd89dc38e9d7df90e5fb6dafb50b38565dee83c738327d6396917d01",
+        "proposal_field_sha256": "abce6541e8e2e90eba164d2e9359d2e216a7321abd6b6859aab16d041689620d"
+      }
+    },
+    {
+      "catalog_id": "ima-testibiopalladite",
+      "name_en": "Testibiopalladite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 446,
+      "printed_page": "430",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 446,
+          "printed_page": "430",
+          "render_sha256": "dbeacc7149dab63a4555ad1963eff7e6569dd3594283b0197f180db1b3a4f6b9"
+        }
+      ],
+      "field": "formula",
+      "value": "本书名录表将碲锑钯矿（Testibiopalladite）的化学式列为 PdSbTe。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "literal_book_formula_not_primary_revision",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "source_notation_matches_current_catalog_after_subscripts_brackets_spaces_only",
+        "no_charge_occupancy_or_hydration_inference"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-054",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "863057badd89dc38e9d7df90e5fb6dafb50b38565dee83c738327d6396917d01",
+        "proposal_field_sha256": "6124262bee6d3ff76955ed6a17d5e59209f4ffb48b7cda7a6ba32bdbe30cf676"
+      },
+      "formula_display": "PdSbTe"
+    },
+    {
+      "catalog_id": "ima-testibiopalladite",
+      "name_en": "Testibiopalladite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 446,
+      "printed_page": "430",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 446,
+          "printed_page": "430",
+          "render_sha256": "dbeacc7149dab63a4555ad1963eff7e6569dd3594283b0197f180db1b3a4f6b9"
+        }
+      ],
+      "field": "occurrence",
+      "value": "本书名录表为碲锑钯矿记载的产地或产状是：中国东北、西南某基性—超基性岩体有关的铜镍硫化物矿床。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "historical_book_locality_occurrence_not_specimen_origin",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "book_reported_location_or_occurrence_not_current_specimen_origin",
+        "not_complete_global_distribution",
+        "source_unspecified_location_words_preserved"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-055",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "863057badd89dc38e9d7df90e5fb6dafb50b38565dee83c738327d6396917d01",
+        "proposal_field_sha256": "36aab55e07d7494fd117b7d01f7c9144b053826185ed3eaf63b779a2f899ef79"
+      }
+    },
+    {
+      "catalog_id": "ima-shuangfengite",
+      "name_en": "Shuangfengite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 446,
+      "printed_page": "430",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 446,
+          "printed_page": "430",
+          "render_sha256": "dbeacc7149dab63a4555ad1963eff7e6569dd3594283b0197f180db1b3a4f6b9"
+        }
+      ],
+      "field": "formula",
+      "value": "本书名录表将双峰矿（Shuangfengite）的化学式列为 IrTe2。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "literal_book_formula_not_primary_revision",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "source_notation_matches_current_catalog_after_subscripts_brackets_spaces_only",
+        "no_charge_occupancy_or_hydration_inference"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-056",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "863057badd89dc38e9d7df90e5fb6dafb50b38565dee83c738327d6396917d01",
+        "proposal_field_sha256": "be3718d7c4062428da357a8548211adbfaf03a29312e45587bc0dceefb95f3eb"
+      },
+      "formula_display": "IrTe2"
+    },
+    {
+      "catalog_id": "ima-shuangfengite",
+      "name_en": "Shuangfengite",
+      "source_id": "user-book-04",
+      "pdf_page_1based": 446,
+      "printed_page": "430",
+      "table_number": null,
+      "source_pages": [
+        {
+          "pdf_page_1based": 446,
+          "printed_page": "430",
+          "render_sha256": "dbeacc7149dab63a4555ad1963eff7e6569dd3594283b0197f180db1b3a4f6b9"
+        }
+      ],
+      "field": "occurrence",
+      "value": "本书名录表为双峰矿记载的产地或产状是：河北滦河高台铂砂矿。",
+      "status": "reviewed_source_statement",
+      "quantity_kind": "historical_book_locality_occurrence_not_specimen_origin",
+      "unit": null,
+      "hardness_scale": null,
+      "conditions": [
+        "book_reported_location_or_occurrence_not_current_specimen_origin",
+        "not_complete_global_distribution",
+        "source_unspecified_location_words_preserved"
+      ],
+      "limits": [
+        "no_current_specimen_measurement_or_assay_or_origin_assignment",
+        "no_current_specimen_measurement_or_truth_claim",
+        "no_full_book_review_claim",
+        "no_model_score_or_training_use",
+        "no_primary_property_or_catalog_formula_replacement",
+        "no_primary_property_replacement",
+        "selected_page_secondary_book_statement_only"
+      ],
+      "comparison_status": "source_statement_only",
+      "review": {
+        "decision": "approved_source_statement",
+        "approved_candidate_id": "Chinese42-057",
+        "root_record_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+        "source_book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+        "source_evidence_sha256": "863057badd89dc38e9d7df90e5fb6dafb50b38565dee83c738327d6396917d01",
+        "proposal_field_sha256": "4e546b58323a66104a80391b8b44cbd4e11280dfc58239d6fe55ba312b30a24f"
+      }
+    }
+  ],
+  "excluded_candidate_id": "Chinese42-023",
+  "excluded_occurrence_catalog_id": "ima-qusongite",
+  "legacy118_overlay_compact_sorted_SHA256": "0474be64484388147ff1aaa52e04c7e07d032d074fef78205e53c77698ad7bcd",
+  "field_counts": {
+    "crystal_habit": 5,
+    "cleavage": 1,
+    "formula": 23,
+    "occurrence": 27
+  },
+  "book": {
+    "source_id": "user-book-04",
+    "title": "结晶学及矿物学（第三版）",
+    "authors": [
+      "赵珊茸"
+    ],
+    "credit_role": "editor",
+    "book_sha256": "6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25",
+    "root_review_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
+    "status": "reviewed_selected_pages",
+    "source_format": "PDF",
+    "full_book_reviewed": false,
+    "bibliography_note": "仅核对所列资料页，未通读全书。",
+    "subjects": [
+      {
+        "catalog_id": "ima-kyanite",
+        "name_en": "Kyanite",
+        "pdf_page_1based": 341,
+        "printed_page": "325",
+        "table_number": null,
+        "approved_fields": [
+          "crystal_habit",
+          "cleavage"
+        ]
+      },
+      {
+        "catalog_id": "ima-andalusite",
+        "name_en": "Andalusite",
+        "pdf_page_1based": 341,
+        "printed_page": "325",
+        "table_number": null,
+        "approved_fields": [
+          "crystal_habit"
+        ]
+      },
+      {
+        "catalog_id": "ima-epidote",
+        "name_en": "Epidote",
+        "pdf_page_1based": 341,
+        "printed_page": "325",
+        "table_number": null,
+        "approved_fields": [
+          "crystal_habit"
+        ]
+      },
+      {
+        "catalog_id": "ima-beryl",
+        "name_en": "Beryl",
+        "pdf_page_1based": 341,
+        "printed_page": "325",
+        "table_number": null,
+        "approved_fields": [
+          "crystal_habit"
+        ]
+      },
+      {
+        "catalog_id": "ima-prehnite",
+        "name_en": "Prehnite",
+        "pdf_page_1based": 341,
+        "printed_page": "325",
+        "table_number": null,
+        "approved_fields": [
+          "crystal_habit"
+        ]
+      },
+      {
+        "catalog_id": "ima-zircon",
+        "name_en": "Zircon",
+        "pdf_page_1based": 342,
+        "printed_page": "326",
+        "table_number": null,
+        "approved_fields": [
+          "formula"
+        ]
+      },
+      {
+        "catalog_id": "ima-hunchunite",
+        "name_en": "Hunchunite",
+        "pdf_page_1based": 445,
+        "printed_page": "429",
+        "table_number": null,
+        "approved_fields": [
+          "formula",
+          "occurrence"
+        ]
+      },
+      {
+        "catalog_id": "ima-yuanjiangite",
+        "name_en": "Yuanjiangite",
+        "pdf_page_1based": 445,
+        "printed_page": "429",
+        "table_number": null,
+        "approved_fields": [
+          "formula",
+          "occurrence"
+        ]
+      },
+      {
+        "catalog_id": "ima-chengdeite",
+        "name_en": "Chengdeite",
+        "pdf_page_1based": 445,
+        "printed_page": "429",
+        "table_number": null,
+        "approved_fields": [
+          "formula",
+          "occurrence"
+        ]
+      },
+      {
+        "catalog_id": "ima-damiaoite",
+        "name_en": "Damiaoite",
+        "pdf_page_1based": 445,
+        "printed_page": "429",
+        "table_number": null,
+        "approved_fields": [
+          "formula",
+          "occurrence"
+        ]
+      },
+      {
+        "catalog_id": "ima-yixunite",
+        "name_en": "Yixunite",
+        "pdf_page_1based": 445,
+        "printed_page": "429",
+        "table_number": null,
+        "approved_fields": [
+          "formula",
+          "occurrence"
+        ]
+      },
+      {
+        "catalog_id": "ima-titanium",
+        "name_en": "Titanium",
+        "pdf_page_1based": 445,
+        "printed_page": "429",
+        "table_number": null,
+        "approved_fields": [
+          "formula",
+          "occurrence"
+        ]
+      },
+      {
+        "catalog_id": "ima-tongbaite",
+        "name_en": "Tongbaite",
+        "pdf_page_1based": 445,
+        "printed_page": "429",
+        "table_number": null,
+        "approved_fields": [
+          "formula",
+          "occurrence"
+        ]
+      },
+      {
+        "catalog_id": "ima-qusongite",
+        "name_en": "Qusongite",
+        "pdf_page_1based": 445,
+        "printed_page": "429",
+        "table_number": null,
+        "approved_fields": [
+          "formula"
+        ]
+      },
+      {
+        "catalog_id": "ima-yarlongite",
+        "name_en": "Yarlongite",
+        "pdf_page_1based": 445,
+        "printed_page": "429",
+        "table_number": null,
+        "approved_fields": [
+          "occurrence"
+        ]
+      },
+      {
+        "catalog_id": "ima-xifengite",
+        "name_en": "Xifengite",
+        "pdf_page_1based": 445,
+        "printed_page": "429",
+        "table_number": null,
+        "approved_fields": [
+          "formula",
+          "occurrence"
+        ]
+      },
+      {
+        "catalog_id": "ima-zangboite",
+        "name_en": "Zangboite",
+        "pdf_page_1based": 445,
+        "printed_page": "429",
+        "table_number": null,
+        "approved_fields": [
+          "formula",
+          "occurrence"
+        ]
+      },
+      {
+        "catalog_id": "ima-naquite",
+        "name_en": "Naquite",
+        "pdf_page_1based": 445,
+        "printed_page": "429",
+        "table_number": null,
+        "approved_fields": [
+          "formula",
+          "occurrence"
+        ]
+      },
+      {
+        "catalog_id": "ima-linzhiite",
+        "name_en": "Linzhiite",
+        "pdf_page_1based": 445,
+        "printed_page": "429",
+        "table_number": null,
+        "approved_fields": [
+          "formula",
+          "occurrence"
+        ]
+      },
+      {
+        "catalog_id": "ima-qingsongite",
+        "name_en": "Qingsongite",
+        "pdf_page_1based": 445,
+        "printed_page": "429",
+        "table_number": null,
+        "approved_fields": [
+          "occurrence"
+        ]
+      },
+      {
+        "catalog_id": "ima-daomanite",
+        "name_en": "Daomanite",
+        "pdf_page_1based": 446,
+        "printed_page": "430",
+        "table_number": null,
+        "approved_fields": [
+          "occurrence"
+        ]
+      },
+      {
+        "catalog_id": "ima-xingzhongite",
+        "name_en": "Xingzhongite",
+        "pdf_page_1based": 446,
+        "printed_page": "430",
+        "table_number": null,
+        "approved_fields": [
+          "occurrence"
+        ]
+      },
+      {
+        "catalog_id": "ima-ruarsite",
+        "name_en": "Ruarsite",
+        "pdf_page_1based": 446,
+        "printed_page": "430",
+        "table_number": null,
+        "approved_fields": [
+          "formula",
+          "occurrence"
+        ]
+      },
+      {
+        "catalog_id": "ima-xilingolite",
+        "name_en": "Xilingolite",
+        "pdf_page_1based": 446,
+        "printed_page": "430",
+        "table_number": null,
+        "approved_fields": [
+          "formula",
+          "occurrence"
+        ]
+      },
+      {
+        "catalog_id": "ima-malanite",
+        "name_en": "Malanite",
+        "pdf_page_1based": 446,
+        "printed_page": "430",
+        "table_number": null,
+        "approved_fields": [
+          "occurrence"
+        ]
+      },
+      {
+        "catalog_id": "ima-changchengite",
+        "name_en": "Changchengite",
+        "pdf_page_1based": 446,
+        "printed_page": "430",
+        "table_number": null,
+        "approved_fields": [
+          "formula",
+          "occurrence"
+        ]
+      },
+      {
+        "catalog_id": "ima-chenguodaite",
+        "name_en": "Chenguodaite",
+        "pdf_page_1based": 446,
+        "printed_page": "430",
+        "table_number": null,
+        "approved_fields": [
+          "formula",
+          "occurrence"
+        ]
+      },
+      {
+        "catalog_id": "ima-ottensite",
+        "name_en": "Ottensite",
+        "pdf_page_1based": 446,
+        "printed_page": "430",
+        "table_number": null,
+        "approved_fields": [
+          "formula",
+          "occurrence"
+        ]
+      },
+      {
+        "catalog_id": "ima-lisiguangite",
+        "name_en": "Lisiguangite",
+        "pdf_page_1based": 446,
+        "printed_page": "430",
+        "table_number": null,
+        "approved_fields": [
+          "formula",
+          "occurrence"
+        ]
+      },
+      {
+        "catalog_id": "ima-antimonselite",
+        "name_en": "Antimonselite",
+        "pdf_page_1based": 446,
+        "printed_page": "430",
+        "table_number": null,
+        "approved_fields": [
+          "formula",
+          "occurrence"
+        ]
+      },
+      {
+        "catalog_id": "ima-omeiite",
+        "name_en": "Omeiite",
+        "pdf_page_1based": 446,
+        "printed_page": "430",
+        "table_number": null,
+        "approved_fields": [
+          "occurrence"
+        ]
+      },
+      {
+        "catalog_id": "ima-anduoite",
+        "name_en": "Anduoite",
+        "pdf_page_1based": 446,
+        "printed_page": "430",
+        "table_number": null,
+        "approved_fields": [
+          "formula",
+          "occurrence"
+        ]
+      },
+      {
+        "catalog_id": "ima-testibiopalladite",
+        "name_en": "Testibiopalladite",
+        "pdf_page_1based": 446,
+        "printed_page": "430",
+        "table_number": null,
+        "approved_fields": [
+          "formula",
+          "occurrence"
+        ]
+      },
+      {
+        "catalog_id": "ima-shuangfengite",
+        "name_en": "Shuangfengite",
+        "pdf_page_1based": 446,
+        "printed_page": "430",
+        "table_number": null,
+        "approved_fields": [
+          "formula",
+          "occurrence"
+        ]
+      }
+    ]
+  }
+}

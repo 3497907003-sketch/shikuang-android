@@ -152,7 +152,8 @@ test('the three OCR-reviewed mineral pages show27 separate statements with sourc
   }
   await f.documentClick('[data-detail]',{detail:'catalog:ima-andalusite'});
   const sections=[...f.node('detailBody').innerHTML.matchAll(/<section class="detail-section book-evidence-section"[\s\S]*?<\/section>/g)].map(m=>m[0]);
-  assert.equal(sections.length,2);const added=sections.find(s=>s.includes('PDF 第 59 页 · 印刷页 53'));
+  const earlier=sections.filter(s=>!s.includes('结晶学及矿物学（第三版）'));
+  assert.equal(earlier.length,2);const added=earlier.find(s=>s.includes('PDF 第 59 页 · 印刷页 53'));
   assert.equal((added.match(/data-book-field=/g)||[]).length,6);assert.match(added,/3\.1～3\.2 g\/cm³/);assert.match(added,/测定方式未注明/);
 });
 
@@ -176,4 +177,188 @@ test('OCR-reviewed occurrence and habit never become physical evidence or image-
   const sourceRows=catalog.reviewed_book_evidence.records.filter(r=>r.catalog_id==='ima-clinoclase');
   assert.deepEqual(Core.evidenceFor({reviewed_book_evidence:sourceRows},{hardness:'2.5',luster:'glass'}),[]);
   assert.deepEqual(Object.keys(f.context.MINERAL_CLASSES),['quartz']);
+});
+
+test('all40 approved source statements render Chinese fields and every contributing source page',async()=>{
+  const rows=catalog.reviewed_book_evidence.records.filter(r=>r.review.root_record_sha256==='ac37968d5d88c49cef73182cd5cf5426991922540fce73d7c4f190ae5cb3fe56');
+  assert.equal(rows.length,40);assert.equal(catalog.minerals.length,6239);
+  const f=fixture({catalog});await f.settle();
+  const escape=s=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  for(const id of new Set(rows.map(r=>r.catalog_id))){
+    await f.documentClick('[data-detail]',{detail:'catalog:'+id});const body=f.node('detailBody').innerHTML;
+    for(const row of rows.filter(r=>r.catalog_id===id)){
+      assert.ok(body.includes(escape(row.value)),row.review.approved_candidate_id);
+      for(const page of row.source_pages)assert.ok(body.includes('PDF 第 '+page.pdf_page_1based+' 页'),row.review.approved_candidate_id);
+    }
+    assert.doesNotMatch(body,/undefined|\/Users\/|native_text_path|full_page_render|[a-f0-9]{64}/);
+  }
+});
+
+test('explicit Mohs reference standards and ranges remain ordinal, with no unknown-scale claim',async()=>{
+  const f=fixture({catalog});await f.settle();
+  for(const [id,value] of [['ima-diamond','10'],['ima-graphite','1–2'],['ima-talc','1 级标准']]){
+    await f.documentClick('[data-detail]',{detail:'catalog:'+id});const html=f.node('detailBody').innerHTML;
+    assert.ok(html.includes(value));assert.match(html,/明确标注莫氏硬度/);assert.match(html,/顺序标度，不表示硬度倍数/);
+    assert.doesNotMatch(section(html),/该页未明示硬度标度/);
+  }
+});
+
+test('processing, habit and qualitative comparisons have readable labels and source limits',async()=>{
+  const f=fixture({catalog});await f.settle();
+  await f.documentClick('[data-detail]',{detail:'catalog:ima-gypsum'});let html=f.node('detailBody').innerHTML;
+  for(const label of ['抛光外观示例','双晶示例','加工过程','加工材料使用','集合体与产状示例'])assert.ok(html.includes(label),label);
+  assert.match(html,/温度和脱水程度/);assert.match(html,/不替代当前天然标本的物性/);
+  await f.documentClick('[data-detail]',{detail:'catalog:ima-pyrite'});html=(f.node('detailBody').innerHTML.match(/<section class="detail-section book-evidence-section"[\s\S]*?<\/section>/g)||[]).join('');
+  assert.match(html,/硬度定性比较/);assert.match(html,/密度定性比较/);assert.match(html,/不补数值、标度或单位/);
+  assert.doesNotMatch(html,/g\/cm³|无量纲，不替代实测密度|明确标注莫氏硬度/);
+});
+
+test('book42 wrong scales, new quantities, missing page proof and review mismatch fail closed',async()=>{
+  for(const mode of ['ratio','unknown-scale','numeric-comparison','missing-page','wrong-render','wrong-review']){
+    const c=structuredClone(catalog),id=mode==='numeric-comparison'?'ima-pyrite':'ima-graphite';
+    const row=c.reviewed_book_evidence.records.find(r=>r.catalog_id===id&&r.field===(mode==='numeric-comparison'?'density_comparison':'hardness'));
+    if(mode==='ratio')row.unit='ratio';
+    if(mode==='unknown-scale')row.quantity_kind='hardness_scale_unspecified';
+    if(mode==='numeric-comparison'){row.quantity_kind='relative_density';row.unit='dimensionless';}
+    if(mode==='missing-page')row.source_pages=[null];
+    if(mode==='wrong-render')row.source_pages[0].render_sha256='0'.repeat(64);
+    if(mode==='wrong-review')row.review.root_record_sha256='0'.repeat(64);
+    const before=JSON.stringify(c.minerals),f=fixture({catalog:c});await f.settle();
+    await f.documentClick('[data-detail]',{detail:'catalog:'+id});assert.equal(section(f.node('detailBody').innerHTML),'',mode);
+    assert.equal(JSON.stringify(c.minerals),before);assert.deepEqual(Core.evidenceFor({reviewed_book_evidence:[row]},{hardness:'7'}),[]);
+  }
+});
+
+test('reviewed bibliography shows known authors and omits unknown-author credit without process placeholders',async()=>{
+  const f=fixture({catalog});await f.settle();
+  const sections=()=>f.node('detailBody').innerHTML.match(/<section class="detail-section book-evidence-section"[\s\S]*?<\/section>/g)||[];
+  await f.documentClick('[data-detail]',{detail:'catalog:ima-graphite'});
+  const first=sections().find(s=>s.includes('Eyewitness Rocks &amp; Minerals'))||'';
+  assert.match(first,/作者：Dr R\. F\. Symes、伦敦自然历史博物馆工作人员/);
+  assert.match(first,/出版：DK Publishing/);assert.match(first,/美国修订版，2008/);assert.match(first,/978-0-7566-3777-4/);assert.match(first,/书目页：PDF 第 4、5 页/);
+  await f.documentClick('[data-detail]',{detail:'catalog:ima-pyrite'});
+  const second=sections().find(s=>s.includes('The Rock &amp; Gem Book'))||'';
+  assert.match(second,/出版：DK Publishing/);assert.match(second,/美国第一版，2016/);assert.match(second,/978-1-4654-5070-8/);assert.match(second,/书目页：PDF 第 1、6 页/);
+  assert.match(second,/仅核对所列资料页，未通读全书。/);assert.doesNotMatch(second,/作者：|主编：|作者未在本批|本批未另行|new-book-|[a-f0-9]{64}/);
+});
+
+test('unknown-author exception rejects invented names, missing proof and other-source empty credits',async()=>{
+  for(const mode of ['DK-author','editor-author','missing-proof','wrong-bib-proof','wrong-source','other-source-empty']){
+    const c=structuredClone(catalog),book=c.reviewed_book_evidence.books.find(b=>b.source_id==='new-book-07');
+    if(mode==='DK-author')book.authors=['DK'];
+    if(mode==='editor-author')book.authors=['Bharti Bedi'];
+    if(mode==='missing-proof')delete book.bibliography_review;
+    if(mode==='wrong-bib-proof')book.bibliography_review.root_record_sha256='0'.repeat(64);
+    if(mode==='wrong-source')book.book_sha256='0'.repeat(64);
+    if(mode==='other-source-empty')c.reviewed_book_evidence.books[0].authors=[];
+    const f=fixture({catalog:c});await f.settle();await f.documentClick('[data-detail]',{detail:'catalog:'+(mode==='other-source-empty'?'ima-jadeite':'ima-pyrite')});
+    assert.equal(section(f.node('detailBody').innerHTML),'',mode);
+  }
+});
+
+test('books scope selects actual reviewed rows only and does not change model scope or trust reported counts',async()=>{
+  const actual=catalog.minerals.find(r=>r.id==='ima-aragonite');
+  for(const mode of ['valid','missing-review','marker-only']){
+    const c=structuredClone(catalog),o=c.reviewed_book_evidence;
+    c.minerals=[{id:'ima-quartz',name_en:'Quartz',detail_key:'quartz'},{id:actual.id,name_en:actual.name_en,formula:actual.formula}];
+    o.records=o.records.filter(r=>r.catalog_id===actual.id);o.withheld=o.withheld.filter(r=>r.catalog_id===actual.id);
+    if(mode==='missing-review')delete o.records[0].review;
+    if(mode==='marker-only'){o.records=[];for(const book of o.books)for(const subject of book.subjects)if(subject.catalog_id===actual.id)subject.approved_fields=[];}
+    const f=fixture({catalog:c});await f.settle();let requests=0;f.context.fetch=()=>{requests++;throw Error('no extra request');};
+    f.node('libraryScope').value='books';f.node('libraryScope').fire('change');
+    assert.equal((f.node('libraryList').innerHTML.match(/data-detail=/g)||[]).length,mode==='valid'?1:0,mode);
+    if(mode==='valid'){assert.match(f.node('libraryList').innerHTML,/catalog:ima-aragonite/);assert.match(f.node('catalogIntro').innerHTML,/书籍核对：1 种矿物/);assert.match(f.node('catalogIntro').innerHTML,/所选书页/);assert.doesNotMatch(f.node('catalogIntro').innerHTML,/118 条陈述/);}
+    else assert.doesNotMatch(f.node('catalogIntro').innerHTML,/书籍核对：/);
+    f.node('libraryScope').value='model';f.node('libraryScope').fire('change');assert.equal((f.node('libraryList').innerHTML.match(/data-detail=/g)||[]).length,1);
+    assert.deepEqual(Object.keys(f.context.MINERAL_CLASSES),['quartz']);assert.equal(requests,0);
+  }
+});
+
+test('Chinese56 keeps all reviewed narratives and separate literal formulas with explicit source conditions',async()=>{
+  const rows=catalog.reviewed_book_evidence.records.filter(r=>r.source_id==='user-book-04');
+  assert.equal(rows.length,56);assert.equal(new Set(rows.map(r=>r.catalog_id)).size,34);
+  assert.equal(catalog.reviewed_book_evidence.records.length,174);assert.equal(catalog.reviewed_book_evidence.books.length,10);
+  assert.equal(catalog.reviewed_book_evidence.counts.selected_source_pages,20);
+  const before=JSON.stringify(catalog.minerals),f=fixture({catalog});await f.settle();let calls=0;f.context.fetch=()=>{calls++;throw Error('no extra requests');};
+  const escape=s=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  for(const id of new Set(rows.map(r=>r.catalog_id))){
+    await f.documentClick('[data-detail]',{detail:'catalog:'+id});
+    const blocks=f.node('detailBody').innerHTML.match(/<section class="detail-section book-evidence-section"[\s\S]*?<\/section>/g)||[];
+    const text=blocks.find(s=>s.includes('结晶学及矿物学（第三版）'))||'';
+    assert.match(text,/主编：赵珊茸/);assert.match(text,/仅核对所列资料页，未通读全书。/);
+    assert.doesNotMatch(text,/ISBN|出版：|\/Users\/|Chinese42-|[a-f0-9]{64}/);
+    for(const row of rows.filter(r=>r.catalog_id===id)){
+      assert.ok(text.includes(escape(row.value)),row.review.approved_candidate_id);
+      assert.ok(text.includes('PDF 第 '+row.pdf_page_1based+' 页'));assert.ok(text.includes('印刷页 '+row.printed_page));
+      if(row.field==='formula'){
+        const formula=text.match(/<div data-book-formula>[\s\S]*?<\/div>/)?.[0]||'';
+        assert.ok(formula.includes('aria-label="'+escape(row.formula_display)+'"'));
+        assert.doesNotMatch(formula,/本书|化学式列为|Hunchunite|Zircon/);
+        assert.equal(formula.replace(/<[^>]+>/g,''),row.formula_display);
+        if(row.review.approved_candidate_id==='Chinese42-007')assert.match(formula,/Zr\[SiO<sub>4<\/sub>\]/);
+        if(row.review.approved_candidate_id==='Chinese42-045'){
+          assert.match(formula,/Na<sub>3<\/sub>\(Sb<sub>2<\/sub>O<sub>3<\/sub>\)<sub>3<\/sub>\(SbS<sub>3<\/sub>\)·3H<sub>2<\/sub>O/);
+          assert.doesNotMatch(formula,/·<sub>3<\/sub>/);
+        }
+        assert.ok(text.includes('<small class="field-hint">'+escape(row.value)+'</small>'));
+      }
+      if(row.field==='occurrence')assert.match(text,/不代表完整分布或独立核实过的当前产地/);
+      if(row.field==='crystal_habit')assert.match(text,/不代表全部标本/);
+      if(row.field==='cleavage')assert.match(text,/只列本书明确写出的 \{100\} 面族，不是完整解理清单/);
+    }
+  }
+  assert.equal(calls,0);assert.equal(JSON.stringify(catalog.minerals),before);
+});
+
+test('Chinese56 exact proof blocks unresolved locality, wrong formula, altered page and invented credit',async()=>{
+  for(const mode of ['held-023','formula-narrative','missing-formula','wrong-render','wrong-Root','invented-year','wrong-editor','changed-narrative','missing-condition']){
+    const c=structuredClone(catalog),o=c.reviewed_book_evidence;
+    let id='ima-zircon',row=o.records.find(r=>r.source_id==='user-book-04'&&r.catalog_id===id);
+    if(mode==='held-023'){
+      id='ima-qusongite';row=o.records.find(r=>r.source_id==='user-book-04'&&r.catalog_id===id);
+      row.review.approved_candidate_id='Chinese42-023';row.field='occurrence';row.quantity_kind='historical_book_locality_occurrence_not_specimen_origin';
+      o.books.find(b=>b.source_id==='user-book-04').subjects.find(s=>s.catalog_id===id).approved_fields=['occurrence'];
+    }
+    if(mode==='formula-narrative')row.formula_display=row.value;
+    if(mode==='missing-formula')delete row.formula_display;
+    if(mode==='wrong-render')row.source_pages[0].render_sha256='0'.repeat(64);
+    if(mode==='wrong-Root')row.review.root_record_sha256='0'.repeat(64);
+    if(mode==='invented-year')o.books.find(b=>b.source_id==='user-book-04').edition='2026';
+    if(mode==='wrong-editor')o.books.find(b=>b.source_id==='user-book-04').credit_role='author';
+    if(mode==='changed-narrative')row.value='当前标本产地已确认';
+    if(mode==='missing-condition')row.conditions=[];
+    const f=fixture({catalog:c});await f.settle();await f.documentClick('[data-detail]',{detail:'catalog:'+id});
+    assert.equal(section(f.node('detailBody').innerHTML),'',mode);
+  }
+});
+
+test('Chinese56 adds61 actual book species without adding model labels or the held Qusongite locality',async()=>{
+  const f=fixture({catalog});await f.settle();f.node('libraryScope').value='books';f.node('libraryScope').fire('change');
+  assert.equal((f.node('libraryList').innerHTML.match(/data-detail=/g)||[]).length,61);
+  assert.match(f.node('catalogIntro').innerHTML,/书籍核对：61 种矿物、174 条陈述/);
+  assert.match(f.node('catalogIntro').innerHTML,/所选书页/);
+  const rows=catalog.reviewed_book_evidence.records.filter(r=>r.source_id==='user-book-04'&&r.catalog_id==='ima-qusongite');
+  assert.deepEqual(rows.map(r=>r.field),['formula']);
+  assert.equal(rows[0].review.approved_candidate_id,'Chinese42-022');
+  await f.documentClick('[data-detail]',{detail:'catalog:ima-qusongite'});
+  assert.doesNotMatch(section(f.node('detailBody').innerHTML),/白云鄂博|萤石包裹体|当前标本来自/);
+  assert.deepEqual(Object.keys(f.context.MINERAL_CLASSES),['quartz']);
+  assert.deepEqual(Core.evidenceFor({reviewed_book_evidence:catalog.reviewed_book_evidence},{hardness:'9',luster:'metal'}),[]);
+});
+
+test('locked book43 ASCII counts use subscripts while hydrate coefficient and escaped raw text remain intact',()=>{
+  const app=fs.readFileSync(require.resolve('../web/app.js'),'utf8');
+  const source=app.match(/function book43FormulaMarkup\(value\)\{[\s\S]*?\n  \}/)?.[0];assert.ok(source);
+  assert.doesNotMatch(source,/\(\?<=[^)]|\(\?<!/);
+  const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const render=require('node:vm').runInNewContext('('+source+')',{html:escape});
+  for(const [raw,body] of [
+    ['Zr[SiO4]','Zr[SiO<sub>4</sub>]'],
+    ['Na3(Sb2O3)3(SbS3)·3H2O','Na<sub>3</sub>(Sb<sub>2</sub>O<sub>3</sub>)<sub>3</sub>(SbS<sub>3</sub>)·3H<sub>2</sub>O'],
+    ['PtIn2','PtIn<sub>2</sub>'],['WC','WC'],['AuSn','AuSn'],
+    ['<b>PtIn2 & "raw"</b>','&lt;b&gt;PtIn<sub>2</sub> &amp; &quot;raw&quot;&lt;/b&gt;']
+  ]){
+    const result=render(raw);assert.equal(result,`<span class="formula" aria-label="${escape(raw)}">${body}</span>`);
+    assert.doesNotMatch(result,/<b>|<img|<script|·<sub>3<\/sub>/);
+  }
 });

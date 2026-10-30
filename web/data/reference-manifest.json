@@ -15,15 +15,15 @@
     "verified_catalog_fields": 1027,
     "catalog_species_with_literature_facts": 113,
     "verified_literature_fields": 224,
-    "reviewed_book_source_statements": 118,
-    "reviewed_book_source_pages": 16,
+    "reviewed_book_source_statements": 174,
+    "reviewed_book_source_pages": 20,
     "reviewed_book_withheld_fields": 1
   },
   "files": [
     {
       "path": "data/catalog.json",
-      "bytes": 4819086,
-      "sha256": "16d8b65bed358cfbe494e1a6ed1158c80560dc360cad4ec360cc68e6b24714f9"
+      "bytes": 4909626,
+      "sha256": "0ec5ec2d6cf44da6e3d5dc1425cdf40c2d9cb1282192a11e6283053c1745d00d"
     },
     {
       "path": "data/crystals.json",
