@@ -53,8 +53,17 @@ class RuntimeMatrixTests(unittest.TestCase):
         self.assertIn('-Pandroid.testInstrumentationRunnerArguments.expectedPageSize=${{ matrix.pageSize }}',source)
         self.assertIn('com.shikuang.app.MineralModelContractTest,com.shikuang.app.ReviewedPhotoAssetsInstrumentedTest,com.shikuang.app.MineralEngineInstrumentedTest',source)
         self.assertIn('--expected-page-size ${{ matrix.pageSize }}',source)
-        # Dedicated diagnostic jobs retain their pre-existing RAM and dispatch isolation.
-        self.assertEqual(source.count('-memory 3072'),2)
+        # Each dedicated job owns its RAM setting. The lifecycle comparison now
+        # uses the reviewed 4GiB recovery environment; the native-dialog probe
+        # retains 3GiB. Neither setting may leak into the ordinary runtime job.
+        runtime,diagnostics=source.split('\n  lifecycle-diagnostic:',1)
+        lifecycle,native_dialog=diagnostics.split('\n  native-dialog-diagnostic:',1)
+        self.assertIn("SHIKUANG_DIAGNOSTIC_MEMORY_MIB: '4096'",lifecycle)
+        self.assertIn('test "$SHIKUANG_DIAGNOSTIC_MEMORY_MIB" = 4096',lifecycle)
+        self.assertIn('-memory "$SHIKUANG_DIAGNOSTIC_MEMORY_MIB"',lifecycle)
+        self.assertNotIn('-memory 3072',lifecycle)
+        self.assertIn('-memory 3072',native_dialog)
+        self.assertNotIn('SHIKUANG_DIAGNOSTIC_MEMORY_MIB',runtime)
         self.assertIn("if: ${{ !(github.event_name == 'workflow_dispatch' && (inputs.lifecycle_diagnostic || inputs.native_dialog_diagnostic)) }}",source)
 
 if __name__=='__main__':unittest.main()
