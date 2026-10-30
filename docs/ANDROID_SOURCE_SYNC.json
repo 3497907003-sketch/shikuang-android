@@ -1,7 +1,7 @@
 {
-  "source_commit": "21b8af178f6b36289775150dc34f95539758dcca",
+  "source_commit": "92d774bc1f0d717fd19072c6473fc46010d03be6",
   "source_repository": "https://github.com/3497907003-sketch/shikuang-app",
-  "source_method": "Exact committed Root-reviewed OCR book27 increment; three raw assets only,11 unchanged build inputs,168 immutable canonical assets staged and compared before writes. Primary6239 objects and old51 book records preserved;78 statements/7 sources/10 pages. No index/guide/native/model/inference/CI/device/release change.",
+  "source_method": "Exact committed Root-reviewed book118/9-source/16-page content and bibliography,28-species book filter. Only three raw assets changed;11 build inputs unchanged; immutable canonical168 SHA/literal comparison. No model/native/GUI/16K/accuracy/release claim.",
   "applicationVersion": "2.5.0-preview.1",
   "androidVersionCode": 25001,
   "packageName": "com.shikuang.app.preview",
@@ -9,8 +9,8 @@
   "assets": [
     {
       "path": "app.js",
-      "bytes": 123035,
-      "sha256": "7a0eef52bc5b0166cd933d123047e0c9c0f2cd9a175079bb508f9042d767701e"
+      "bytes": 132027,
+      "sha256": "8072655aeb5138dd256cf343c274af74f5678356227d44e8577e5725a3e7b615"
     },
     {
       "path": "compat.js",
@@ -29,8 +29,8 @@
     },
     {
       "path": "data/catalog.json",
-      "bytes": 4759703,
-      "sha256": "34e1dc4c293ddab612025eb797353e31a4d41fcf9c298c774bafc41e057b24a8"
+      "bytes": 4819086,
+      "sha256": "16d8b65bed358cfbe494e1a6ed1158c80560dc360cad4ec360cc68e6b24714f9"
     },
     {
       "path": "data/classes.js",
@@ -69,8 +69,8 @@
     },
     {
       "path": "data/reference-manifest.json",
-      "bytes": 1764,
-      "sha256": "e63b41188927c812e63bf7ed0171bc99e4e72e039d638ee14af79447f409517e"
+      "bytes": 1765,
+      "sha256": "d9e49afbd0fdd7af4b3454827285b747324c3ab9adcbfcb8738e7125d1696104"
     },
     {
       "path": "data/reviewed-photo-assets.json",
@@ -851,7 +851,7 @@
   "assetCount": 168,
   "publishedPhotos": 117,
   "scope": "Local preview source and packaged-asset identity; not field accuracy, new model training, CI, physical-device acceptance or a public release",
-  "local_sync_at": "2026-10-30T08:34:03.760560+08:00",
+  "local_sync_at": "2026-10-30T02:26:56.776643+00:00",
   "developmentRevision": "r9",
   "public_deployment_verified_for_this_sync": false,
   "historical_production_web_merge": "95b4b4e4d1d9be561a18ed745c95eb60f0b6ab0f",

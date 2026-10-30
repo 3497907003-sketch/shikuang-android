@@ -311,7 +311,7 @@
   const makeLibraryItem=(key,detail,reference)=>({key,detail,reference,
     title:detail?.name_zh||reviewedCatalogName(reference)?.name_zh||reference?.name_en||detail?.name_en||key,
     english:reference?.name_en||detail?.name_en||'',formula:reference?.formula||detail?.formula||'',
-    model:referenceModelSupported(reference,key),expanded:!!detail||hasReviewedReferenceDetails(reference),crystals:reference?crystalById.get(reference.id)||[]:[],
+    model:referenceModelSupported(reference,key),expanded:!!detail||hasReviewedReferenceDetails(reference),books:reviewedBookGroups(reference).some(group=>group.rows.length>0),crystals:reference?crystalById.get(reference.id)||[]:[],
     search:normalizeSearch([key,detail?.name_zh,reviewedCatalogName(reference)?.name_zh,detail?.name_en,detail?.formula,reference?.name_en,reference?.formula,...(Array.isArray(reference?.aliases_en)?reference.aliases_en:[])].filter(Boolean).join('\n'))});
   function rebuildReferenceIndex(){
     catalog=window.MINERAL_CATALOG||{};crystalSource=window.MINERAL_CRYSTAL_RECORDS||{};imageSource=window.MINERAL_IMAGE_SOURCES||{};
@@ -340,12 +340,13 @@
     const handbookCount=catalogRows.filter(row=>safeLink(row.handbook_url)).length;
     const reviewed= row=>Object.values(row.physical_properties||{}).filter(prop=>prop.status==='verified'&&prop.value!==null&&prop.value!==undefined);
     const physicalSpecies=catalogRows.filter(row=>reviewed(row).length).length,physicalFields=catalogRows.reduce((sum,row)=>sum+reviewed(row).length,0);
-    $('#catalogIntro').innerHTML=`<strong>${catalogRows.length?`官方目录 ${catalogRows.length} 种 · ${handbookCount} 个详细 PDF 链接 · ${crystalById.size} 种有晶胞记录`:'原有矿物资料'}</strong><p>名称与化学式可离线搜索。基础目录未提供的中文名、物性与成因不会自动补写；新增资料不会增加图像模型类别。${catalogRows.length?'IMA 状态与首次发现国家按原表保留。晶胞为文献样品数据，PDF 全文需要联网。':''}</p>${physicalFields?`<p>已核对物性：${physicalSpecies} 种矿物、${physicalFields} 项属性，默认中文显示并保留来源与样品条件。缺失、推定及待复核属性不作为已知物性。</p>`:''}${Number(window.MINERAL_CATALOG?.literature_stats?.verified_literature_fields)>0?`<p>已核对产状与分布：${html(window.MINERAL_CATALOG.literature_stats.catalog_species_with_literature_facts)} 种矿物、${html(window.MINERAL_CATALOG.literature_stats.verified_literature_fields)} 项资料，详情按字段列出文献页码；典型分布不代表当前标本产地。</p>`:''}${imageRows.length?`<p>标本图库：${imageRows.length} 条图片出处，涉及 ${imagesByName.size} 个矿物名称；通过训练审核 ${imageRows.filter(row=>row.training_ready===true).length} 条，内置真实照片 ${imageRows.filter(localPhoto).length} 张。图库用于外观对照和查阅出处，不代表模型训练完成或独立物相确认。</p>`:''}${catalogRows.length?`<details class="catalog-attribution"><summary>资料来源与许可</summary>${catalogSourceMarkup()}</details>`:''}`;
+    const bookGroups=catalogRows.map(row=>reviewedBookGroups(row)),bookSpecies=bookGroups.filter(groups=>groups.some(group=>group.rows.length>0)).length,bookStatements=bookGroups.reduce((sum,groups)=>sum+groups.reduce((n,group)=>n+group.rows.length,0),0);
+    $('#catalogIntro').innerHTML=`<strong>${catalogRows.length?`官方目录 ${catalogRows.length} 种 · ${handbookCount} 个详细 PDF 链接 · ${crystalById.size} 种有晶胞记录`:'原有矿物资料'}</strong><p>名称与化学式可离线搜索。基础目录未提供的中文名、物性与成因不会自动补写；新增资料不会增加图像模型类别。${catalogRows.length?'IMA 状态与首次发现国家按原表保留。晶胞为文献样品数据，PDF 全文需要联网。':''}</p>${physicalFields?`<p>已核对物性：${physicalSpecies} 种矿物、${physicalFields} 项属性，默认中文显示并保留来源与样品条件。缺失、推定及待复核属性不作为已知物性。</p>`:''}${Number(window.MINERAL_CATALOG?.literature_stats?.verified_literature_fields)>0?`<p>已核对产状与分布：${html(window.MINERAL_CATALOG.literature_stats.catalog_species_with_literature_facts)} 种矿物、${html(window.MINERAL_CATALOG.literature_stats.verified_literature_fields)} 项资料，详情按字段列出文献页码；典型分布不代表当前标本产地。</p>`:''}${bookStatements?`<p>书籍核对：${bookSpecies} 种矿物、${bookStatements} 条陈述，仅覆盖所选书页，不表示通读全书或新增图像识别类别。</p>`:''}${imageRows.length?`<p>标本图库：${imageRows.length} 条图片出处，涉及 ${imagesByName.size} 个矿物名称；通过训练审核 ${imageRows.filter(row=>row.training_ready===true).length} 条，内置真实照片 ${imageRows.filter(localPhoto).length} 张。图库用于外观对照和查阅出处，不代表模型训练完成或独立物相确认。</p>`:''}${catalogRows.length?`<details class="catalog-attribution"><summary>资料来源与许可</summary>${catalogSourceMarkup()}</details>`:''}`;
     $('#coverageInfo').textContent=`当前图像模型有 ${Object.keys(MINERAL_CLASSES).length} 个原有标签，原有扩展资料 ${Object.keys(MINERAL_KB).length} 条${catalogRows.length?`，官方基础目录 ${catalogRows.length} 种、${handbookCount} 个在线详细 PDF 链接、${crystalById.size} 种文献晶胞记录`:''}。目录覆盖不等于图像识别范围；现场准确率与未覆盖对象拒判能力仍待盲测。`;
   }
   function initializeCatalogUi(){
     rebuildReferenceIndex();
-    $('.library-tools').insertAdjacentHTML('afterbegin','<select id="libraryScope" aria-label="按资料范围筛选"><option value="all">全部目录</option><option value="expanded">有扩展资料</option><option value="model">图像模型范围</option><option value="crystals">有晶胞记录</option></select>');
+    $('.library-tools').insertAdjacentHTML('afterbegin','<select id="libraryScope" aria-label="按资料范围筛选"><option value="all">全部目录</option><option value="expanded">有扩展资料</option><option value="books">有书籍核对</option><option value="model">图像模型范围</option><option value="crystals">有晶胞记录</option></select>');
     $('#libraryList').insertAdjacentHTML('beforebegin','<aside id="catalogIntro" class="catalog-intro"></aside><div class="catalog-loading"><p id="catalogLoadState" role="status" aria-live="polite"></p><button id="catalogRetry" type="button" class="secondary" hidden>重试打开完整资料库</button></div>');
     $('#libraryList').insertAdjacentHTML('afterend','<div class="library-pagination"><p id="libraryStatus" role="status" aria-live="polite"></p><button id="libraryMore" type="button" class="secondary" hidden>加载更多 80 项</button></div>');
     $('#libraryScope').addEventListener('change',()=>{updateClassFilter();});$('#libraryMore').addEventListener('click',()=>{appendLibraryPage();});
@@ -633,13 +634,40 @@
     if(row.table_number)parts.push('表 '+row.table_number);
     return parts.join(' · ');
   }
+  const book42ReviewSHA="ac37968d5d88c49cef73182cd5cf5426991922540fce73d7c4f190ae5cb3fe56",book42Sources={"new-book-04":"2a85c6aa9b07c88f114c393bfcb5f61d14062da9052194f1ed6cac6ad6c0366b","new-book-07":"5d4d810a96f8905e0ddb3603424627b3e74b6fce00e5872e7c051a337cc1740d"},book42Pages={"new-book-04":{"49":{"printed_page":"48","render_sha256":"cbe182b5a52132f3c36eb0f8849c30e5b74bbb89aa67e2c1bce912b8935fd2dc"},"50":{"printed_page":"49","render_sha256":"8973e582bf1075025efc09d93f4bcde4c2c6cce9d4148871f28851fb63056f2e"}},"new-book-07":{"64":{"printed_page":"62","render_sha256":"2f3f746252c8a760931539cd992121141badad37b3b6c1ae6a4acfb9ce421b19"},"65":{"printed_page":"63","render_sha256":"e454abddb3c637730c34f32a824affd39e6425623a8ca7a3c4b2814501affa6a"},"92":{"printed_page":"90","render_sha256":"0cd03493e81119c12eb2417732fd13c5e22bbd890eed4ca2ed2d99d1dd2618f5"},"93":{"printed_page":"91","render_sha256":"74f4497bc9abb7faf04f188f4aae2903f015aeae17413ba3457e02897afcbde4"}}},book42FieldKinds={"aggregate_and_occurrence_example":["literal_source_statement"],"aggregate_habit":["literal_source_statement"],"cleavage":["literal_source_statement"],"color":["literal_source_statement"],"crystal_habit":["literal_source_statement"],"crystal_system":["crystal_system_terminology"],"density_comparison":["qualitative_mass_density_comparison"],"form_and_use_description":["literal_source_statement"],"form_description":["literal_source_statement"],"formation":["literal_source_statement","qualitative_formation_condition"],"fracture":["literal_source_statement"],"hardness":["Mohs_hardness_range","Mohs_hardness_reference_value","Mohs_scale_reference_standard"],"hardness_comparison":["qualitative_hardness_comparison"],"luster":["literal_source_statement"],"optical_effect":["literal_source_statement"],"processed_material_use":["literal_source_statement"],"processing":["literal_source_statement"],"streak":["literal_source_statement"],"structure_description":["atomic_layer_structure_source_model","atomic_neighbor_count_in_source_model"],"surface_finish_example":["literal_source_statement"],"twin_example":["literal_source_statement"],"uses":["literal_source_statement"]};
+  const book42Bibliography={"new-book-04":{"title":"Eyewitness Rocks & Minerals","authors":["Dr R. F. Symes","伦敦自然历史博物馆工作人员"],"publisher":"DK Publishing","edition":"美国修订版，2008","isbn":"978-0-7566-3777-4","bibliographic_pdf_pages":[4,5],"bibliography_note":"仅核对所列资料页，未通读全书。","credit_role":"author","bibliography_review":{"decision":"Root_approved_bibliographic_pages","root_record_sha256":"5b82c863a8c5f70acb2ff264b157c4bb71141d660ee644975ea75cdb3e03842d","root_record_bytes":4132,"source_book_sha256":"2a85c6aa9b07c88f114c393bfcb5f61d14062da9052194f1ed6cac6ad6c0366b"}},"new-book-07":{"title":"The Rock & Gem Book: And Other Treasures of the Natural World","authors":[],"publisher":"DK Publishing","edition":"美国第一版，2016","isbn":"978-1-4654-5070-8","bibliographic_pdf_pages":[1,6],"bibliography_note":"仅核对所列资料页，未通读全书。","author_credit_status":"not_stated_on_reviewed_bibliographic_pages","bibliography_review":{"decision":"Root_approved_bibliographic_pages","root_record_sha256":"5b82c863a8c5f70acb2ff264b157c4bb71141d660ee644975ea75cdb3e03842d","root_record_bytes":4132,"source_book_sha256":"5d4d810a96f8905e0ddb3603424627b3e74b6fce00e5872e7c051a337cc1740d"}}};
+  function bookBibliographyValid(book){
+    const fixed=book42Bibliography[book?.source_id];
+    if(!fixed||book.book_sha256!==book42Sources[book.source_id]||(book.source_id==='new-book-07'&&book.credit_role!==undefined))return false;
+    const same=(a,b)=>Array.isArray(b)?Array.isArray(a)&&a.length===b.length&&b.every((v,i)=>same(a[i],v)):b&&typeof b==='object'?a&&typeof a==='object'&&!Array.isArray(a)&&Object.keys(a).length===Object.keys(b).length&&Object.keys(b).every(k=>same(a[k],b[k])):a===b;
+    return Object.keys(fixed).every(key=>same(book[key],fixed[key]));
+  }
+  function bookRowSemantics(row){
+    if(Object.prototype.hasOwnProperty.call(book42Sources,row.source_id)){
+      if(row.review?.root_record_sha256!==book42ReviewSHA||row.review.source_book_sha256!==book42Sources[row.source_id]||!/^book42-(00[1-9]|0[1-3][0-9]|040)$/.test(row.review.approved_candidate_id||'')||!book42FieldKinds[row.field]?.includes(row.quantity_kind)||!Array.isArray(row.conditions)||row.conditions.some(x=>typeof x!=='string'||x.length>200)||!["no_current_specimen_measurement_or_truth_claim","no_full_book_review_claim","no_model_score_or_training_use","no_primary_property_replacement","selected_page_secondary_book_statement_only"].every(x=>row.limits.includes(x)))return false;
+      if(row.field==='hardness'){
+        if(!['Mohs_hardness_reference_value','Mohs_hardness_range','Mohs_scale_reference_standard'].includes(row.quantity_kind)||row.unit!=='Mohs'||row.hardness_scale!=='Mohs'||!row.limits.includes('ordinal_scale_not_a_ratio_scale'))return false;
+      }else if(row.unit!==(row.quantity_kind==='atomic_neighbor_count_in_source_model'?'neighbor_atoms':null)||row.hardness_scale!==null)return false;
+      const pages=row.source_pages;
+      if(!Array.isArray(pages)||pages.length<1||pages.length>2||pages.some(p=>!p||typeof p!=='object'||Array.isArray(p))||new Set(pages.map(p=>p.pdf_page_1based)).size!==pages.length)return false;
+      for(const page of pages){const fixed=book42Pages[row.source_id][String(page.pdf_page_1based)];if(Object.keys(page).sort().join(',')!=='pdf_page_1based,printed_page,render_sha256'||!fixed||fixed.printed_page!==page.printed_page||fixed.render_sha256!==page.render_sha256)return false;}
+      return pages[0].pdf_page_1based===row.pdf_page_1based&&pages[0].printed_page===row.printed_page;
+    }
+    if(["aggregate_and_occurrence_example","aggregate_habit","color","crystal_habit","density_comparison","form_and_use_description","form_description","formation","fracture","hardness_comparison","optical_effect","processed_material_use","processing","structure_description","surface_finish_example","twin_example"].includes(row.field))return false;
+    return !(row.field==='hardness'&&(row.quantity_kind!=='hardness_scale_unspecified'||row.unit!==null||row.hardness_scale!==null||!row.limits.includes('hardness_scale_not_explicit_on_source_page')))&&
+      !(row.field==='relative_density'&&(row.quantity_kind!=='relative_density'||row.unit!=='dimensionless'||!row.limits.includes('relative_density_is_not_measured_density')))&&
+      !(row.field==='density'&&(row.quantity_kind!=='mass_density_method_unspecified'||row.unit!=='g/cm³'||!['mass_density_not_dimensionless_relative_density','measurement_method_temperature_and_uncertainty_not_reported','do_not_label_measured_or_calculated'].every(limit=>row.limits.includes(limit))))&&
+      !(row.field==='uses'&&(row.quantity_kind!=='literature_use_statement'||!row.limits.includes('no_current_specimen_measurement')))&&
+      !(['occurrence','habit'].includes(row.field)&&(row.quantity_kind!=='literal_source_statement'||!['no_current_specimen_measurement','no_primary_property_replacement','no_model_score_or_training_use'].every(limit=>row.limits.includes(limit))))&&
+      (['hardness','relative_density','density'].includes(row.field)||row.unit===null);
+  }
   function reviewedBookGroups(reference){
     if(!reference||!bookEvidenceIndex)return [];
     const rows=bookEvidenceIndex.rows.get(reference.id)||[],held=bookEvidenceIndex.held.get(reference.id)||[];
     // Per-species bounds protect this detail view, without limiting the full library.
     if((!rows.length&&!held.length)||rows.length>128||held.length>32)return [];
-    const labels=['formula','hardness','relative_density','density','crystal_system','cleavage','luster','streak','uses','occurrence','habit'],hash=value=>/^[a-f0-9]{64}$/.test(value||'');
-    const intakeHashes={'new-book-03':'6b61c081c7f630e787486cadb2fcaf40539f746a47f69f2aa43a42e16c9765f1','new-book-08':'af7dc5ce2fd8e6c9c1d05025521d249fecb5afcbad5490f3ee642c5eb5132a89','new-book-11':'0106f3f8fd882fd4b5b3e4dbb7cafc11abba909af4ff7c863a27592bbabefdf6','new-book-13':'d2a548bd548e4995d8bd92f21568e2e0d7c7e15afc0da832af9cdf48e4ad456c'};
+    const labels=[...new Set(['formula','hardness','relative_density','density','crystal_system','cleavage','luster','streak','uses','occurrence','habit',...Object.keys(book42FieldKinds)])],hash=value=>/^[a-f0-9]{64}$/.test(value||'');
+    const intakeHashes={...book42Sources,'new-book-03':'6b61c081c7f630e787486cadb2fcaf40539f746a47f69f2aa43a42e16c9765f1','new-book-08':'af7dc5ce2fd8e6c9c1d05025521d249fecb5afcbad5490f3ee642c5eb5132a89','new-book-11':'0106f3f8fd882fd4b5b3e4dbb7cafc11abba909af4ff7c863a27592bbabefdf6','new-book-13':'d2a548bd548e4995d8bd92f21568e2e0d7c7e15afc0da832af9cdf48e4ad456c'};
     const intakeAliases={'new-book-02':['user-book-17','66b43cd348f1f902380d86a3fb2c1db005990ece468c6428cff82d44d57c9702'],'new-book-12':['user-book-07','e3e256234aaec3ff754b8d36f1bdea4993b4ef93d59bf0a2a4df04c0e93a9011']};
     const publicText=value=>typeof value==='string'&&!/\/Users\/|file:\/\/|EPUB\/|private-sources\/|private-books\.sqlite3/.test(value);
     const sourceIds=[...new Set([...rows,...held].map(row=>row.source_id))],groups=[];
@@ -647,7 +675,8 @@
     for(const sourceId of sourceIds){
       const sources=bookEvidenceIndex.books.get(sourceId)||[],book=sources.length===1?sources[0]:null;
       if(typeof sourceId!=='string'||(!/^user-book-\d{2,}$/.test(sourceId)&&intakeHashes[sourceId]!==book?.book_sha256))return [];
-      if(book?.status!=='reviewed_selected_pages'||book.full_book_reviewed!==false||!hash(book.book_sha256)||!hash(book.root_review_sha256)||!publicText(book.title)||!book.title.trim()||book.title.length>200||!Array.isArray(book.authors)||!book.authors.length||book.authors.length>8||book.authors.some(author=>!publicText(author)||!author.trim()||author.length>80)||!Array.isArray(book.subjects)||!['author','editor'].includes(book.credit_role||'author'))return [];
+      if(book?.status!=='reviewed_selected_pages'||book.full_book_reviewed!==false||!hash(book.book_sha256)||!hash(book.root_review_sha256)||!publicText(book.title)||!book.title.trim()||book.title.length>200||!Array.isArray(book.authors)||(!book.authors.length&&!(sourceId==='new-book-07'&&bookBibliographyValid(book)))||book.authors.length>8||book.authors.some(author=>!publicText(author)||!author.trim()||author.length>80)||!Array.isArray(book.subjects)||!['author','editor'].includes(book.credit_role||'author'))return [];
+      if((Object.prototype.hasOwnProperty.call(book42Sources,sourceId)||book.bibliography_review!==undefined)&&!bookBibliographyValid(book))return [];
       if(book.bibliography_note!==undefined&&(!publicText(book.bibliography_note)||!book.bibliography_note.trim()||book.bibliography_note.length>200))return [];
       if(book.intake_aliases!==undefined){
         if(!Array.isArray(book.intake_aliases)||book.intake_aliases.length!==1)return [];
@@ -668,12 +697,7 @@
           const review=row.review;
           return row.name_en!==reference.name_en||row.status!=='reviewed_source_statement'||!publicText(row.value)||!row.value.trim()||row.value.length>250||!bookPageValid(row)||row.printed_page!==subject.printed_page||row.table_number!==subject.table_number||review?.decision!=='approved_source_statement'||review.root_record_sha256!==reviewHash||review.source_book_sha256!==book.book_sha256||!hash(review.source_evidence_sha256)||!hash(review.proposal_field_sha256)||!Array.isArray(row.limits)||
             (row.printed_page===null&&!row.limits.includes('printed_folio_not_visible_do_not_invent'))||
-            (row.field==='hardness'&&(row.quantity_kind!=='hardness_scale_unspecified'||row.unit!==null||row.hardness_scale!==null||!row.limits.includes('hardness_scale_not_explicit_on_source_page')))||
-            (row.field==='relative_density'&&(row.quantity_kind!=='relative_density'||row.unit!=='dimensionless'||!row.limits.includes('relative_density_is_not_measured_density')))||
-            (row.field==='density'&&(row.quantity_kind!=='mass_density_method_unspecified'||row.unit!=='g/cm³'||!['mass_density_not_dimensionless_relative_density','measurement_method_temperature_and_uncertainty_not_reported','do_not_label_measured_or_calculated'].every(limit=>row.limits.includes(limit))))||
-            (row.field==='uses'&&(row.quantity_kind!=='literature_use_statement'||!row.limits.includes('no_current_specimen_measurement')))||
-            (['occurrence','habit'].includes(row.field)&&(row.quantity_kind!=='literal_source_statement'||!['no_current_specimen_measurement','no_primary_property_replacement','no_model_score_or_training_use'].every(limit=>row.limits.includes(limit))))||
-            (!['hardness','relative_density','density'].includes(row.field)&&row.unit!==null);
+            !bookRowSemantics(row);
         }))return [];
         selected.forEach(row=>assigned.add(identity(row)));
         const markers=heldPages.has(pageKey)?[]:waiting.filter(row=>bookPageKey(row)===pageKey);
@@ -685,23 +709,30 @@
     return groups;
   }
   function bookEvidenceSection(reference){
-    const labels={formula:'化学式',hardness:'硬度',relative_density:'相对密度',density:'密度（测法未注明）',crystal_system:'晶系',cleavage:'解理',luster:'光泽',streak:'条痕',uses:'用途',occurrence:'成因与产出（书籍陈述）',habit:'晶体习性'};
+    const labels={formula:'化学式',hardness:'硬度',relative_density:'相对密度',density:'密度（测法未注明）',crystal_system:'晶系',cleavage:'解理',luster:'光泽',streak:'条痕',uses:'用途',occurrence:'成因与产出（书籍陈述）',habit:'晶体习性',structure_description:"结构模型描述",formation:"形成条件与途径",fracture:"断口",optical_effect:"光学现象示例",color:"颜色示例",crystal_habit:"晶体习性",aggregate_habit:"集合体习性",hardness_comparison:"硬度定性比较",density_comparison:"密度定性比较",form_description:"形态描述",form_and_use_description:"形态与用途",surface_finish_example:"抛光外观示例",twin_example:"双晶示例",processing:"加工过程",processed_material_use:"加工材料使用",aggregate_and_occurrence_example:"集合体与产状示例"};
     return reviewedBookGroups(reference).map(group=>{
       const {book,subject}=group;
       const values=group.rows.map(row=>{
         const notes=[];
-        if(row.field==='hardness')notes.push('该页未明示硬度标度。');
+        if(row.field==='hardness')notes.push(row.hardness_scale==='Mohs'?'书中明确标注莫氏硬度；这是顺序标度，不表示硬度倍数，不是对当前标本的实测。':'该页未明示硬度标度。');
         if(row.field==='relative_density')notes.push('无量纲，不替代实测密度。');
         if(row.field==='density')notes.push('单位 g/cm³；测定方式未注明，不替代主资料的实测密度。');
         if(row.field==='uses')notes.push('用途为该书一般资料，不代表当前标本的工业品级。');
         if(row.field==='occurrence')notes.push('书中列举的一般形成环境，不代表当前标本的形成环境、产地或物相。');
         if(row.field==='habit')notes.push('书中列举的晶体与集合体形态，不是对当前标本的测量。');
+        if(row.source_id in book42Sources){
+          if(row.source_pages.length>1)notes.push(row.source_pages.map(bookPageLabel).join('；'));
+          if(row.field==='hardness_comparison'||row.field==='density_comparison')notes.push('仅为定性比较，不补数值、标度或单位，不进行比例或单位换算。');
+          if(['processing','processed_material_use','surface_finish_example'].includes(row.field))notes.push('只描述书中加工材料或外观，不替代当前天然标本的物性。');
+          if(['formation','aggregate_and_occurrence_example'].includes(row.field))notes.push('书中列举的途径或形态示例，不代表当前标本的形成环境、产地或物相。');
+          if(['structure_description','crystal_habit','aggregate_habit','form_description','form_and_use_description','twin_example','optical_effect'].includes(row.field))notes.push('书中模型或可见现象示例，不是对当前标本的测量，也不代表全部标本。');
+        }
         if(row.comparison_status==='source_internal_description_differs')notes.push('该书表格与正文措辞不同，两处分别保留。');
         else if(row.limits.includes('retain_source_description_difference')||row.comparison_status==='source_description_differs')notes.push('与主资料表述不同，分别保留来源。');
         const value=row.field==='formula'?formulaMarkup(row.value):html(row.value);
         return `<div data-book-field="${html(row.field)}"><dt>${labels[row.field]}</dt><dd><div class="property-value">${value}</div>${notes.length?`<small class="property-source">${html(notes.join(' '))}</small>`:''}</dd></div>`;
       }).join('')+group.held.map(()=>'<div data-book-field="cleavage" data-book-held><dt>解理</dt><dd>暂未采纳<small class="property-source">该页描述有歧义，暂不作为资料结论。</small></dd></div>').join('');
-      return `<section class="detail-section book-evidence-section" data-book-evidence="reviewed"><h3>书籍资料核对</h3><p>${html(book.title)}</p><p class="field-hint">${book.credit_role==='editor'?'主编':'作者'}：${html(book.authors.join('、'))} · ${html(bookPageLabel(subject))}</p>${book.bibliography_note?`<p class="field-hint">${html(book.bibliography_note)}</p>`:''}<p class="field-hint">供交叉查阅，主资料与书中表述分别保留。</p><dl class="detail-properties">${values}</dl></section>`;
+      return `<section class="detail-section book-evidence-section" data-book-evidence="reviewed"><h3>书籍资料核对</h3><p>${html(book.title)}</p><p class="field-hint">${book.authors.length?`${book.credit_role==='editor'?'主编':'作者'}：${html(book.authors.join('、'))} · `:''}${html(bookPageLabel(subject))}</p>${bookBibliographyValid(book)?`<p class="field-hint">出版：${html(book.publisher)} · ${html(book.edition)} · ISBN ${html(book.isbn)}</p><p class="field-hint">书目页：PDF 第 ${html(book.bibliographic_pdf_pages.join("、"))} 页</p>`:''}${book.bibliography_note?`<p class="field-hint">${html(book.bibliography_note)}</p>`:''}<p class="field-hint">供交叉查阅，主资料与书中表述分别保留。</p><dl class="detail-properties">${values}</dl></section>`;
     }).join('');
   }
   function literatureSection(reference,field,title) {
@@ -805,7 +836,7 @@
   const schemes={strunz_10:['自然元素','硫化物','卤化物','氧化物','硝酸盐/碳酸盐','硼酸盐','硫酸盐','磷酸盐','硅酸盐','有机化合物'],class_9:['自然元素','硫化物/硫盐','卤化物','氧化物/氢氧化物','硝酸盐','碳酸盐','钼酸盐/钨酸盐','磷酸盐/砷酸盐/钒酸盐','硅酸盐'],class_8:['自然元素','硫化物','卤化物','氧化物及氢氧化物','碳酸盐/硝酸盐/硼酸盐','硫酸盐','磷酸盐','硅酸盐']};
   function category(k,scheme){let value=k.classification?.[scheme]||'';if(scheme==='strunz_10'&&['碳酸盐','硝酸盐'].includes(value))value='硝酸盐/碳酸盐';if(scheme==='strunz_10'&&value.startsWith('氧化物'))value='氧化物';if(scheme==='class_8'&&value.startsWith('氧化物'))value='氧化物及氢氧化物';return schemes[scheme]?.includes(value)?value:'体系外 / 待核对';}
   function libraryCategory(item,scheme){return item.detail?.classification?category(item.detail,scheme):'分类未收录';}
-  function libraryScopeMatches(item,scope){return scope==='expanded'?item.expanded:scope==='model'?item.model:scope==='crystals'?item.crystals.length>0:true;}
+  function libraryScopeMatches(item,scope){return scope==='expanded'?item.expanded:scope==='books'?item.books:scope==='model'?item.model:scope==='crystals'?item.crystals.length>0:true;}
   function updateClassFilter(){const scheme=$('#classScheme').value,scope=$('#libraryScope').value||'all',previous=$('#classFilter').value,available=libraryItems.filter(item=>libraryScopeMatches(item,scope));const counts=new Map();available.forEach(item=>{const key=libraryCategory(item,scheme);counts.set(key,(counts.get(key)||0)+1);});const labels=[...schemes[scheme],'体系外 / 待核对','分类未收录'];$('#classFilter').innerHTML='<option value="">全部类别</option>'+labels.map(c=>`<option value="${html(c)}">${html(c)} · ${counts.get(c)||0}</option>`).join('');$('#classFilter').value=labels.includes(previous)?previous:'';renderLibrary();}
   function renderSearchHistory(){const rows=SearchHistory.read();for(const kind of ['library','records']){const entries=rows.map((x,i)=>({...x,index:i})).filter(x=>x.kind===kind);$(kind==='library'?'#searchHistory':'#recordSearchHistory').innerHTML=entries.length?'<div class="history-heading"><span>历史搜索 · 本机</span><button type="button" data-clear-history>清空全部历史</button></div><div class="history-chips">'+entries.map(x=>`<button type="button" data-history="${x.index}">${html(x.query)}</button>`).join('')+'</div>':'';}}
   function saveSearch(kind){SearchHistory.save($(kind==='library'?'#librarySearch':'#recordSearch').value,kind);renderSearchHistory();}
