@@ -36,7 +36,13 @@ android {
             if (System.getenv('SHIKUANG_SIGNING_FILE')) signingConfig signingConfigs.previewStable
             applicationIdSuffix ".preview"
             versionNameSuffix "-preview.1"
-            manifestPlaceholders = [appLabel: "识矿 2.5 预览"]
+            // Explicit debug A/B diagnostic only. Default and release remain accelerated.
+            def shikuangSoftwareDrawProbe = providers.gradleProperty('shikuangSoftwareDrawProbe').orElse('false').get()
+            if (!(shikuangSoftwareDrawProbe in ['true', 'false'])) {
+                throw new GradleException('shikuangSoftwareDrawProbe must be literal true or false')
+            }
+            manifestPlaceholders = [appLabel: "识矿 2.5 预览",
+                shikuangDiagnosticHardwareAcceleration: shikuangSoftwareDrawProbe == 'true' ? 'false' : 'true']
         }
         release {
             minifyEnabled false

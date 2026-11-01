@@ -31,13 +31,18 @@ on:
         required: false
         type: boolean
         default: false
+      webview_render_diagnostic:
+        description: 'One debug-only API35/16K accelerated/software drawing pair; not product acceptance'
+        required: false
+        type: boolean
+        default: false
       expected_source_sha:
-        description: 'Exact reviewed commit required for lifecycle or finite native-dialog diagnostic mode'
+        description: 'Exact reviewed commit required for lifecycle, native-dialog or drawing diagnostic mode'
         required: false
         type: string
         default: ''
       unit_nonce:
-        description: 'Fresh 32 lower-case hex value required for lifecycle or finite native-dialog diagnostic mode'
+        description: 'Fresh 32 lower-case hex value required for lifecycle, native-dialog or drawing diagnostic mode'
         required: false
         type: string
         default: ''
@@ -47,18 +52,55 @@ concurrency:
   group: android-runtime-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 jobs:
+  dispatch-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    env:
+      RENDER_DIAGNOSTIC: ${{ inputs.webview_render_diagnostic }}
+      NETWORK_PROBE: ${{ inputs.network_probe }}
+      NATIVE_DIALOG_DIAGNOSTIC: ${{ inputs.native_dialog_diagnostic }}
+      LIFECYCLE_DIAGNOSTIC: ${{ inputs.lifecycle_diagnostic }}
+      RUNTIME_16K_ONLY: ${{ inputs.runtime_api35_16k_only }}
+      EXPECTED_SOURCE: ${{ inputs.expected_source_sha }}
+      UNIT_NONCE: ${{ inputs.unit_nonce }}
+    steps:
+      - name: Reject mixed drawing diagnostics before checkout or SDK preparation
+        shell: bash
+        run: |
+          python3 -B - <<'PY_RENDER_DISPATCH'
+          import json, os, re
+          e = os.environ
+          if e.get('RENDER_DIAGNOSTIC') == 'true':
+              if not (e.get('GITHUB_EVENT_NAME') == 'workflow_dispatch'
+                      and e.get('GITHUB_RUN_ATTEMPT') == '1'
+                      and all(e.get(k) == 'false' for k in ('NETWORK_PROBE', 'NATIVE_DIALOG_DIAGNOSTIC', 'LIFECYCLE_DIAGNOSTIC', 'RUNTIME_16K_ONLY'))
+                      and re.fullmatch('[a-f0-9]{40}', e.get('EXPECTED_SOURCE', ''))
+                      and e.get('EXPECTED_SOURCE') == e.get('GITHUB_SHA')
+                      and re.fullmatch('[a-f0-9]{32}', e.get('UNIT_NONCE', ''))):
+                  raise SystemExit('drawing_diagnostic_dispatch_rejected')
+          print(json.dumps({'drawing_diagnostic': e.get('RENDER_DIAGNOSTIC') == 'true', 'product_acceptance': False}))
+          PY_RENDER_DISPATCH
   runtime:
+    needs: dispatch-contract
     if: ${{ !(github.event_name == 'workflow_dispatch' && (inputs.lifecycle_diagnostic || inputs.native_dialog_diagnostic)) }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
       ANDROID_AVD_HOME: /tmp/shikuang-avd
+      ORG_GRADLE_PROJECT_shikuangSoftwareDrawProbe: ${{ matrix.softwareDrawProbe || 'false' }}
+      SHIKUANG_RENDER_DIAGNOSTIC: ${{ inputs.webview_render_diagnostic }}
+      SHIKUANG_RENDER_CASE: ${{ matrix.renderCase || '' }}
+      SHIKUANG_RENDER_EXPECTED_SOURCE: ${{ inputs.expected_source_sha }}
+      SHIKUANG_RENDER_UNIT_NONCE: ${{ inputs.unit_nonce }}
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJSON(inputs.network_probe && '[{"api":35,"id":"35","tag":"google_apis","pageSize":4096}]' || inputs.runtime_api35_16k_only && '[{"api":35,"id":"35-16k","tag":"google_apis_ps16k","pageSize":16384}]' || '[{"api":24,"id":"24","tag":"google_apis","pageSize":4096},{"api":30,"id":"30","tag":"google_apis","pageSize":4096},{"api":35,"id":"35","tag":"google_apis","pageSize":4096},{"api":35,"id":"35-16k","tag":"google_apis_ps16k","pageSize":16384}]') }}
+        include: ${{ fromJSON(inputs.webview_render_diagnostic && '[{"api":35,"id":"35-16k","tag":"google_apis_ps16k","pageSize":16384,"renderCase":"accelerated","softwareDrawProbe":"false"},{"api":35,"id":"35-16k","tag":"google_apis_ps16k","pageSize":16384,"renderCase":"software","softwareDrawProbe":"true"}]' || inputs.network_probe && '[{"api":35,"id":"35","tag":"google_apis","pageSize":4096}]' || inputs.runtime_api35_16k_only && '[{"api":35,"id":"35-16k","tag":"google_apis_ps16k","pageSize":16384}]' || '[{"api":24,"id":"24","tag":"google_apis","pageSize":4096},{"api":30,"id":"30","tag":"google_apis","pageSize":4096},{"api":35,"id":"35","tag":"google_apis","pageSize":4096},{"api":35,"id":"35-16k","tag":"google_apis_ps16k","pageSize":16384}]') }}
     steps:
       - uses: actions/checkout@v4
+      - name: Record exact drawing diagnostic profile
+        if: ${{ inputs.webview_render_diagnostic }}
+        run: python3 -B tools/android_webview_render_diagnostic.py profile --out runtime-artifacts/drawing-diagnostic/profile.json
       - uses: actions/setup-node@v4
         if: ${{ !inputs.network_probe }}
         with:
@@ -80,6 +122,7 @@ jobs:
           python3 -B -m unittest discover -s tools -p test_android_offline_setup.py
           python3 -B -m unittest discover -s tools -p test_android_pixel_launcher_setup.py
           python3 -B -m unittest discover -s tools -p test_android_runtime_matrix.py
+          python3 -B -m unittest discover -s tools -p test_android_webview_render_diagnostic.py
       - name: Install official Android emulator image
         shell: bash
         run: |
@@ -299,6 +342,7 @@ jobs:
           timeout 15 adb -s emulator-5554 shell service check package > runtime-artifacts/package-service-before-install.txt 2>&1
           printf 'package_service_exit=%s\n' "$?" >> runtime-artifacts/pre-install-command-status.txt
       - name: Run packaged WebView with actual native ONNX inference
+        id: native
         if: ${{ !inputs.network_probe }}
         working-directory: android
         # These contracts support this API/page-size matrix. The dedicated
@@ -310,7 +354,11 @@ jobs:
           -Pandroid.testInstrumentationRunnerArguments.expectedPageSize=${{ matrix.pageSize }}
           -Pandroid.testInstrumentationRunnerArguments.class=com.shikuang.app.MineralModelContractTest,com.shikuang.app.ReviewedPhotoAssetsInstrumentedTest,com.shikuang.app.MineralEngineInstrumentedTest
           connectedDebugAndroidTest
+      - name: Require all nine tests in the drawing diagnostic
+        if: ${{ success() && inputs.webview_render_diagnostic }}
+        run: python3 -B tools/verify_ordinary_nine_test_results.py
       - name: Verify offline history after actual host force-stop and new App process
+        id: cold
         if: ${{ success() && !inputs.network_probe }}
         shell: bash
         run: >-
@@ -361,6 +409,12 @@ jobs:
               else:
                   shutil.copy2(file, output)
           PYOUTPUT
+      - name: Extract actual drawing observations without hiding runtime failure
+        if: ${{ always() && inputs.webview_render_diagnostic }}
+        env:
+          SHIKUANG_NATIVE_OUTCOME: ${{ steps.native.outcome }}
+          SHIKUANG_COLD_OUTCOME: ${{ steps.cold.outcome }}
+        run: python3 -B tools/android_webview_render_diagnostic.py collect --profile runtime-artifacts/drawing-diagnostic/profile.json --root runtime-artifacts --out runtime-artifacts/drawing-diagnostic/actual-draws.json
       - name: Require screenshots and JSON from successful runtime tests
         if: ${{ success() && !inputs.network_probe }}
         shell: bash
@@ -505,7 +559,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ${{ inputs.network_probe && 'shikuang-network-probe-api35' || format('shikuang-runtime-api-{0}', matrix.id) }}
+          name: ${{ inputs.webview_render_diagnostic && format('shikuang-drawing-diagnostic-{0}-{1}-{2}', matrix.id, matrix.renderCase, github.run_id) || inputs.network_probe && 'shikuang-network-probe-api35' || format('shikuang-runtime-api-{0}', matrix.id) }}
           path: |
             runtime-artifacts/
             android/app/build/reports/androidTests/
@@ -513,6 +567,7 @@ jobs:
             android/app/build/outputs/connected_android_test_additional_output/
           if-no-files-found: warn
   lifecycle-diagnostic:
+    needs: dispatch-contract
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.lifecycle_diagnostic && !inputs.native_dialog_diagnostic }}
     runs-on: ubuntu-latest
     timeout-minutes: 35
@@ -667,6 +722,7 @@ jobs:
           if-no-files-found: error
 
   native-dialog-diagnostic:
+    needs: dispatch-contract
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.native_dialog_diagnostic }}
     runs-on: ubuntu-latest
     timeout-minutes: 40

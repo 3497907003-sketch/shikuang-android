@@ -12,10 +12,12 @@ class RuntimeMatrixTests(unittest.TestCase):
     def test_default_four_and_optional_16K_selection_preserve_exact_profiles_with_probe_priority(self):
         source=WORKFLOW.read_text()
         expression=next(line.strip()[len('include: '):] for line in source.splitlines() if line.strip().startswith('include: '))
-        match=re.fullmatch(r"\$\{\{ fromJSON\(inputs\.network_probe && '([^']+)' \|\| inputs\.runtime_api35_16k_only && '([^']+)' \|\| '([^']+)'\) \}\}",expression)
-        self.assertIsNotNone(match,'network probe must remain the first selection')
-        network,single,default=[json.loads(x) for x in match.groups()]
+        match=re.fullmatch(r"\$\{\{ fromJSON\(inputs\.webview_render_diagnostic && '([^']+)' \|\| inputs\.network_probe && '([^']+)' \|\| inputs\.runtime_api35_16k_only && '([^']+)' \|\| '([^']+)'\) \}\}",expression)
+        self.assertIsNotNone(match,'ordinary network priority remains when the exclusive drawing diagnostic is absent')
+        drawing,network,single,default=[json.loads(x) for x in match.groups()]
         self.assertEqual(default,FOUR);self.assertEqual(single,[FOUR[3]]);self.assertEqual(network,[FOUR[2]])
+        self.assertEqual([{k:v for k,v in row.items() if k not in ('renderCase','softwareDrawProbe')} for row in drawing],[FOUR[3],FOUR[3]])
+        self.assertEqual([(r['renderCase'],r['softwareDrawProbe']) for r in drawing],[('accelerated','false'),('software','true')])
         for probe,only,expected in [(False,False,FOUR),(False,True,[FOUR[3]]),(True,False,[FOUR[2]]),(True,True,[FOUR[2]])]:
             selected=network if probe else single if only else default
             self.assertEqual(selected,expected)
