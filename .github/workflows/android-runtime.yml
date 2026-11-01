@@ -937,8 +937,10 @@ jobs:
           printf 'no\n' | "$SHIKUANG_PRETEST_SDK/cmdline-tools/latest/bin/avdmanager" create avd --name "shikuang-pretest-${{ inputs.unit_nonce }}" --package "system-images;android-35;google_apis_ps16k;x86_64" --device pixel_2 --path "$ANDROID_AVD_HOME/fresh.avd"
           cp "$SHIKUANG_PRETEST_SDK/system-images/android-35/google_apis_ps16k/x86_64/source.properties" runtime-artifacts/pretest-install/image-source.properties
           cp "$SHIKUANG_PRETEST_SDK/system-images/android-35/google_apis_ps16k/x86_64/package.xml" runtime-artifacts/pretest-install/image-package.xml
-          "$SHIKUANG_PRETEST_SDK/emulator/emulator" -version > runtime-artifacts/pretest-install/emulator-version.txt
+          cp /etc/os-release runtime-artifacts/pretest-install/host-os-release.txt
+          cp "$SHIKUANG_PRETEST_SDK/emulator/source.properties" runtime-artifacts/pretest-install/emulator-source.properties
           sha256sum "$SHIKUANG_PRETEST_SDK/emulator/emulator" > runtime-artifacts/pretest-install/emulator-binary.sha256
+          "$SHIKUANG_PRETEST_SDK/emulator/emulator" -no-window -no-audio -verbose -version > runtime-artifacts/pretest-install/emulator-version.txt 2> runtime-artifacts/pretest-install/emulator-version.stderr.txt
           sudo chmod 666 /dev/kvm
       - name: Build only this App and test and resolve its exact declared utility
         working-directory: android

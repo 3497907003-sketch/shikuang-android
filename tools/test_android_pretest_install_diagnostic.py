@@ -222,6 +222,51 @@ class RoutingTests(unittest.TestCase):
             with patch.dict(os.environ,{**base,**dict.fromkeys(flags,'false'),key:value},clear=True),contextlib.redirect_stdout(io.StringIO()),self.assertRaises(SystemExit):
                 exec(compile(code,'actual-guard','exec'),{})
 
+    def version_preflight_fixture(self, backend_fails=False):
+        workflow=(REPO/'.github/workflows/android-runtime.yml').read_text()
+        setup=workflow.split('      - name: Prepare official build tools and one fresh 16K AVD\n',1)[1].split('      - name: Build only ',1)[0]
+        # Execute the actual SDK identity/version commands, not a copied shell implementation.
+        lines=[line.strip() for line in setup.splitlines() if '/emulator/' in line and
+               any(token in line for token in ['source.properties', 'emulator-binary.sha256', 'emulator-version'])]
+        with tempfile.TemporaryDirectory(prefix='headless SDK fixture ') as tmp:
+            root=Path(tmp);sdk=root/'SDK with spaces';(sdk/'emulator').mkdir(parents=True)
+            out=root/'runtime-artifacts/pretest-install';out.mkdir(parents=True)
+            metadata=b'Pkg.Revision=99.0.0.fixture\n';(sdk/'emulator/source.properties').write_bytes(metadata)
+            emulator=sdk/'emulator/emulator'
+            emulator.write_text('#!'+sys.executable+'\n'+textwrap.dedent(r"""
+                import json,os,sys
+                from pathlib import Path
+                Path('version-argv.json').write_text(json.dumps(sys.argv[1:]))
+                if sys.argv[1:]!=['-no-window','-no-audio','-verbose','-version']:
+                    print('fixture non-headless loader: libpulse.so.0 missing',file=sys.stderr);sys.exit(127)
+                if os.environ.get('FAKE_HEADLESS_BACKEND_FAIL')=='true':
+                    print('fixture headless loader failure',file=sys.stderr);sys.exit(127)
+                print('Android emulator version 99.0.0.fixture')
+                print('fixture version diagnostic retained',file=sys.stderr)
+            """))
+            emulator.chmod(0o700)
+            env={**os.environ,'SHIKUANG_PRETEST_SDK':str(sdk),
+                 'FAKE_HEADLESS_BACKEND_FAIL':str(backend_fails).lower()}
+            run=subprocess.run(['bash','-e','-o','pipefail','-c','\n'.join(lines)+'\ntouch version-completed'],
+                               cwd=root,env=env,capture_output=True,text=True,timeout=5)
+            expected=127 if backend_fails else 0
+            self.assertEqual(run.returncode,expected,(run.stdout,run.stderr,lines))
+            self.assertEqual(json.loads((root/'version-argv.json').read_text()),['-no-window','-no-audio','-verbose','-version'])
+            self.assertEqual((out/'emulator-source.properties').read_bytes(),metadata)
+            self.assertEqual((out/'emulator-binary.sha256').read_text().split()[0],probe.sha(emulator.read_bytes()))
+            self.assertEqual((root/'version-completed').exists(),not backend_fails)
+            stdout=(out/'emulator-version.txt').read_text()
+            stderr=(out/'emulator-version.stderr.txt').read_text()
+            self.assertEqual(stdout,'' if backend_fails else 'Android emulator version 99.0.0.fixture\n')
+            self.assertEqual(stderr,'fixture headless loader failure\n' if backend_fails else
+                             'fixture version diagnostic retained\n')
+
+    def test_headless_version_uses_boot_mode_and_preserves_actual_identity(self):
+        self.version_preflight_fixture()
+
+    def test_headless_version_failure_remains_failure_with_identity_and_stderr(self):
+        self.version_preflight_fixture(backend_fails=True)
+
     def test_job_is_separate_and_never_invokes_instrumentation_or_old_five_APK_binder(self):
         text=(REPO/'.github/workflows/android-runtime.yml').read_text();job=text.split('\n  pretest-install-diagnostic:',1)[1]
         self.assertIn('default: false',text.split('      pretest_install_diagnostic:',1)[1].split('      expected_source_sha:',1)[0])
