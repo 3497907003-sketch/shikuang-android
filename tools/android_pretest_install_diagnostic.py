@@ -14,6 +14,8 @@ from android_cold_restart import Host, need
 from android_webview_render_diagnostic import snapshot_logs
 
 HELPER_SHA = 'c6bc74268b29bdabad8da962e00e2f6fd613c24b42c69e81b258397b4819f156'
+VERSION_DEFAULT_SOURCE = ('https://android.googlesource.com/platform/frameworks/base/+/'
+    '4e43ad12e1b211f15152e9c5b16b0fe88e6b93f3/core/java/com/android/internal/pm/parsing/pkg/PackageImpl.java#2721')
 ROLES = [('app', '01-app.apk', 'com.shikuang.app.preview'),
          ('services', '02-test-services.apk', 'androidx.test.services'),
          ('test', '03-app-test.apk', 'com.shikuang.app.preview.test')]
@@ -55,13 +57,74 @@ def identity(expected, nonce, repo):
     return {'source_sha': expected, 'unit_nonce': nonce, 'run_id': e.get('GITHUB_RUN_ID'), 'run_attempt': 1}
 
 
-def built_apk(metadata):
+def built_apk(metadata, *, apk_folder=None):
     rows = json.loads(bounded(metadata, 65536)).get('elements')
     need(isinstance(rows, list) and len(rows) == 1 and isinstance(rows[0], dict), 'one_actual_APK')
     row = rows[0]; name = row.get('outputFile')
     need(not row.get('filters') and isinstance(name, str) and re.fullmatch(r'[A-Za-z0-9_.-]+\.apk', name),
          'single_unsplit_relative_APK')
-    return metadata.parent / name
+    return (apk_folder or metadata.parent) / name
+
+
+def version_fields(raw, declared, major, role):
+    """Badging's empty field alone never proves a missing manifest attribute."""
+    def integer(value, label):
+        need(isinstance(value, str) and re.fullmatch(r'0|[1-9][0-9]*', value)
+             and int(value) <= 0x7fffffff, label)
+        return int(value)
+    if raw == '':
+        need(role == 'test' and declared is None and major is None,
+             'empty_versionCode_requires_undeclared_test_manifest')
+        minor, high, basis = 0, 0, VERSION_DEFAULT_SOURCE
+    else:
+        minor = integer(raw, 'actual_APK_versionCode_badging')
+        need(declared is not None and integer(declared, 'actual_APK_versionCode_manifest') == minor,
+             'actual_APK_versionCode_mismatch')
+        high = 0 if major is None else integer(major, 'actual_APK_versionCodeMajor_manifest')
+        basis = 'declared_manifest_integer'
+    # Android15 PackageInfo.composeLongVersionCode: major << 32 | minor & 0xffffffffL.
+    return {'version_code_raw': raw, 'version_code_declared': declared,
+            'version_code_major_declared': major, 'version_code': str((high << 32) | minor),
+            'version_code_basis': basis}
+
+
+def badging_fields(raw, role, package):
+    lines = re.findall(rb'^package: (.*)$', raw, re.M)
+    need(len(lines) == 1, 'actual_APK_package_line:' + role)
+    def field(name):
+        values = re.findall(rb'(?:^| )' + name.encode() + rb"='([^'\r\n]*)'(?= |$)", lines[0])
+        need(len(values) == 1, 'actual_APK_' + name + '_field:' + role)
+        return values[0].decode('utf-8')
+    need(field('name') == package, 'actual_APK_package:' + role)
+    return field('versionCode'), field('versionName')
+
+
+def snapshot_metadata(paths, folder):
+    folder.mkdir(exist_ok=False); records = []
+    for name, source in paths:
+        raw = bounded(source, 65536); target = folder/name
+        with target.open('xb') as stream: stream.write(raw)
+        target.chmod(0o444)
+        records.append({'source_path': str(source), 'snapshot_path': str(target),
+                        'bytes': len(raw), 'sha256': sha(raw)})
+        save(folder/'inputs.json', records)
+    return records
+
+
+def installed_base_path(raw):
+    match = re.fullmatch(rb'package:(/data/app/(?:[A-Za-z0-9_+=~.-]+/){1,3}base\.apk)', raw)
+    need(match is not None, 'installed_single_legal_data_app_base_path')
+    path = match[1].decode('ascii')
+    need(all(part not in ('.', '..') for part in path.split('/')), 'installed_path_traversal')
+    return path
+
+
+def installed_version(raw, expected):
+    need(isinstance(expected, str) and re.fullmatch(r'0|[1-9][0-9]*', expected)
+         and int(expected) <= 0x7fffffffffffffff, 'nonempty_effective_version_required')
+    values = re.findall(rb'^\s*versionCode=(0|[1-9][0-9]*)(?=\s|$)', raw, re.M)
+    need(len(values) == 1 and values[0].decode() == expected, 'installed_version_mismatch')
+    return values[0].decode()
 
 
 def tool(argv, out, label):
@@ -85,32 +148,39 @@ def tool(argv, out, label):
 
 def freeze(args):
     repo = Path.cwd(); auth = identity(args.source, args.nonce, repo)
-    resolved = json.loads(bounded(args.resolved, 65536))
+    app_meta = repo / 'android/app/build/outputs/apk/debug/output-metadata.json'
+    test_meta = repo / 'android/app/build/outputs/apk/androidTest/debug/output-metadata.json'
+    args.out.mkdir(parents=True, exist_ok=False); (args.out / 'apks').mkdir()
+    evidence = args.out / 'build-evidence'; evidence.mkdir()
+    metadata_folder = args.out/'metadata'
+    metadata = snapshot_metadata([('app-output-metadata.json', app_meta),
+        ('test-output-metadata.json', test_meta), ('resolved-build-inputs.json', args.resolved)], metadata_folder)
+    resolved = json.loads(bounded(metadata_folder/'resolved-build-inputs.json', 65536))
     need(resolved.get('schema') == 'pretest-resolved-build-inputs-v1'
          and resolved.get('utility_coordinate') == 'androidx.test.services:test-services:1.4.2@apk'
          and resolved.get('instrumentation_started') is False, 'exact_resolved_utility')
-    app_meta = repo / 'android/app/build/outputs/apk/debug/output-metadata.json'
-    test_meta = repo / 'android/app/build/outputs/apk/androidTest/debug/output-metadata.json'
     need(Path(resolved['app_metadata']) == app_meta and Path(resolved['test_metadata']) == test_meta, 'actual_metadata_locations')
     utility = Path(resolved['utility_path'])
     need(re.search(r'/androidx\.test\.services/test-services/1\.4\.2/[a-f0-9]{40}/test-services-1\.4\.2\.apk$', str(utility)),
          'exact_Gradle_resolved_utility_path')
-    args.out.mkdir(parents=True, exist_ok=False); (args.out / 'apks').mkdir(); evidence = args.out / 'build-evidence'; evidence.mkdir()
     tools = args.sdk / 'build-tools/35.0.0'; analyzer = args.sdk / 'cmdline-tools/latest/bin/apkanalyzer'
-    sources = {'app': built_apk(app_meta), 'test': built_apk(test_meta), 'services': utility}; rows = []
+    sources = {'app': built_apk(metadata_folder/'app-output-metadata.json', apk_folder=app_meta.parent),
+               'test': built_apk(metadata_folder/'test-output-metadata.json', apk_folder=test_meta.parent),
+               'services': utility}; rows = []
     for role, name, package in ROLES:
         original = sources[role]; raw = bounded(original, MAX_APK); destination = args.out / 'apks' / name
         with destination.open('xb') as out: out.write(raw)
         need(bounded(destination, MAX_APK) == raw, 'frozen_APK_copy')
         if role == 'services': need(sha(raw) == HELPER_SHA, 'vendor_helper_SHA')
         badging = tool([str(tools/'aapt'), 'dump', 'badging', str(destination)], evidence, role+'-package')
-        found = re.findall(rb"^package: name='([^']+)' versionCode='([^']+)' versionName='([^']*)'", badging, re.M)
-        need(len(found) == 1 and found[0][0].decode() == package, 'actual_APK_package:' + role)
+        version_raw, version_name = badging_fields(badging, role, package)
         sign = tool([str(tools/'apksigner'), 'verify', '--verbose', '--print-certs', str(destination)], evidence, role+'-signature')
         certs = re.findall(rb'^Signer #1 certificate SHA-256 digest: ([a-fA-F0-9]{64})\s*$', sign, re.M)
         need(len(certs) == 1 and not re.search(rb'^Signer #[2-9]', sign, re.M), 'single_APK_signer')
         xml = ET.fromstring(tool([str(analyzer), 'manifest', 'print', str(destination)], evidence, role+'-manifest'))
         ns = '{http://schemas.android.com/apk/res/android}'
+        need(xml.tag == 'manifest' and xml.get('package') == package, 'actual_APK_manifest_package:' + role)
+        versions = version_fields(version_raw, xml.get(ns+'versionCode'), xml.get(ns+'versionCodeMajor'), role)
         if role == 'test':
             instruments = xml.findall('instrumentation')
             need(len(instruments) == 1 and instruments[0].get(ns+'name') == 'androidx.test.runner.AndroidJUnitRunner'
@@ -120,11 +190,11 @@ def freeze(args):
             need(len(activities) == 1 and activities[0].get(ns+'hardwareAccelerated') == 'true', 'unchanged_accelerated_App')
         destination.chmod(0o444)
         rows.append({'role': role, 'path': 'apks/'+name, 'source_path': str(original), 'package': package,
-                     'version_code': found[0][1].decode(), 'version_name': found[0][2].decode(),
+                     **versions, 'version_name': version_name,
                      'bytes': len(raw), 'sha256': sha(raw), 'certificate_sha256': certs[0].decode().lower()})
     need(rows[0]['certificate_sha256'] == rows[2]['certificate_sha256'], 'App_and_test_same_signer')
     plan = {**auth, 'schema': 'pretest-three-APKs-v1', 'apks': rows,
-            'metadata': [{'path': str(p), 'sha256': sha(bounded(p, 65536))} for p in [app_meta, test_meta, args.resolved]],
+            'metadata': metadata,
             'distributableRelease': False, 'instrumentation_started': False, 'fullRuntimeVerified': False}
     save(args.out/'apk-plan.json', plan)
     if os.environ.get('GITHUB_OUTPUT'):
@@ -211,7 +281,17 @@ def check_plan(raw, expected_sha, source, nonce, folder, *, run_id=None):
              'fixed_APK_order_identity')
         body = bounded(folder/row['path'], MAX_APK)
         need(len(body) == row.get('bytes') and sha(body) == row.get('sha256'), 'frozen_APK_bytes')
+        versions = version_fields(row.get('version_code_raw'), row.get('version_code_declared'),
+                                  row.get('version_code_major_declared'), role)
+        need(all(row.get(key) == value for key, value in versions.items()), 'frozen_effective_version_identity')
         if role == 'services': need(row['sha256'] == HELPER_SHA, 'vendor_helper_SHA')
+    metadata = plan.get('metadata')
+    need(isinstance(metadata, list) and len(metadata) == 3, 'three_metadata_snapshots')
+    for record, name in zip(metadata, ['app-output-metadata.json', 'test-output-metadata.json', 'resolved-build-inputs.json']):
+        snapshot = folder/'metadata'/name
+        need(record.get('snapshot_path') == str(snapshot), 'fixed_metadata_snapshot_path')
+        body = bounded(snapshot, 65536)
+        need(len(body) == record.get('bytes') and sha(body) == record.get('sha256'), 'frozen_metadata_bytes')
     return plan
 
 
@@ -285,13 +365,21 @@ def observe_install(plan, folder, out, *, adb='adb', seconds=PHASE_SECONDS, emul
                          seconds=INSTALL_SECONDS,deadline=end,monitor=lambda stop: health(baseline,stop))
                 health(baseline,end)
                 path = host.command('installed-'+row['role'],['shell','pm','path',row['package']],deadline=end).strip()
-                need(path.startswith(b'package:/') and b'\n' not in path, 'installed_single_package_path')
+                base = installed_base_path(path)
+                label = 'installed-sha256-'+row['role']
+                checksum = host.run(label,[adb,'-s',host.serial,'shell','sha256sum',base],
+                    seconds=INSTALL_SECONDS,deadline=end,monitor=lambda stop: health(baseline,stop))
+                checksum_receipt = next(r for r in host.receipts if r['label'] == label)
+                need(checksum_receipt['stderr_bytes'] == 0 and
+                     checksum == (row['sha256']+'  '+base+'\n').encode(), 'installed_base_APK_SHA_mismatch')
                 version = host.command('version-'+row['role'],['shell','dumpsys','package',row['package']],deadline=end)
-                need(re.search(rb'\bversionCode='+re.escape(row['version_code'].encode())+rb'\b',version), 'installed_version_mismatch')
+                observed = installed_version(version, row.get('version_code'))
                 stage.update(finished_UTC=utc(),finished_monotonic=time.monotonic())
                 need(stage['finished_monotonic'] <= end,'package_stage_deadline')
                 stage['state'] = 'installation_observed'
-                result['installed'].append({'role':row['role'],'package':row['package'],'sha256':row['sha256']})
+                result['installed'].append({'role':row['role'],'package':row['package'],'sha256':row['sha256'],
+                    'installed_base_APK_path':base,'installed_base_APK_sha256':row['sha256'],
+                    'observed_version_code':observed,'expected_effective_version_code':row['version_code']})
                 result['device_current_install_completion_unknown'] = False
             health(baseline); host.network('final'); scan()
             result['state'] = 'installation_observed'

@@ -1,6 +1,7 @@
 """Synthetic APK bytes and real local subprocess fixtures, never an Android pass."""
 import contextlib
 import copy
+import hashlib
 import io
 import itertools
 import json
@@ -11,6 +12,7 @@ import sys
 import tempfile
 import textwrap
 import time
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -20,7 +22,7 @@ REPO = Path(__file__).resolve().parents[1]
 SOURCE, NONCE = 'a'*40, 'b'*32
 
 FAKE_ADB = r'''
-import json,os,sys,time
+import hashlib,json,os,sys,time
 from pathlib import Path
 root=Path(os.environ['FAKE_DEVICE_ROOT']);argv=sys.argv[1:]
 with (root/'trace.jsonl').open('a') as f:f.write(json.dumps(argv)+'\n')
@@ -64,9 +66,22 @@ elif a==['shell','pidof','system_server']:
 elif a==['shell','service','check','package']:print('Service package: found')
 elif a[:3]==['shell','pm','path']:
  names={'com.shikuang.app.preview':'01-app.apk','androidx.test.services':'02-test-services.apk','com.shikuang.app.preview.test':'03-app-test.apk'}
- if (root/names[a[3]]).exists():print('package:/data/app/base.apk')
+ if (root/names[a[3]]).exists():
+  if scenario=='unsafe-installed-path':print('package:/data/app/anything;touch-pwn/base.apk')
+  else:print('package:/data/app/~~fixture/'+a[3]+'-fixture/base.apk')
  else:sys.exit(1)
-elif a[:3]==['shell','dumpsys','package']:print('versionCode=1 minSdk=24')
+elif a[:2]==['shell','sha256sum']:
+ names={'com.shikuang.app.preview':'01-app.apk','androidx.test.services':'02-test-services.apk','com.shikuang.app.preview.test':'03-app-test.apk'}
+ name=Path(a[2]).parent.name.removesuffix('-fixture')
+ if scenario=='sha-timeout':time.sleep(10)
+ digest=hashlib.sha256((root/'apks'/names[name]).read_bytes()).hexdigest()
+ if scenario=='sha-mismatch':digest='0'*64
+ if scenario=='sha-stderr':print('fixture checksum stderr',file=sys.stderr)
+ print(digest+'  '+a[2])
+elif a[:3]==['shell','dumpsys','package']:
+ code='0' if scenario.startswith('test-') and a[3]=='com.shikuang.app.preview.test' else '1'
+ if scenario=='wrong-version' or (scenario=='test-wrong-version' and a[3]=='com.shikuang.app.preview.test'):code='10'
+ print('versionCode='+code+' minSdk=24')
 else:raise RuntimeError(a)
 '''
 
@@ -76,14 +91,101 @@ def fixture(root):
     for role,name,package in probe.ROLES:
         raw=('synthetic-'+name).encode();(root/'apks'/name).write_bytes(raw)
         rows.append({'role':role,'path':'apks/'+name,'package':package,'bytes':len(raw),
-                     'sha256':probe.sha(raw),'version_code':'1'})
+                     'sha256':probe.sha(raw),**probe.version_fields('1','1',None,role)})
+    (root/'metadata').mkdir();metadata=[]
+    for name in ['app-output-metadata.json','test-output-metadata.json','resolved-build-inputs.json']:
+        raw=json.dumps({'fixture':name}).encode();p=root/'metadata'/name;p.write_bytes(raw)
+        metadata.append({'snapshot_path':str(p),'bytes':len(raw),'sha256':probe.sha(raw)})
     fake=root/'adb-fixture';fake.write_text('#!'+sys.executable+'\n'+textwrap.dedent(FAKE_ADB));fake.chmod(0o700)
     plan={'schema':'pretest-three-APKs-v1','source_sha':SOURCE,'unit_nonce':NONCE,'run_attempt':1,'run_id':'123',
-          'apks':rows,'distributableRelease':False,'instrumentation_started':False,'fullRuntimeVerified':False}
+          'apks':rows,'metadata':metadata,'distributableRelease':False,'instrumentation_started':False,'fullRuntimeVerified':False}
     return fake,plan
 
 
 class InputTests(unittest.TestCase):
+    def test_actual_CI_test_badging_empty_code_requires_undeclared_manifest(self):
+        raw=(REPO/'tools/fixtures/pretest-test-package.badging.txt').read_bytes()
+        self.assertEqual(hashlib.sha256(raw).hexdigest(),'c3a637e4ba266070cefdcd1d21fefa8fae501e7536021b6b1d8c26f2a1ccc0ca')
+        code,name=probe.badging_fields(raw,'test',probe.ROLES[2][2])
+        self.assertEqual((code,name),('',''))
+        values=probe.version_fields(code,None,None,'test')
+        self.assertEqual((values['version_code_raw'],values['version_code_declared'],values['version_code']),('',None,'0'))
+        for declared,major,role in [('',None,'test'),('1',None,'test'),(None,'0','test'),(None,None,'app')]:
+            with self.subTest(declared=declared,major=major,role=role),self.assertRaises(ValueError):
+                probe.version_fields(code,declared,major,role)
+
+    def test_package_and_version_fields_fail_separately_without_fallback(self):
+        raw=(REPO/'tools/fixtures/pretest-test-package.badging.txt').read_bytes()
+        with self.assertRaisesRegex(ValueError,'actual_APK_package:test'):
+            probe.badging_fields(raw.replace(b'com.shikuang.app.preview.test',b'com.wrong.package'),'test',probe.ROLES[2][2])
+        for malformed in [raw.replace(b"versionCode='' ",b''),raw.replace(b"versionCode=''",b"versionCode='' versionCode='1'")]:
+            with self.assertRaisesRegex(ValueError,'actual_APK_versionCode_field:test'):
+                probe.badging_fields(malformed,'test',probe.ROLES[2][2])
+        for code,declared in [('25001','25002'),('',''),('garbage','1'),('1','@string/version'),('1','-1')]:
+            with self.subTest(code=code,declared=declared),self.assertRaises(ValueError):
+                probe.version_fields(code,declared,None,'test')
+
+    def test_installed_version_is_unique_exact_numeric_and_preserves_major(self):
+        values=probe.version_fields('25001','25001','1','app')
+        self.assertEqual(values['version_code'],'4294992297')
+        self.assertEqual(probe.installed_version(b'  versionCode=4294992297 minSdk=24\n',values['version_code']),'4294992297')
+        self.assertEqual(probe.installed_version(b'versionCode=0 minSdk=24\n','0'),'0')
+        for raw,expected in [(b'versionCode=123 minSdk=24',''),(b'versionCode=10 minSdk=24','1'),
+                             (b'versionCode=1 minSdk=24','0'),(b'versionCode=25001 minSdk=24',values['version_code']),
+                             (b'versionCode=1\nversionCode=1\n','1')]:
+            with self.subTest(raw=raw,expected=expected),self.assertRaises(ValueError):probe.installed_version(raw,expected)
+
+    def test_installed_base_path_rejects_shell_tokens_splits_and_traversal(self):
+        self.assertEqual(probe.installed_base_path(b'package:/data/app/~~aB-_/com.shikuang.app.preview-x=/base.apk'),
+                         '/data/app/~~aB-_/com.shikuang.app.preview-x=/base.apk')
+        for raw in [b'package:/data/app/../base.apk',b'package:/data/app/a;touch-pwn/base.apk',
+                    b'package:/data/app/a b/base.apk',b'package:/data/app/a/other.apk',
+                    b'package:/system/app/a/base.apk',b'package:/data/app/a/base.apk\npackage:/data/app/b/base.apk']:
+            with self.subTest(raw=raw),self.assertRaises(ValueError):probe.installed_base_path(raw)
+
+    def test_freeze_keeps_all_original_metadata_even_when_test_runner_fails(self):
+        raw_test=(REPO/'tools/fixtures/pretest-test-package.badging.txt').read_bytes()
+        for bad_runner in [False,True]:
+            with self.subTest(bad_runner=bad_runner),tempfile.TemporaryDirectory() as tmp:
+                root=Path(tmp).resolve();app=root/'android/app/build/outputs/apk/debug';test=app.parent/'androidTest/debug'
+                for folder,name in [(app,'app-debug.apk'),(test,'app-debug-androidTest.apk')]:
+                    folder.mkdir(parents=True);(folder/name).write_bytes(('synthetic-'+name).encode())
+                    (folder/'output-metadata.json').write_text(json.dumps({'elements':[{'outputFile':name}]}))
+                utility=root/('cache/androidx.test.services/test-services/1.4.2/'+'a'*40+'/test-services-1.4.2.apk')
+                utility.parent.mkdir(parents=True);utility.write_bytes(b'synthetic-services')
+                resolved=root/'resolved.json';resolved.write_text(json.dumps({'schema':'pretest-resolved-build-inputs-v1',
+                    'utility_coordinate':'androidx.test.services:test-services:1.4.2@apk','utility_path':str(utility),
+                    'app_metadata':str(app/'output-metadata.json'),'test_metadata':str(test/'output-metadata.json'),
+                    'instrumentation_started':False}))
+                originals=[(app/'output-metadata.json').read_bytes(),(test/'output-metadata.json').read_bytes(),resolved.read_bytes()]
+                out=root/'frozen';args=SimpleNamespace(source=SOURCE,nonce=NONCE,resolved=resolved,sdk=root/'SDK',out=out)
+                def build_tool(argv,folder,label):
+                    role,kind=label.split('-',1);package=dict((r,p) for r,_,p in probe.ROLES)[role]
+                    if kind=='package':
+                        return raw_test if role=='test' else ("package: name='"+package+"' versionCode='1' versionName=''\n").encode()
+                    if kind=='signature':return ('Signer #1 certificate SHA-256 digest: '+'a'*64+'\n').encode()
+                    content='<activity android:name="com.shikuang.app.MainActivity" android:hardwareAccelerated="true" />' if role=='app' else ''
+                    if role=='test':content='<instrumentation android:name="'+('wrong.Runner' if bad_runner else 'androidx.test.runner.AndroidJUnitRunner')+'" android:targetPackage="com.shikuang.app.preview" />'
+                    code='' if role=='test' else ' android:versionCode="1"'
+                    return ('<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="'+package+'"'+code+'><application>'+(content if role=='app' else '')+'</application>'+
+                            (content if role=='test' else '')+'</manifest>').encode()
+                with patch.object(probe.Path,'cwd',return_value=root),patch.object(probe,'identity',return_value={'source_sha':SOURCE,'unit_nonce':NONCE,'run_id':'123','run_attempt':1}),\
+                     patch.object(probe,'tool',side_effect=build_tool),patch.object(probe,'HELPER_SHA',probe.sha(utility.read_bytes())),contextlib.redirect_stdout(io.StringIO()):
+                    if bad_runner:
+                        with self.assertRaisesRegex(ValueError,'actual_instrumentation_target'):probe.freeze(args)
+                    else:probe.freeze(args)
+                records=json.loads((out/'metadata/inputs.json').read_text())
+                self.assertEqual(len(records),3)
+                for record,original in zip(records,originals):
+                    snapshot=Path(record['snapshot_path']);self.assertEqual(snapshot.read_bytes(),original)
+                    self.assertEqual(record['sha256'],hashlib.sha256(original).hexdigest())
+                    self.assertEqual(snapshot.stat().st_mode & 0o222,0)
+                self.assertEqual((out/'apk-plan.json').exists(),not bad_runner)
+                if not bad_runner:
+                    plan=json.loads((out/'apk-plan.json').read_text());self.assertEqual(plan['apks'][2]['version_code'],'0')
+                    with patch.object(probe,'HELPER_SHA',probe.sha(utility.read_bytes())):
+                        body=(out/'apk-plan.json').read_bytes();probe.check_plan(body,probe.sha(body),SOURCE,NONCE,out)
+
     def test_metadata_resolves_exact_unsplit_output_and_rejects_ambiguous_paths(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp);p=root/'output-metadata.json'
@@ -117,10 +219,12 @@ class InputTests(unittest.TestCase):
 class ActualSubprocessTests(unittest.TestCase):
     def observe(self,root,scenario):
         fake,plan=fixture(root);out=root/'result'
+        if scenario.startswith('test-'):plan['apks'][2].update(probe.version_fields('',None,None,'test'))
         if scenario=='preinstalled':(root/'02-test-services.apk').touch()
         env={'FAKE_DEVICE_ROOT':str(root),'FAKE_NONCE':NONCE,'FAKE_SCENARIO':scenario}
-        with patch.dict(os.environ,env),patch.object(probe,'INSTALL_SECONDS',.5 if scenario in ('timeout','preinstall-slow-health') else 3):
-            if scenario=='pass':result=probe.observe_install(plan,root,out,adb=str(fake),seconds=15)
+        budget=1.5 if scenario=='sha-timeout' else .5 if scenario in ('timeout','preinstall-slow-health') else 3
+        with patch.dict(os.environ,env),patch.object(probe,'INSTALL_SECONDS',budget):
+            if scenario in ('pass','test-absent-version'):result=probe.observe_install(plan,root,out,adb=str(fake),seconds=15)
             else:
                 with self.assertRaises(ValueError):probe.observe_install(plan,root,out,adb=str(fake),seconds=15)
                 result=json.loads((out/'report.json').read_bytes())
@@ -142,6 +246,51 @@ class ActualSubprocessTests(unittest.TestCase):
                     self.assertEqual(row[s+'_sha256'],probe.sha((out/(row['label']+'.'+s+'.bin')).read_bytes()))
             snapshot=result['original_logs'][0]['snapshot'];p=Path(snapshot['path'])
             self.assertEqual(snapshot['sha256'],probe.sha(p.read_bytes()))
+
+    def test_absent_test_version_has_exact_zero_and_all_three_base_APK_hashes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            result,installs,out=self.observe(Path(tmp),'test-absent-version')
+            self.assertEqual(len(installs),3)
+            self.assertEqual([r['observed_version_code'] for r in result['installed']],['1','1','0'])
+            for row in result['installed']:
+                self.assertEqual(row['installed_base_APK_sha256'],row['sha256'])
+            receipts=json.loads((out/'command-receipts.json').read_text())
+            self.assertEqual(sum(r['label'].startswith('installed-sha256-') for r in receipts),3)
+
+    def test_wrong_base_APK_hash_stops_service_and_test_installs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            result,installs,_=self.observe(Path(tmp),'sha-mismatch')
+            self.assertEqual(len(installs),1);self.assertEqual(result['installed'],[])
+            self.assertIn('installed_base_APK_SHA_mismatch',result['failure'])
+
+    def test_checksum_stderr_cannot_hide_behind_nested_health_receipts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            result,installs,out=self.observe(Path(tmp),'sha-stderr')
+            self.assertEqual(len(installs),1)
+            self.assertIn('installed_base_APK_SHA_mismatch',result['failure'])
+            self.assertEqual((out/'installed-sha256-app.stderr.bin').read_bytes(),b'fixture checksum stderr\n')
+
+    def test_checksum_shares_package_deadline_and_never_starts_later_installs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            result,installs,out=self.observe(Path(tmp),'sha-timeout')
+            self.assertEqual(len(installs),1)
+            receipts=json.loads((out/'command-receipts.json').read_text())
+            row=next(r for r in receipts if r['label']=='installed-sha256-app')
+            self.assertTrue(row['timed_out'])
+            self.assertLessEqual(row['deadline_monotonic'],result['package_stages'][0]['deadline_monotonic'])
+
+    def test_unsafe_installed_path_is_rejected_before_any_checksum_command(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            result,installs,out=self.observe(Path(tmp),'unsafe-installed-path')
+            self.assertEqual(len(installs),1)
+            receipts=json.loads((out/'command-receipts.json').read_text())
+            self.assertFalse(any(r['label'].startswith('installed-sha256-') for r in receipts))
+
+    def test_wrong_observed_test_version_is_not_accepted_as_default_zero(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            result,installs,_=self.observe(Path(tmp),'test-wrong-version')
+            self.assertEqual(len(installs),3);self.assertEqual(len(result['installed']),2)
+            self.assertIn('installed_version_mismatch',result['failure'])
 
     def test_second_package_failure_executes_no_third_package_and_keeps_error(self):
         with tempfile.TemporaryDirectory() as tmp:
