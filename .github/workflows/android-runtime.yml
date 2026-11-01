@@ -36,13 +36,18 @@ on:
         required: false
         type: boolean
         default: false
+      pretest_install_diagnostic:
+        description: 'One fresh API35/16K three-APK install observation; no instrumentation or acceptance'
+        required: false
+        type: boolean
+        default: false
       expected_source_sha:
-        description: 'Exact reviewed commit required for lifecycle, native-dialog or drawing diagnostic mode'
+        description: 'Exact reviewed commit required for diagnostic modes'
         required: false
         type: string
         default: ''
       unit_nonce:
-        description: 'Fresh 32 lower-case hex value required for lifecycle, native-dialog or drawing diagnostic mode'
+        description: 'Fresh 32 lower-case hex value required for diagnostic modes'
         required: false
         type: string
         default: ''
@@ -57,6 +62,7 @@ jobs:
     timeout-minutes: 2
     env:
       RENDER_DIAGNOSTIC: ${{ inputs.webview_render_diagnostic }}
+      PRETEST_INSTALL: ${{ inputs.pretest_install_diagnostic }}
       NETWORK_PROBE: ${{ inputs.network_probe }}
       NATIVE_DIALOG_DIAGNOSTIC: ${{ inputs.native_dialog_diagnostic }}
       LIFECYCLE_DIAGNOSTIC: ${{ inputs.lifecycle_diagnostic }}
@@ -64,7 +70,7 @@ jobs:
       EXPECTED_SOURCE: ${{ inputs.expected_source_sha }}
       UNIT_NONCE: ${{ inputs.unit_nonce }}
     steps:
-      - name: Reject mixed drawing diagnostics before checkout or SDK preparation
+      - name: Reject mixed diagnostics before checkout or SDK preparation
         shell: bash
         run: |
           python3 -B - <<'PY_RENDER_DISPATCH'
@@ -73,16 +79,26 @@ jobs:
           if e.get('RENDER_DIAGNOSTIC') == 'true':
               if not (e.get('GITHUB_EVENT_NAME') == 'workflow_dispatch'
                       and e.get('GITHUB_RUN_ATTEMPT') == '1'
+                      and e.get('PRETEST_INSTALL', 'false') == 'false'
                       and all(e.get(k) == 'false' for k in ('NETWORK_PROBE', 'NATIVE_DIALOG_DIAGNOSTIC', 'LIFECYCLE_DIAGNOSTIC', 'RUNTIME_16K_ONLY'))
                       and re.fullmatch('[a-f0-9]{40}', e.get('EXPECTED_SOURCE', ''))
                       and e.get('EXPECTED_SOURCE') == e.get('GITHUB_SHA')
                       and re.fullmatch('[a-f0-9]{32}', e.get('UNIT_NONCE', ''))):
                   raise SystemExit('drawing_diagnostic_dispatch_rejected')
+          if e.get('PRETEST_INSTALL') == 'true':
+              if not (e.get('GITHUB_EVENT_NAME') == 'workflow_dispatch'
+                      and e.get('GITHUB_RUN_ATTEMPT') == '1'
+                      and e.get('RENDER_DIAGNOSTIC') == 'false'
+                      and all(e.get(k) == 'false' for k in ('NETWORK_PROBE', 'NATIVE_DIALOG_DIAGNOSTIC', 'LIFECYCLE_DIAGNOSTIC', 'RUNTIME_16K_ONLY'))
+                      and re.fullmatch('[a-f0-9]{40}', e.get('EXPECTED_SOURCE', ''))
+                      and e.get('EXPECTED_SOURCE') == e.get('GITHUB_SHA')
+                      and re.fullmatch('[a-f0-9]{32}', e.get('UNIT_NONCE', ''))):
+                  raise SystemExit('pretest_install_dispatch_rejected')
           print(json.dumps({'drawing_diagnostic': e.get('RENDER_DIAGNOSTIC') == 'true', 'product_acceptance': False}))
           PY_RENDER_DISPATCH
   runtime:
     needs: dispatch-contract
-    if: ${{ !(github.event_name == 'workflow_dispatch' && (inputs.lifecycle_diagnostic || inputs.native_dialog_diagnostic)) }}
+    if: ${{ !(github.event_name == 'workflow_dispatch' && (inputs.lifecycle_diagnostic || inputs.native_dialog_diagnostic || inputs.pretest_install_diagnostic)) }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
@@ -882,4 +898,120 @@ jobs:
           if-no-files-found: error
           overwrite: false
           include-hidden-files: false
+          retention-days: 7
+
+  pretest-install-diagnostic:
+    needs: dispatch-contract
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.pretest_install_diagnostic }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      ANDROID_AVD_HOME: /tmp/shikuang-pretest-${{ inputs.unit_nonce }}
+      SHIKUANG_PRETEST_INSTALL: 'true'
+      ORG_GRADLE_PROJECT_shikuangSoftwareDrawProbe: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+      - name: Prepare existing committed shared source and diagnostic checks
+        run: |
+          mkdir -p runtime-artifacts/pretest-install
+          npm ci
+          npm run sync
+          python3 -B -m unittest discover -s tools -p test_android_pretest_install_diagnostic.py
+      - name: Prepare official build tools and one fresh 16K AVD
+        shell: bash
+        run: |
+          SHIKUANG_PRETEST_SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          "$SHIKUANG_PRETEST_SDK/cmdline-tools/latest/bin/sdkmanager" "platform-tools" "emulator" "build-tools;35.0.0" "platforms;android-34" "system-images;android-35;google_apis_ps16k;x86_64"
+          printf '%s\n' "$SHIKUANG_PRETEST_SDK/platform-tools" >> "$GITHUB_PATH"
+          test ! -e "$ANDROID_AVD_HOME"
+          mkdir "$ANDROID_AVD_HOME"
+          printf 'no\n' | "$SHIKUANG_PRETEST_SDK/cmdline-tools/latest/bin/avdmanager" create avd --name "shikuang-pretest-${{ inputs.unit_nonce }}" --package "system-images;android-35;google_apis_ps16k;x86_64" --device pixel_2 --path "$ANDROID_AVD_HOME/fresh.avd"
+          cp "$SHIKUANG_PRETEST_SDK/system-images/android-35/google_apis_ps16k/x86_64/source.properties" runtime-artifacts/pretest-install/image-source.properties
+          cp "$SHIKUANG_PRETEST_SDK/system-images/android-35/google_apis_ps16k/x86_64/package.xml" runtime-artifacts/pretest-install/image-package.xml
+          "$SHIKUANG_PRETEST_SDK/emulator/emulator" -version > runtime-artifacts/pretest-install/emulator-version.txt
+          sha256sum "$SHIKUANG_PRETEST_SDK/emulator/emulator" > runtime-artifacts/pretest-install/emulator-binary.sha256
+          sudo chmod 666 /dev/kvm
+      - name: Build only this App and test and resolve its exact declared utility
+        working-directory: android
+        run: |
+          test ! -e app/build/outputs/apk
+          ./gradlew --no-daemon --max-workers=2 -PshikuangSoftwareDrawProbe=false -I ../tools/pretest_install_artifacts.init.gradle -PshikuangPretestPlanOut="$GITHUB_WORKSPACE/runtime-artifacts/pretest-install/resolved-build-inputs.json" :app:exportPretestInstallInputs
+      - name: Freeze the three actual build APKs and their identities
+        id: freeze
+        shell: bash
+        run: |
+          SHIKUANG_PRETEST_SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          python3 -B tools/android_pretest_install_diagnostic.py freeze --source "${{ inputs.expected_source_sha }}" --nonce "${{ inputs.unit_nonce }}" --resolved runtime-artifacts/pretest-install/resolved-build-inputs.json --sdk "$SHIKUANG_PRETEST_SDK" --out runtime-artifacts/pretest-install/frozen
+      - name: Boot only the fresh fixed 4096MiB emulator and preserve its launch
+        shell: bash
+        run: |
+          python3 -B - <<'PY_PRETEST_EMULATOR'
+          import datetime, json, os, subprocess
+          from pathlib import Path
+          sdk = Path(os.environ.get('ANDROID_SDK_ROOT') or os.environ['ANDROID_HOME'])
+          nonce = '${{ inputs.unit_nonce }}'
+          folder = Path('runtime-artifacts/pretest-install')
+          argv = [str(sdk/'emulator/emulator'), '-avd', 'shikuang-pretest-'+nonce,
+                  '-no-window', '-no-audio', '-no-boot-anim', '-no-snapshot', '-gpu', 'swiftshader_indirect',
+                  '-camera-back', 'none', '-camera-front', 'none', '-memory', '4096', '-cores', '2', '-accel', 'on']
+          with (folder/'emulator.log').open('xb') as log:
+              child = subprocess.Popen(argv, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+          (folder/'emulator-owned.json').write_text(json.dumps({'PID':child.pid, 'argv':argv, 'nonce':nonce,
+              'source_sha':'${{ inputs.expected_source_sha }}', 'started_UTC':datetime.datetime.now(datetime.timezone.utc).isoformat()}, indent=2)+'\n')
+          PY_PRETEST_EMULATOR
+          timeout 180 adb -s emulator-5554 wait-for-device
+          timeout 180 bash -c 'until [[ "$(adb -s emulator-5554 shell getprop sys.boot_completed | tr -d "\r")" == 1 ]]; do sleep 2; done'
+          test "$(adb -s emulator-5554 shell getprop ro.kernel.qemu | tr -d '\r')" = 1
+          test "$(adb -s emulator-5554 shell getconf PAGE_SIZE | tr -d '\r')" = 16384
+          SHIKUANG_PRETEST_ROOT=false
+          for SHIKUANG_PRETEST_ATTEMPT in 1 2 3 4 5; do
+            timeout 20 adb -s emulator-5554 root >> runtime-artifacts/pretest-install/root-transition.txt 2>&1 || true
+            timeout 30 adb -s emulator-5554 wait-for-device >> runtime-artifacts/pretest-install/root-transition.txt 2>&1 || true
+            if [[ "$(timeout 10 adb -s emulator-5554 shell id -u | tr -d '\r')" = 0 ]]; then SHIKUANG_PRETEST_ROOT=true; break; fi
+            sleep 2
+          done
+          test "$SHIKUANG_PRETEST_ROOT" = true
+          timeout 90 bash -c 'until [[ "$(adb -s emulator-5554 shell getprop gsm.sim.state)" == *LOADED* ]]; do sleep 2; done'
+          adb -s emulator-5554 shell cmd connectivity airplane-mode enable
+          test "$(adb -s emulator-5554 shell cmd connectivity airplane-mode | tr -d '\r')" = enabled
+          adb -s emulator-5554 shell svc wifi disable
+          adb -s emulator-5554 shell svc data disable
+          adb -s emulator-5554 shell 'for device in eth0 eth1 wlan0; do if ip link show "$device" >/dev/null 2>&1; then ip link set "$device" down; fi; done'
+          timeout 60 bash -c 'until [[ "$(adb -s emulator-5554 shell dumpsys connectivity)" == *"Active default network: none"* ]]; do sleep 2; done'
+          python3 -B tools/android_offline_setup.py --out runtime-artifacts/pretest-install/offline-network-setup
+          adb -s emulator-5554 shell getprop ro.build.fingerprint > runtime-artifacts/pretest-install/image-fingerprint.txt
+          adb -s emulator-5554 shell dumpsys webviewupdate > runtime-artifacts/pretest-install/webview-provider.txt
+          free -m > runtime-artifacts/pretest-install/host-memory.txt
+      - name: Observe each APK installation once with system health and finite deadlines
+        run: >-
+          python3 -B tools/android_pretest_install_diagnostic.py install
+          --source "${{ inputs.expected_source_sha }}" --nonce "${{ inputs.unit_nonce }}"
+          --plan runtime-artifacts/pretest-install/frozen/apk-plan.json
+          --plan-sha "${{ steps.freeze.outputs.plan_sha }}"
+          --emulator-owner runtime-artifacts/pretest-install/emulator-owned.json
+          --out runtime-artifacts/pretest-install/execution
+      - name: Preserve final system buffers after any outcome without reinstalling
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p runtime-artifacts/pretest-install
+          timeout 15 adb -s emulator-5554 logcat -b all -d -v threadtime > runtime-artifacts/pretest-install/final-system-logcat.txt 2>&1 || true
+          timeout 15 adb -s emulator-5554 shell dmesg > runtime-artifacts/pretest-install/final-kernel.txt 2>&1 || true
+          ps -ef > runtime-artifacts/pretest-install/final-host-processes.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: shikuang-pretest-install-35-16k-${{ github.run_id }}
+          path: runtime-artifacts/pretest-install/
+          if-no-files-found: error
+          overwrite: false
           retention-days: 7

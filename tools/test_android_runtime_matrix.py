@@ -66,6 +66,6 @@ class RuntimeMatrixTests(unittest.TestCase):
         self.assertNotIn('-memory 3072',lifecycle)
         self.assertIn('-memory 3072',native_dialog)
         self.assertNotIn('SHIKUANG_DIAGNOSTIC_MEMORY_MIB',runtime)
-        self.assertIn("if: ${{ !(github.event_name == 'workflow_dispatch' && (inputs.lifecycle_diagnostic || inputs.native_dialog_diagnostic)) }}",source)
+        self.assertIn("if: ${{ !(github.event_name == 'workflow_dispatch' && (inputs.lifecycle_diagnostic || inputs.native_dialog_diagnostic || inputs.pretest_install_diagnostic)) }}",source)
 
 if __name__=='__main__':unittest.main()
