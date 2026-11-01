@@ -1,10 +1,11 @@
-"""Debug drawing A/B metadata and bounded read-only log extraction, never App repair."""
+"""Debug drawing evidence from bounded, write-once log snapshots, never App repair."""
 import argparse
 import hashlib
 import json
 import os
 from pathlib import Path
 import re
+import stat
 import subprocess
 
 CASES = {'accelerated': ('false', True), 'software': ('true', False)}
@@ -53,7 +54,7 @@ def validate_profile(profile):
 
 
 def parse_observations(paths):
-    """Only the exact debug tag/schema is retained; raw image/tensor logs are not copied."""
+    """Only the exact debug tag/schema becomes structured drawing observations."""
     rows, inputs, errors = {}, [], []
     for path in paths:
         if not path.exists():
@@ -61,9 +62,11 @@ def parse_observations(paths):
             continue
         need(path.is_file() and not path.is_symlink() and path.stat().st_size <= MAX_LOG_BYTES,
              'bounded regular original log required')
-        digest = hashlib.sha256()
+        digest = hashlib.sha256(); byte_count = 0
         with path.open('rb') as stream:
             for number, raw in enumerate(stream, 1):
+                byte_count += len(raw)
+                need(byte_count <= MAX_LOG_BYTES, 'bounded log parsing required')
                 digest.update(raw)
                 if b'ShikuangRendering' not in raw:
                     continue
@@ -94,14 +97,67 @@ def parse_observations(paths):
                 except (ValueError, TypeError, KeyError) as error:
                     errors.append({'log': str(path), 'line_1based': number,
                                    'raw_line_sha256': hashlib.sha256(raw).hexdigest(), 'reason': str(error)})
-        inputs.append({'path': str(path), 'present': True, 'bytes': path.stat().st_size,
+        inputs.append({'path': str(path), 'present': True, 'bytes': byte_count,
                        'sha256': digest.hexdigest()})
     return sorted(rows.values(), key=lambda r: (r['facts']['pid'], r['facts']['elapsedRealtimeNanos'])), inputs, errors
 
 
-def collect(profile, root, native_outcome, cold_outcome):
+def snapshot_logs(paths, folder):
+    """Copy only opened-file size bytes; never stop, truncate, or modify live logs.
+
+    A streaming log can append immediately after this copy.  Its path therefore
+    has no whole-live-file hash claim.  Parsing and hashes refer to fresh,
+    exclusive snapshot files sealed read-only after writing, not the live file.
+    """
+    folder.mkdir(parents=True, exist_ok=False)
+    records, snapshots = [], []
+    for number, source in enumerate(paths):
+        record = {'path': str(source), 'present': source.exists(),
+                  'live_file_may_append': True, 'whole_live_file_hashed': False}
+        if not record['present']:
+            records.append(record)
+            continue
+        need(source.is_file() and not source.is_symlink(), 'regular live log required')
+        flags = os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0)
+        with os.fdopen(os.open(source, flags), 'rb') as stream:
+            opened = os.fstat(stream.fileno())
+            need(stat.S_ISREG(opened.st_mode) and opened.st_size <= MAX_LOG_BYTES,
+                 'bounded regular live log required')
+            limit = opened.st_size
+            target = folder / ('%02d-' % number + source.name)
+            # Capture exactly the initial opened-file boundary.  Additional
+            # bytes belong to the still-live source and remain there untouched.
+            remaining, count, digest = limit, 0, hashlib.sha256()
+            with target.open('xb') as output:
+                try:
+                    while remaining:
+                        chunk = stream.read(min(1024 * 1024, remaining))
+                        need(bool(chunk), 'live log truncated during snapshot')
+                        output.write(chunk); digest.update(chunk)
+                        count += len(chunk); remaining -= len(chunk)
+                    output.flush()
+                    os.fsync(output.fileno())
+                finally:
+                    os.fchmod(output.fileno(), 0o444)
+            record['capture_limit_from_open_file_size'] = limit
+            record['snapshot'] = {'path': str(target), 'bytes': count,
+                                  'sha256': digest.hexdigest(), 'read_only': True,
+                                  'created_exclusively': True}
+            snapshots.append(target)
+        records.append(record)
+    return snapshots, records
+
+
+def collect(profile, root, native_outcome, cold_outcome, *, snapshot_folder=None):
     validate_profile(profile)
-    observations, logs, errors = parse_observations([root/'logcat.txt', root/'logcat-final.txt'])
+    if snapshot_folder is None:
+        snapshot_folder = root/'drawing-diagnostic/input-log-snapshots'
+    paths, logs = snapshot_logs([root/'logcat.txt', root/'logcat-final.txt'], snapshot_folder)
+    observations, parsed, errors = parse_observations(paths)
+    expected = [row['snapshot'] for row in logs if row['present']]
+    need([(p['path'], p['bytes'], p['sha256']) for p in parsed]
+         == [(p['path'], p['bytes'], p['sha256']) for p in expected],
+         'snapshot parse bytes differ from capture hashes')
     failures = ['malformed drawing observations'] if errors else []
     groups = {}
     for row in observations:
@@ -148,10 +204,12 @@ def collect(profile, root, native_outcome, cold_outcome):
         failures.append('no actual draw pair tied to successful ordinary runtime PID')
     if not observations:
         failures.append('no actual first-draw observations retained')
-    return {'schema': 'android-debug-drawing-observations-v1', 'profile': profile,
+    return {'schema': 'android-debug-drawing-observations-v2', 'profile': profile,
             'native_tests_outcome': native_outcome, 'cold_process_outcome': cold_outcome,
             'actual_platform': actual, 'ordinary_runtime_pid': ordinary_pid,
             'original_logs': logs, 'observations': observations, 'parse_errors': errors,
+            'observation_log_paths_refer_to_fixed_snapshots': True,
+            'live_log_streams_stopped_or_modified': False,
             'diagnostic_failures': failures,
             'diagnostic_status': 'observed' if not failures else 'partial_or_invalid',
             'product_acceptance': False, 'GPU_thread_absence_claim': False,
@@ -179,7 +237,8 @@ def main():
         need(args.profile.stat().st_size <= 8192, 'bounded exact diagnostic profile')
         native = os.environ.get('SHIKUANG_NATIVE_OUTCOME', '')
         cold = os.environ.get('SHIKUANG_COLD_OUTCOME', '')
-        result = collect(json.loads(args.profile.read_bytes()), args.root, native, cold)
+        result = collect(json.loads(args.profile.read_bytes()), args.root, native, cold,
+                         snapshot_folder=args.out.parent/'input-log-snapshots')
         write_fresh(args.out, result)
         # Failed/skipped runtime remains a failure through its original step.
         # A green runtime cannot pass this diagnostic without genuine draw proof.

@@ -1,5 +1,6 @@
 """Pure SOURCE/log fixtures only; these tests never run Android or infer minerals."""
 import contextlib
+import hashlib
 import io
 import itertools
 import json
@@ -75,6 +76,85 @@ class DrawingEvidenceTests(unittest.TestCase):
             self.assertNotIn('unrelated',json.dumps(result))
             self.assertIs(result['runtime_failure_reclassified'],False)
 
+    def test_collected_snapshot_hash_and_parse_survive_later_live_append(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);profile=self.fixture_root(root)
+            before=(root/'logcat.txt').read_bytes()
+            result=diagnostic.collect(profile,root,'success','success')
+            # Reproduce the real CI race: the collector has returned while its
+            # original streaming log receives additional contradictory events.
+            tail=draw('enter',view_hardware=False,canvas_hardware=False).replace('"viewIdentity": 42','"viewIdentity": 43')
+            with (root/'logcat.txt').open('ab') as stream:
+                stream.write(tail.encode())
+            self.assertEqual((root/'logcat.txt').read_bytes(),before+tail.encode())
+            record=result['original_logs'][0]
+            snapshot=Path(record['snapshot']['path'])
+            self.assertEqual(snapshot.read_bytes(),before)
+            self.assertEqual(record['snapshot']['bytes'],len(before))
+            self.assertEqual(record['snapshot']['sha256'],hashlib.sha256(snapshot.read_bytes()).hexdigest())
+            self.assertNotEqual(record['snapshot']['sha256'],hashlib.sha256((root/'logcat.txt').read_bytes()).hexdigest())
+            self.assertTrue(record['live_file_may_append'])
+            self.assertIs(record['whole_live_file_hashed'],False)
+            self.assertEqual(record['path'],str(root/'logcat.txt'))
+            paths=[Path(row['snapshot']['path']) for row in result['original_logs'] if row['present']]
+            events,_,errors=diagnostic.parse_observations(paths)
+            self.assertEqual(events,result['observations'])
+            self.assertEqual(errors,[])
+            self.assertEqual(result['diagnostic_status'],'observed')
+
+    def test_snapshot_is_exclusive_read_only_and_recollection_cannot_overwrite_it(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);profile=self.fixture_root(root)
+            result=diagnostic.collect(profile,root,'failure','skipped')
+            snapshots={Path(row['snapshot']['path']):Path(row['snapshot']['path']).read_bytes()
+                       for row in result['original_logs'] if row['present']}
+            self.assertTrue(all(path.stat().st_mode & 0o222 == 0 for path in snapshots))
+            self.assertEqual(result['native_tests_outcome'],'failure')
+            self.assertIs(result['runtime_failure_reclassified'],False)
+            with self.assertRaises(FileExistsError):
+                diagnostic.collect(profile,root,'success','success')
+            self.assertEqual({path:path.read_bytes() for path in snapshots},snapshots)
+
+    def test_open_file_capture_boundary_does_not_follow_a_growing_live_stream(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);profile=self.fixture_root(root)
+            source=root/'logcat.txt';before=source.read_bytes();tail=b'late live source tail\n'
+            original_fstat=os.fstat;once=[False]
+            def append_after_size_was_observed(fd):
+                opened=original_fstat(fd)
+                if not once[0]:
+                    once[0]=True
+                    with source.open('ab') as writer:writer.write(tail)
+                return opened
+            with patch.object(diagnostic.os,'fstat',side_effect=append_after_size_was_observed):
+                result=diagnostic.collect(profile,root,'success','success')
+            record=result['original_logs'][0]
+            self.assertEqual(record['capture_limit_from_open_file_size'],len(before))
+            self.assertEqual(Path(record['snapshot']['path']).read_bytes(),before)
+            self.assertEqual(source.read_bytes(),before+tail)
+            self.assertEqual(result['diagnostic_status'],'observed')
+
+    def test_CLI_upload_directory_keeps_exact_snapshot_bytes_after_live_append(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);profile=self.fixture_root(root)
+            source=root/'profile.json';source.write_text(json.dumps(profile))
+            out=root/'own-diagnostic/actual.json';before=(root/'logcat.txt').read_bytes()
+            env={**os.environ,'SHIKUANG_NATIVE_OUTCOME':'failure','SHIKUANG_COLD_OUTCOME':'skipped'}
+            process=subprocess.run([sys.executable,'-B',str(REPO/'tools/android_webview_render_diagnostic.py'),
+                'collect','--profile',str(source),'--root',str(root),'--out',str(out)],
+                env=env,capture_output=True,timeout=3)
+            self.assertEqual(process.returncode,0)
+            value=json.loads(out.read_bytes())
+            with (root/'logcat.txt').open('ab') as writer:writer.write(b'after collector exit\n')
+            record=value['original_logs'][0];snapshot=Path(record['snapshot']['path'])
+            self.assertEqual(snapshot.parent,out.parent/'input-log-snapshots')
+            self.assertEqual(snapshot.read_bytes(),before)
+            self.assertEqual(hashlib.sha256(snapshot.read_bytes()).hexdigest(),record['snapshot']['sha256'])
+            self.assertEqual(value['native_tests_outcome'],'failure')
+            self.assertEqual(value['cold_process_outcome'],'skipped')
+            self.assertIs(value['product_acceptance'],False)
+            self.assertIs(value['live_log_streams_stopped_or_modified'],False)
+
     def test_software_case_requires_actual_software_window_and_canvas(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp);profile=self.fixture_root(root,case='software',canvas=False)
@@ -83,7 +163,7 @@ class DrawingEvidenceTests(unittest.TestCase):
             self.assertIs(result['observations'][0]['facts']['canvasHardwareAccelerated'],False)
             (root/'logcat.txt').write_text(draw('enter',view_hardware=True)+draw('exit'))
             (root/'logcat-final.txt').unlink()
-            result=diagnostic.collect(profile,root,'success','success')
+            result=diagnostic.collect(profile,root,'success','success',snapshot_folder=root/'second-snapshots')
             self.assertTrue(any('disagrees' in f for f in result['diagnostic_failures']))
 
     def test_hardware_window_can_have_a_real_software_bitmap_canvas(self):
