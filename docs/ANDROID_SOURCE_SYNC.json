@@ -1,7 +1,7 @@
 {
-  "source_commit": "f8ddbc0ff29f08f90ff17c332fa8b50cd4983c0a",
+  "source_commit": "2af2cac72e610da78d47108dabdf99550dd7b1c8",
   "source_repository": "https://github.com/3497907003-sketch/shikuang-app",
-  "source_method": "Exact committed Root-reviewed book174/10-source/20-page content and bibliography,61-species book filter and ASCII-formula semantic subscripts. Only four raw assets changed;11 build inputs unchanged; immutable canonical168 SHA/literal comparison. No model/native/GUI/16K/accuracy/release claim.",
+  "source_method": "Exact immutable Web2af current190/11-book/23-page/63-species resources. Four approved raw changes; 164 other raw assets and 11 build inputs remain. Separate canonical168 build and literal comparison. No model, native runtime, CI, independent accuracy or release claim.",
   "applicationVersion": "2.5.0-preview.1",
   "androidVersionCode": 25001,
   "packageName": "com.shikuang.app.preview",
@@ -9,8 +9,8 @@
   "assets": [
     {
       "path": "app.js",
-      "bytes": 159401,
-      "sha256": "92178d8b2435a9c6eadba8e7a2c851d44e7506f475f7d2a36a41559bf7169f5a"
+      "bytes": 170546,
+      "sha256": "eaabcebae6a3d54fbe472cf70f028fb9192d111137cf7f1c14240bdb3b801625"
     },
     {
       "path": "compat.js",
@@ -29,8 +29,8 @@
     },
     {
       "path": "data/catalog.json",
-      "bytes": 4909626,
-      "sha256": "0ec5ec2d6cf44da6e3d5dc1425cdf40c2d9cb1282192a11e6283053c1745d00d"
+      "bytes": 4934911,
+      "sha256": "d615612b316b355486d16c4e965a63570da716ba329da0dfe408fbbe48c62698"
     },
     {
       "path": "data/classes.js",
@@ -70,7 +70,7 @@
     {
       "path": "data/reference-manifest.json",
       "bytes": 1765,
-      "sha256": "b7dfa02ac70679420d31c7ac0e26d09843b55d59e67414cbca68eabe4f84c678"
+      "sha256": "32d50f8280c506ee827a662802264e30baf491faf866c0f29752881abcd046e6"
     },
     {
       "path": "data/reviewed-photo-assets.json",
@@ -809,8 +809,8 @@
     },
     {
       "path": "styles.css",
-      "bytes": 37236,
-      "sha256": "071d18d83f368cc648031c9c8b9038710fd69258726bfecc3f8e277180166362"
+      "bytes": 37339,
+      "sha256": "16a2f659055275b6538c2c057a4a503b8ca0384ff5cfcc5f84682d2063a61608"
     },
     {
       "path": "sw.js",
@@ -851,7 +851,7 @@
   "assetCount": 168,
   "publishedPhotos": 117,
   "scope": "Local preview source and packaged-asset identity; not field accuracy, new model training, CI, physical-device acceptance or a public release",
-  "local_sync_at": "2026-10-30T03:30:50.227525+00:00",
+  "local_sync_at": "2026-11-02T02:04:34.549821+00:00",
   "developmentRevision": "r9",
   "public_deployment_verified_for_this_sync": false,
   "historical_production_web_merge": "95b4b4e4d1d9be561a18ed745c95eb60f0b6ab0f",

@@ -1,9 +1,8 @@
 {
-  "schema": "android-currentbook174-Root56-fixed-public-expectations-v1",
+  "schema": "android-currentbook190-Root56-China16-fixed-public-expectations-v1",
   "catalog_pin": {
-    "path": "data/catalog.json",
-    "bytes": 4909626,
-    "sha256": "0ec5ec2d6cf44da6e3d5dc1425cdf40c2d9cb1282192a11e6283053c1745d00d"
+    "bytes": 4934911,
+    "sha256": "d615612b316b355486d16c4e965a63570da716ba329da0dfe408fbbe48c62698"
   },
   "root_review_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
   "source_id": "user-book-04",
@@ -2871,6 +2870,826 @@
           "occurrence"
         ]
       }
+    ]
+  },
+  "china16": {
+    "schema": "android190-China16-fixed-public-expectations-v1",
+    "source_Web_commit": "2af2cac72e610da78d47108dabdf99550dd7b1c8",
+    "source_id": "new-book-10",
+    "source_book_sha256": "e01c975676698f4bf169e1d3dfbcc43f8073e5c7a6a5912b56a6d61a4cddb863",
+    "root_review_sha256": "9014c9d215aa3a5abe5b564e9eef1a4ee908f3a84962006891efdf52e534527b",
+    "book": {
+      "source_id": "new-book-10",
+      "title": "中国矿物（中文版）",
+      "authors": [
+        "中华人民共和国地质部地质博物馆"
+      ],
+      "credit_role": "compiler",
+      "book_sha256": "e01c975676698f4bf169e1d3dfbcc43f8073e5c7a6a5912b56a6d61a4cddb863",
+      "root_review_sha256": "9014c9d215aa3a5abe5b564e9eef1a4ee908f3a84962006891efdf52e534527b",
+      "status": "reviewed_selected_pages",
+      "source_format": "PDF",
+      "full_book_reviewed": false,
+      "publisher": "上海科学技术出版社",
+      "edition": "1980年12月第1版、第1次印刷",
+      "publication_year": 1980,
+      "bibliographic_pdf_pages": [
+        3,
+        4
+      ],
+      "bibliography_review": {
+        "decision": "Root_approved_bibliographic_pages",
+        "root_record_sha256": "9014c9d215aa3a5abe5b564e9eef1a4ee908f3a84962006891efdf52e534527b",
+        "source_book_sha256": "e01c975676698f4bf169e1d3dfbcc43f8073e5c7a6a5912b56a6d61a4cddb863",
+        "render_sha256_by_page": {
+          "3": "e4b0e10d33794d13df9fc73301719ecb549f26a1b141334e0db195e75d6e2713",
+          "4": "ec462ffb8815d0ed71437903b9d80c99aaea385a028acc6e9837e6c9dac2ad3a"
+        }
+      },
+      "bibliography_note": "1980 年出版；仅核对所列书页，未通读全书。历史用途与图注示例不代表当前标本或现今工业排名。",
+      "subjects": [
+        {
+          "catalog_id": "ima-copper",
+          "name_en": "Copper",
+          "pdf_page_1based": 10,
+          "printed_page": null,
+          "table_number": null,
+          "approved_fields": [
+            "formula",
+            "color",
+            "luster",
+            "crystal_system",
+            "crystal_habit",
+            "uses",
+            "occurrence"
+          ]
+        },
+        {
+          "catalog_id": "ima-chalcopyrite",
+          "name_en": "Chalcopyrite",
+          "pdf_page_1based": 11,
+          "printed_page": null,
+          "table_number": null,
+          "approved_fields": [
+            "formula",
+            "color",
+            "surface_features",
+            "luster",
+            "crystal_system",
+            "crystal_habit",
+            "uses",
+            "occurrence"
+          ]
+        },
+        {
+          "catalog_id": "ima-chalcopyrite",
+          "name_en": "Chalcopyrite",
+          "pdf_page_1based": 13,
+          "printed_page": null,
+          "table_number": null,
+          "approved_fields": [
+            "named_specimen_observation"
+          ]
+        }
+      ]
+    },
+    "pages": {
+      "10": {
+        "pdf_page_1based": 10,
+        "printed_page": null,
+        "render_sha256": "8d70fb49949fea455a4b0a1e51f18c4baa14bdd9ca38eaf7d94b4daf46d5779b"
+      },
+      "11": {
+        "pdf_page_1based": 11,
+        "printed_page": null,
+        "render_sha256": "02509ac99b7d75e7f60ccf413ddec63b084b95ecb51f141d5df10ab1e6d62fcb"
+      },
+      "13": {
+        "pdf_page_1based": 13,
+        "printed_page": null,
+        "render_sha256": "c8144764593772502b9f40cb001f44ab20d574700bd058a0cdbe8bec954c760a"
+      }
+    },
+    "records": [
+      {
+        "catalog_id": "ima-copper",
+        "name_en": "Copper",
+        "source_id": "new-book-10",
+        "pdf_page_1based": 10,
+        "printed_page": null,
+        "table_number": null,
+        "source_pages": [
+          {
+            "pdf_page_1based": 10,
+            "printed_page": null,
+            "render_sha256": "8d70fb49949fea455a4b0a1e51f18c4baa14bdd9ca38eaf7d94b4daf46d5779b"
+          }
+        ],
+        "field": "formula",
+        "value": "本书自然铜条目列化学式为 Cu。",
+        "status": "reviewed_source_statement",
+        "quantity_kind": "literal_source_formula",
+        "unit": null,
+        "hardness_scale": null,
+        "conditions": [],
+        "limits": [
+          "book_publication_year1980_and_historical_scope_retained",
+          "no_current_specimen_measurement_or_truth_claim",
+          "no_full_book_review_claim",
+          "no_model_score_or_training_use",
+          "no_primary_property_or_catalog_formula_replacement",
+          "no_primary_property_replacement",
+          "printed_folio_not_visible_do_not_invent",
+          "selected_page_secondary_book_statement_only"
+        ],
+        "comparison_status": "source_statement_only",
+        "review": {
+          "decision": "approved_source_statement",
+          "approved_candidate_id": "Chinese44-001",
+          "root_record_sha256": "9014c9d215aa3a5abe5b564e9eef1a4ee908f3a84962006891efdf52e534527b",
+          "source_book_sha256": "e01c975676698f4bf169e1d3dfbcc43f8073e5c7a6a5912b56a6d61a4cddb863",
+          "source_evidence_sha256": "58f1fae8d1c06973b0d7015be4b41407e74cec679b96c339070a25582d849495",
+          "proposal_field_sha256": "5f041b6949153058df4f9be595e397c7f05177b65dc46048452488067e198e0b"
+        },
+        "formula_display": "Cu"
+      },
+      {
+        "catalog_id": "ima-copper",
+        "name_en": "Copper",
+        "source_id": "new-book-10",
+        "pdf_page_1based": 10,
+        "printed_page": null,
+        "table_number": null,
+        "source_pages": [
+          {
+            "pdf_page_1based": 10,
+            "printed_page": null,
+            "render_sha256": "8d70fb49949fea455a4b0a1e51f18c4baa14bdd9ca38eaf7d94b4daf46d5779b"
+          }
+        ],
+        "field": "color",
+        "value": "本书将自然铜的颜色描述为铜红色，并指出表面常覆黑色氧化薄膜。",
+        "status": "reviewed_source_statement",
+        "quantity_kind": "short_secondary_book_source_description",
+        "unit": null,
+        "hardness_scale": null,
+        "conditions": [
+          "appearance_can_be_modified_by_surface_film",
+          "film_composition_not_measured_or_inferred"
+        ],
+        "limits": [
+          "book_publication_year1980_and_historical_scope_retained",
+          "no_current_specimen_measurement_or_truth_claim",
+          "no_full_book_review_claim",
+          "no_model_score_or_training_use",
+          "no_primary_property_or_catalog_formula_replacement",
+          "no_primary_property_replacement",
+          "printed_folio_not_visible_do_not_invent",
+          "selected_page_secondary_book_statement_only"
+        ],
+        "comparison_status": "source_statement_only",
+        "review": {
+          "decision": "approved_source_statement",
+          "approved_candidate_id": "Chinese44-002",
+          "root_record_sha256": "9014c9d215aa3a5abe5b564e9eef1a4ee908f3a84962006891efdf52e534527b",
+          "source_book_sha256": "e01c975676698f4bf169e1d3dfbcc43f8073e5c7a6a5912b56a6d61a4cddb863",
+          "source_evidence_sha256": "58f1fae8d1c06973b0d7015be4b41407e74cec679b96c339070a25582d849495",
+          "proposal_field_sha256": "b869cebbd9acdd9918443e0f8b68df1560f0626e80be2c4a9ebcf17e585ed492"
+        }
+      },
+      {
+        "catalog_id": "ima-copper",
+        "name_en": "Copper",
+        "source_id": "new-book-10",
+        "pdf_page_1based": 10,
+        "printed_page": null,
+        "table_number": null,
+        "source_pages": [
+          {
+            "pdf_page_1based": 10,
+            "printed_page": null,
+            "render_sha256": "8d70fb49949fea455a4b0a1e51f18c4baa14bdd9ca38eaf7d94b4daf46d5779b"
+          }
+        ],
+        "field": "luster",
+        "value": "本书将自然铜的光泽列为金属光泽。",
+        "status": "reviewed_source_statement",
+        "quantity_kind": "short_secondary_book_source_description",
+        "unit": null,
+        "hardness_scale": null,
+        "conditions": [],
+        "limits": [
+          "book_publication_year1980_and_historical_scope_retained",
+          "no_current_specimen_measurement_or_truth_claim",
+          "no_full_book_review_claim",
+          "no_model_score_or_training_use",
+          "no_primary_property_or_catalog_formula_replacement",
+          "no_primary_property_replacement",
+          "printed_folio_not_visible_do_not_invent",
+          "selected_page_secondary_book_statement_only"
+        ],
+        "comparison_status": "source_statement_only",
+        "review": {
+          "decision": "approved_source_statement",
+          "approved_candidate_id": "Chinese44-003",
+          "root_record_sha256": "9014c9d215aa3a5abe5b564e9eef1a4ee908f3a84962006891efdf52e534527b",
+          "source_book_sha256": "e01c975676698f4bf169e1d3dfbcc43f8073e5c7a6a5912b56a6d61a4cddb863",
+          "source_evidence_sha256": "58f1fae8d1c06973b0d7015be4b41407e74cec679b96c339070a25582d849495",
+          "proposal_field_sha256": "dc8aa638c973de9e7a30b5b33a9f9e405b7bde96b64358b44e586cd9010e473d"
+        }
+      },
+      {
+        "catalog_id": "ima-copper",
+        "name_en": "Copper",
+        "source_id": "new-book-10",
+        "pdf_page_1based": 10,
+        "printed_page": null,
+        "table_number": null,
+        "source_pages": [
+          {
+            "pdf_page_1based": 10,
+            "printed_page": null,
+            "render_sha256": "8d70fb49949fea455a4b0a1e51f18c4baa14bdd9ca38eaf7d94b4daf46d5779b"
+          }
+        ],
+        "field": "crystal_system",
+        "value": "本书将自然铜列入等轴晶系。",
+        "status": "reviewed_source_statement",
+        "quantity_kind": "short_secondary_book_source_description",
+        "unit": null,
+        "hardness_scale": null,
+        "conditions": [],
+        "limits": [
+          "book_publication_year1980_and_historical_scope_retained",
+          "no_current_specimen_measurement_or_truth_claim",
+          "no_full_book_review_claim",
+          "no_model_score_or_training_use",
+          "no_primary_property_or_catalog_formula_replacement",
+          "no_primary_property_replacement",
+          "printed_folio_not_visible_do_not_invent",
+          "selected_page_secondary_book_statement_only"
+        ],
+        "comparison_status": "source_statement_only",
+        "review": {
+          "decision": "approved_source_statement",
+          "approved_candidate_id": "Chinese44-004",
+          "root_record_sha256": "9014c9d215aa3a5abe5b564e9eef1a4ee908f3a84962006891efdf52e534527b",
+          "source_book_sha256": "e01c975676698f4bf169e1d3dfbcc43f8073e5c7a6a5912b56a6d61a4cddb863",
+          "source_evidence_sha256": "58f1fae8d1c06973b0d7015be4b41407e74cec679b96c339070a25582d849495",
+          "proposal_field_sha256": "26ee679ee6f3f719c972dd216400067582e94660ad7d9374aa2113354fa9f403"
+        }
+      },
+      {
+        "catalog_id": "ima-copper",
+        "name_en": "Copper",
+        "source_id": "new-book-10",
+        "pdf_page_1based": 10,
+        "printed_page": null,
+        "table_number": null,
+        "source_pages": [
+          {
+            "pdf_page_1based": 10,
+            "printed_page": null,
+            "render_sha256": "8d70fb49949fea455a4b0a1e51f18c4baa14bdd9ca38eaf7d94b4daf46d5779b"
+          }
+        ],
+        "field": "crystal_habit",
+        "value": "本书描述自然铜晶体少见，偶见立方体或四六面体及双晶；常以不规则树枝状、片状或致密块状集合体产出。",
+        "status": "reviewed_source_statement",
+        "quantity_kind": "short_secondary_book_source_description",
+        "unit": null,
+        "hardness_scale": null,
+        "conditions": [
+          "descriptive_book_frequency_not_a_universal_shape_or_classifier_rule"
+        ],
+        "limits": [
+          "book_publication_year1980_and_historical_scope_retained",
+          "no_current_specimen_measurement_or_truth_claim",
+          "no_full_book_review_claim",
+          "no_model_score_or_training_use",
+          "no_primary_property_or_catalog_formula_replacement",
+          "no_primary_property_replacement",
+          "printed_folio_not_visible_do_not_invent",
+          "selected_page_secondary_book_statement_only"
+        ],
+        "comparison_status": "source_statement_only",
+        "review": {
+          "decision": "approved_source_statement",
+          "approved_candidate_id": "Chinese44-005",
+          "root_record_sha256": "9014c9d215aa3a5abe5b564e9eef1a4ee908f3a84962006891efdf52e534527b",
+          "source_book_sha256": "e01c975676698f4bf169e1d3dfbcc43f8073e5c7a6a5912b56a6d61a4cddb863",
+          "source_evidence_sha256": "58f1fae8d1c06973b0d7015be4b41407e74cec679b96c339070a25582d849495",
+          "proposal_field_sha256": "717d930812886abf51bd75aabc3b265cc63ee5df19e74e0e8da06aafb324e3a2"
+        }
+      },
+      {
+        "catalog_id": "ima-copper",
+        "name_en": "Copper",
+        "source_id": "new-book-10",
+        "pdf_page_1based": 10,
+        "printed_page": null,
+        "table_number": null,
+        "source_pages": [
+          {
+            "pdf_page_1based": 10,
+            "printed_page": null,
+            "render_sha256": "8d70fb49949fea455a4b0a1e51f18c4baa14bdd9ca38eaf7d94b4daf46d5779b"
+          }
+        ],
+        "field": "uses",
+        "value": "本书说明，达到大量积聚时，自然铜可作为铜矿石开采。",
+        "status": "reviewed_source_statement",
+        "quantity_kind": "short_secondary_book_source_description",
+        "unit": null,
+        "hardness_scale": null,
+        "conditions": [
+          "source_published1980",
+          "conditional_on_large_accumulation",
+          "not_a_current_economic_resource_or_reserve_assessment",
+          "separate_unqualified_modern_industrial_value_claim_withheld"
+        ],
+        "limits": [
+          "book_publication_year1980_and_historical_scope_retained",
+          "no_current_specimen_measurement_or_truth_claim",
+          "no_full_book_review_claim",
+          "no_model_score_or_training_use",
+          "no_primary_property_or_catalog_formula_replacement",
+          "no_primary_property_replacement",
+          "printed_folio_not_visible_do_not_invent",
+          "selected_page_secondary_book_statement_only"
+        ],
+        "comparison_status": "source_statement_only",
+        "review": {
+          "decision": "approved_source_statement",
+          "approved_candidate_id": "Chinese44-006",
+          "root_record_sha256": "9014c9d215aa3a5abe5b564e9eef1a4ee908f3a84962006891efdf52e534527b",
+          "source_book_sha256": "e01c975676698f4bf169e1d3dfbcc43f8073e5c7a6a5912b56a6d61a4cddb863",
+          "source_evidence_sha256": "58f1fae8d1c06973b0d7015be4b41407e74cec679b96c339070a25582d849495",
+          "proposal_field_sha256": "b53f38a0e965cc513fe66b994c386cd921c58ab3c64794a18c1db6af0b120ec8"
+        }
+      },
+      {
+        "catalog_id": "ima-copper",
+        "name_en": "Copper",
+        "source_id": "new-book-10",
+        "pdf_page_1based": 10,
+        "printed_page": null,
+        "table_number": null,
+        "source_pages": [
+          {
+            "pdf_page_1based": 10,
+            "printed_page": null,
+            "render_sha256": "8d70fb49949fea455a4b0a1e51f18c4baa14bdd9ca38eaf7d94b4daf46d5779b"
+          }
+        ],
+        "field": "occurrence",
+        "value": "本书所示两件自然铜标本的图注分别标注江西与安徽；安徽图注明确为树枝状自然铜。",
+        "status": "reviewed_source_statement",
+        "quantity_kind": "named_historical_book_specimen_caption_not_general_distribution",
+        "unit": null,
+        "hardness_scale": null,
+        "conditions": [
+          "book_caption_only_no_independent_assay_or_current_geolocation",
+          "not_inferred_origin_for_a_user_photo",
+          "caption_dimensions_22cm_and1cm_not_converted_to_species_property"
+        ],
+        "limits": [
+          "book_publication_year1980_and_historical_scope_retained",
+          "no_current_specimen_measurement_or_truth_claim",
+          "no_full_book_review_claim",
+          "no_model_score_or_training_use",
+          "no_primary_property_or_catalog_formula_replacement",
+          "no_primary_property_replacement",
+          "printed_folio_not_visible_do_not_invent",
+          "selected_page_secondary_book_statement_only"
+        ],
+        "comparison_status": "source_statement_only",
+        "review": {
+          "decision": "approved_source_statement",
+          "approved_candidate_id": "Chinese44-007",
+          "root_record_sha256": "9014c9d215aa3a5abe5b564e9eef1a4ee908f3a84962006891efdf52e534527b",
+          "source_book_sha256": "e01c975676698f4bf169e1d3dfbcc43f8073e5c7a6a5912b56a6d61a4cddb863",
+          "source_evidence_sha256": "58f1fae8d1c06973b0d7015be4b41407e74cec679b96c339070a25582d849495",
+          "proposal_field_sha256": "1c122cc0fdb72103e83dc38cb60ce2b458a20fb43c2a66f1db1ba0fc5b6108a5"
+        }
+      },
+      {
+        "catalog_id": "ima-chalcopyrite",
+        "name_en": "Chalcopyrite",
+        "source_id": "new-book-10",
+        "pdf_page_1based": 11,
+        "printed_page": null,
+        "table_number": null,
+        "source_pages": [
+          {
+            "pdf_page_1based": 11,
+            "printed_page": null,
+            "render_sha256": "02509ac99b7d75e7f60ccf413ddec63b084b95ecb51f141d5df10ab1e6d62fcb"
+          }
+        ],
+        "field": "formula",
+        "value": "本书黄铜矿条目列化学式为 CuFeS₂。",
+        "status": "reviewed_source_statement",
+        "quantity_kind": "literal_source_formula",
+        "unit": null,
+        "hardness_scale": null,
+        "conditions": [
+          "OCR_CuFes_manually_corrected_only_by_actual_formula_glyph_read"
+        ],
+        "limits": [
+          "book_publication_year1980_and_historical_scope_retained",
+          "no_current_specimen_measurement_or_truth_claim",
+          "no_full_book_review_claim",
+          "no_model_score_or_training_use",
+          "no_primary_property_or_catalog_formula_replacement",
+          "no_primary_property_replacement",
+          "printed_folio_not_visible_do_not_invent",
+          "selected_page_secondary_book_statement_only"
+        ],
+        "comparison_status": "source_statement_only",
+        "review": {
+          "decision": "approved_source_statement",
+          "approved_candidate_id": "Chinese44-008",
+          "root_record_sha256": "9014c9d215aa3a5abe5b564e9eef1a4ee908f3a84962006891efdf52e534527b",
+          "source_book_sha256": "e01c975676698f4bf169e1d3dfbcc43f8073e5c7a6a5912b56a6d61a4cddb863",
+          "source_evidence_sha256": "35588ada64bb1c7fe31e2e7ce26d26ee51827a7a6c34468a366f84d5063dec42",
+          "proposal_field_sha256": "25d03e78947a8d6f776d05bf0d6a0cfe733c813284aed7c2b09fb550e2bebca6"
+        },
+        "formula_display": "CuFeS₂"
+      },
+      {
+        "catalog_id": "ima-chalcopyrite",
+        "name_en": "Chalcopyrite",
+        "source_id": "new-book-10",
+        "pdf_page_1based": 11,
+        "printed_page": null,
+        "table_number": null,
+        "source_pages": [
+          {
+            "pdf_page_1based": 11,
+            "printed_page": null,
+            "render_sha256": "02509ac99b7d75e7f60ccf413ddec63b084b95ecb51f141d5df10ab1e6d62fcb"
+          }
+        ],
+        "field": "color",
+        "value": "本书将黄铜矿本色描述为铜黄色。",
+        "status": "reviewed_source_statement",
+        "quantity_kind": "short_secondary_book_source_description",
+        "unit": null,
+        "hardness_scale": null,
+        "conditions": [],
+        "limits": [
+          "book_publication_year1980_and_historical_scope_retained",
+          "no_current_specimen_measurement_or_truth_claim",
+          "no_full_book_review_claim",
+          "no_model_score_or_training_use",
+          "no_primary_property_or_catalog_formula_replacement",
+          "no_primary_property_replacement",
+          "printed_folio_not_visible_do_not_invent",
+          "selected_page_secondary_book_statement_only"
+        ],
+        "comparison_status": "source_statement_only",
+        "review": {
+          "decision": "approved_source_statement",
+          "approved_candidate_id": "Chinese44-009",
+          "root_record_sha256": "9014c9d215aa3a5abe5b564e9eef1a4ee908f3a84962006891efdf52e534527b",
+          "source_book_sha256": "e01c975676698f4bf169e1d3dfbcc43f8073e5c7a6a5912b56a6d61a4cddb863",
+          "source_evidence_sha256": "35588ada64bb1c7fe31e2e7ce26d26ee51827a7a6c34468a366f84d5063dec42",
+          "proposal_field_sha256": "f0199297690c1343d0eaad7e79d53f901df5c48595605671e46e8b6e13723fcc"
+        }
+      },
+      {
+        "catalog_id": "ima-chalcopyrite",
+        "name_en": "Chalcopyrite",
+        "source_id": "new-book-10",
+        "pdf_page_1based": 11,
+        "printed_page": null,
+        "table_number": null,
+        "source_pages": [
+          {
+            "pdf_page_1based": 11,
+            "printed_page": null,
+            "render_sha256": "02509ac99b7d75e7f60ccf413ddec63b084b95ecb51f141d5df10ab1e6d62fcb"
+          }
+        ],
+        "field": "surface_features",
+        "value": "本书描述黄铜矿表面常有蓝、紫、褐或黑色锖色。",
+        "status": "reviewed_source_statement",
+        "quantity_kind": "short_secondary_book_source_description",
+        "unit": null,
+        "hardness_scale": null,
+        "conditions": [
+          "tarnish_is_surface_appearance_not_a_different_species_label",
+          "OCR_错色_corrected_to_visible_锖色"
+        ],
+        "limits": [
+          "book_publication_year1980_and_historical_scope_retained",
+          "no_current_specimen_measurement_or_truth_claim",
+          "no_full_book_review_claim",
+          "no_model_score_or_training_use",
+          "no_primary_property_or_catalog_formula_replacement",
+          "no_primary_property_replacement",
+          "printed_folio_not_visible_do_not_invent",
+          "selected_page_secondary_book_statement_only"
+        ],
+        "comparison_status": "source_statement_only",
+        "review": {
+          "decision": "approved_source_statement",
+          "approved_candidate_id": "Chinese44-010",
+          "root_record_sha256": "9014c9d215aa3a5abe5b564e9eef1a4ee908f3a84962006891efdf52e534527b",
+          "source_book_sha256": "e01c975676698f4bf169e1d3dfbcc43f8073e5c7a6a5912b56a6d61a4cddb863",
+          "source_evidence_sha256": "35588ada64bb1c7fe31e2e7ce26d26ee51827a7a6c34468a366f84d5063dec42",
+          "proposal_field_sha256": "498a8df8a93fd27d219a32dbd0d696a27ceb14db8e91f0b68e40801725190c12"
+        }
+      },
+      {
+        "catalog_id": "ima-chalcopyrite",
+        "name_en": "Chalcopyrite",
+        "source_id": "new-book-10",
+        "pdf_page_1based": 11,
+        "printed_page": null,
+        "table_number": null,
+        "source_pages": [
+          {
+            "pdf_page_1based": 11,
+            "printed_page": null,
+            "render_sha256": "02509ac99b7d75e7f60ccf413ddec63b084b95ecb51f141d5df10ab1e6d62fcb"
+          }
+        ],
+        "field": "luster",
+        "value": "本书将黄铜矿的光泽列为金属光泽。",
+        "status": "reviewed_source_statement",
+        "quantity_kind": "short_secondary_book_source_description",
+        "unit": null,
+        "hardness_scale": null,
+        "conditions": [],
+        "limits": [
+          "book_publication_year1980_and_historical_scope_retained",
+          "no_current_specimen_measurement_or_truth_claim",
+          "no_full_book_review_claim",
+          "no_model_score_or_training_use",
+          "no_primary_property_or_catalog_formula_replacement",
+          "no_primary_property_replacement",
+          "printed_folio_not_visible_do_not_invent",
+          "selected_page_secondary_book_statement_only"
+        ],
+        "comparison_status": "source_statement_only",
+        "review": {
+          "decision": "approved_source_statement",
+          "approved_candidate_id": "Chinese44-011",
+          "root_record_sha256": "9014c9d215aa3a5abe5b564e9eef1a4ee908f3a84962006891efdf52e534527b",
+          "source_book_sha256": "e01c975676698f4bf169e1d3dfbcc43f8073e5c7a6a5912b56a6d61a4cddb863",
+          "source_evidence_sha256": "35588ada64bb1c7fe31e2e7ce26d26ee51827a7a6c34468a366f84d5063dec42",
+          "proposal_field_sha256": "6a948545c46bec07ef5c21c8043685df4e7f8d85d958b08a0c78de98ac81cccc"
+        }
+      },
+      {
+        "catalog_id": "ima-chalcopyrite",
+        "name_en": "Chalcopyrite",
+        "source_id": "new-book-10",
+        "pdf_page_1based": 11,
+        "printed_page": null,
+        "table_number": null,
+        "source_pages": [
+          {
+            "pdf_page_1based": 11,
+            "printed_page": null,
+            "render_sha256": "02509ac99b7d75e7f60ccf413ddec63b084b95ecb51f141d5df10ab1e6d62fcb"
+          }
+        ],
+        "field": "crystal_system",
+        "value": "本书将黄铜矿列入四方晶系。",
+        "status": "reviewed_source_statement",
+        "quantity_kind": "short_secondary_book_source_description",
+        "unit": null,
+        "hardness_scale": null,
+        "conditions": [],
+        "limits": [
+          "book_publication_year1980_and_historical_scope_retained",
+          "no_current_specimen_measurement_or_truth_claim",
+          "no_full_book_review_claim",
+          "no_model_score_or_training_use",
+          "no_primary_property_or_catalog_formula_replacement",
+          "no_primary_property_replacement",
+          "printed_folio_not_visible_do_not_invent",
+          "selected_page_secondary_book_statement_only"
+        ],
+        "comparison_status": "source_statement_only",
+        "review": {
+          "decision": "approved_source_statement",
+          "approved_candidate_id": "Chinese44-012",
+          "root_record_sha256": "9014c9d215aa3a5abe5b564e9eef1a4ee908f3a84962006891efdf52e534527b",
+          "source_book_sha256": "e01c975676698f4bf169e1d3dfbcc43f8073e5c7a6a5912b56a6d61a4cddb863",
+          "source_evidence_sha256": "35588ada64bb1c7fe31e2e7ce26d26ee51827a7a6c34468a366f84d5063dec42",
+          "proposal_field_sha256": "be6180ee44b824edeb0d8cd8fdd53d0c0f2e3c7b04225cd24c7d26382509e35b"
+        }
+      },
+      {
+        "catalog_id": "ima-chalcopyrite",
+        "name_en": "Chalcopyrite",
+        "source_id": "new-book-10",
+        "pdf_page_1based": 11,
+        "printed_page": null,
+        "table_number": null,
+        "source_pages": [
+          {
+            "pdf_page_1based": 11,
+            "printed_page": null,
+            "render_sha256": "02509ac99b7d75e7f60ccf413ddec63b084b95ecb51f141d5df10ab1e6d62fcb"
+          }
+        ],
+        "field": "crystal_habit",
+        "value": "本书描述黄铜矿常成致密块状或分散粒状集合体；晶体较少见，可呈楔状四方四面体且往往不规则。",
+        "status": "reviewed_source_statement",
+        "quantity_kind": "short_secondary_book_source_description",
+        "unit": null,
+        "hardness_scale": null,
+        "conditions": [
+          "book_description_does_not_require_regular_crystals_for_identification"
+        ],
+        "limits": [
+          "book_publication_year1980_and_historical_scope_retained",
+          "no_current_specimen_measurement_or_truth_claim",
+          "no_full_book_review_claim",
+          "no_model_score_or_training_use",
+          "no_primary_property_or_catalog_formula_replacement",
+          "no_primary_property_replacement",
+          "printed_folio_not_visible_do_not_invent",
+          "selected_page_secondary_book_statement_only"
+        ],
+        "comparison_status": "source_statement_only",
+        "review": {
+          "decision": "approved_source_statement",
+          "approved_candidate_id": "Chinese44-013",
+          "root_record_sha256": "9014c9d215aa3a5abe5b564e9eef1a4ee908f3a84962006891efdf52e534527b",
+          "source_book_sha256": "e01c975676698f4bf169e1d3dfbcc43f8073e5c7a6a5912b56a6d61a4cddb863",
+          "source_evidence_sha256": "35588ada64bb1c7fe31e2e7ce26d26ee51827a7a6c34468a366f84d5063dec42",
+          "proposal_field_sha256": "b02460d16ebdd7f6d32ae29ae9f19f74926254158f255e7667ff7e553f9cde02"
+        }
+      },
+      {
+        "catalog_id": "ima-chalcopyrite",
+        "name_en": "Chalcopyrite",
+        "source_id": "new-book-10",
+        "pdf_page_1based": 11,
+        "printed_page": null,
+        "table_number": null,
+        "source_pages": [
+          {
+            "pdf_page_1based": 11,
+            "printed_page": null,
+            "render_sha256": "02509ac99b7d75e7f60ccf413ddec63b084b95ecb51f141d5df10ab1e6d62fcb"
+          }
+        ],
+        "field": "uses",
+        "value": "本书把黄铜矿作为具有工业利用价值的铜矿物介绍。",
+        "status": "reviewed_source_statement",
+        "quantity_kind": "short_secondary_book_source_description",
+        "unit": null,
+        "hardness_scale": null,
+        "conditions": [
+          "source_published1980",
+          "source_superlative_最有工业价值_not_promoted_to_current_rank",
+          "not_current_production_or_reserve_statistics"
+        ],
+        "limits": [
+          "book_publication_year1980_and_historical_scope_retained",
+          "no_current_specimen_measurement_or_truth_claim",
+          "no_full_book_review_claim",
+          "no_model_score_or_training_use",
+          "no_primary_property_or_catalog_formula_replacement",
+          "no_primary_property_replacement",
+          "printed_folio_not_visible_do_not_invent",
+          "selected_page_secondary_book_statement_only"
+        ],
+        "comparison_status": "source_statement_only",
+        "review": {
+          "decision": "approved_source_statement",
+          "approved_candidate_id": "Chinese44-014",
+          "root_record_sha256": "9014c9d215aa3a5abe5b564e9eef1a4ee908f3a84962006891efdf52e534527b",
+          "source_book_sha256": "e01c975676698f4bf169e1d3dfbcc43f8073e5c7a6a5912b56a6d61a4cddb863",
+          "source_evidence_sha256": "35588ada64bb1c7fe31e2e7ce26d26ee51827a7a6c34468a366f84d5063dec42",
+          "proposal_field_sha256": "252eb1fa220fe5adb0d1ddf1a6ac6959c1c2d9399c44915eb919ef8d6b30fb7d"
+        }
+      },
+      {
+        "catalog_id": "ima-chalcopyrite",
+        "name_en": "Chalcopyrite",
+        "source_id": "new-book-10",
+        "pdf_page_1based": 11,
+        "printed_page": null,
+        "table_number": null,
+        "source_pages": [
+          {
+            "pdf_page_1based": 11,
+            "printed_page": null,
+            "render_sha256": "02509ac99b7d75e7f60ccf413ddec63b084b95ecb51f141d5df10ab1e6d62fcb"
+          }
+        ],
+        "field": "occurrence",
+        "value": "本书江西样品图注列黄铜矿与石英、方解石共生；另一江西图注描述含钨石英脉中与黑钨矿、锡石、萤石及石英共生的黄铜矿。",
+        "status": "reviewed_source_statement",
+        "quantity_kind": "named_historical_book_specimen_association_examples",
+        "unit": null,
+        "hardness_scale": null,
+        "conditions": [
+          "named_book_examples_not_a_complete_or_universal_paragenesis_list",
+          "book_label_is_not_new_assay_truth_or_user_photo_origin"
+        ],
+        "limits": [
+          "book_publication_year1980_and_historical_scope_retained",
+          "no_current_specimen_measurement_or_truth_claim",
+          "no_full_book_review_claim",
+          "no_model_score_or_training_use",
+          "no_primary_property_or_catalog_formula_replacement",
+          "no_primary_property_replacement",
+          "printed_folio_not_visible_do_not_invent",
+          "selected_page_secondary_book_statement_only"
+        ],
+        "comparison_status": "source_statement_only",
+        "review": {
+          "decision": "approved_source_statement",
+          "approved_candidate_id": "Chinese44-015",
+          "root_record_sha256": "9014c9d215aa3a5abe5b564e9eef1a4ee908f3a84962006891efdf52e534527b",
+          "source_book_sha256": "e01c975676698f4bf169e1d3dfbcc43f8073e5c7a6a5912b56a6d61a4cddb863",
+          "source_evidence_sha256": "35588ada64bb1c7fe31e2e7ce26d26ee51827a7a6c34468a366f84d5063dec42",
+          "proposal_field_sha256": "067a3983b6cf3e130cf39b9054e2700a5a14f071bad0bd88798b3504fd1e7856"
+        }
+      },
+      {
+        "catalog_id": "ima-chalcopyrite",
+        "name_en": "Chalcopyrite",
+        "source_id": "new-book-10",
+        "pdf_page_1based": 13,
+        "printed_page": null,
+        "table_number": null,
+        "source_pages": [
+          {
+            "pdf_page_1based": 13,
+            "printed_page": null,
+            "render_sha256": "c8144764593772502b9f40cb001f44ab20d574700bd058a0cdbe8bec954c760a"
+          }
+        ],
+        "field": "named_specimen_observation",
+        "value": "本书吉林样品图注描述黄铜矿与方解石、云母共生，晶面可见蓝色锖色和生长纹；湖南图注列另一件与方解石共生的黄铜矿样品。",
+        "status": "reviewed_source_statement",
+        "quantity_kind": "named_historical_book_specimen_caption_not_general_property",
+        "unit": null,
+        "hardness_scale": null,
+        "conditions": [
+          "page13_full_page_visual_read_required_because_local_Vision_returned_zero_text",
+          "caption_sample_dimensions1.8cm_and0.7cm_are_not_species_size_limits",
+          "no_assay_or_training_label_from_visual_appearance"
+        ],
+        "limits": [
+          "book_publication_year1980_and_historical_scope_retained",
+          "no_current_specimen_measurement_or_truth_claim",
+          "no_full_book_review_claim",
+          "no_model_score_or_training_use",
+          "no_primary_property_or_catalog_formula_replacement",
+          "no_primary_property_replacement",
+          "printed_folio_not_visible_do_not_invent",
+          "selected_page_secondary_book_statement_only"
+        ],
+        "comparison_status": "source_statement_only",
+        "review": {
+          "decision": "approved_source_statement",
+          "approved_candidate_id": "Chinese44-016",
+          "root_record_sha256": "9014c9d215aa3a5abe5b564e9eef1a4ee908f3a84962006891efdf52e534527b",
+          "source_book_sha256": "e01c975676698f4bf169e1d3dfbcc43f8073e5c7a6a5912b56a6d61a4cddb863",
+          "source_evidence_sha256": "781bb66eccbbc03b7218a12bd42445b067660e8a3a8e5dd6802f2bf63785f988",
+          "proposal_field_sha256": "3946d7f5979d9aa3aabea096d741e8fc799a908fc19200ad6da497546c7bac6c"
+        }
+      }
+    ],
+    "field_counts": {
+      "formula": 2,
+      "color": 2,
+      "luster": 2,
+      "crystal_system": 2,
+      "crystal_habit": 2,
+      "uses": 2,
+      "occurrence": 2,
+      "surface_features": 1,
+      "named_specimen_observation": 1
+    },
+    "candidate_ids": [
+      "Chinese44-001",
+      "Chinese44-002",
+      "Chinese44-003",
+      "Chinese44-004",
+      "Chinese44-005",
+      "Chinese44-006",
+      "Chinese44-007",
+      "Chinese44-008",
+      "Chinese44-009",
+      "Chinese44-010",
+      "Chinese44-011",
+      "Chinese44-012",
+      "Chinese44-013",
+      "Chinese44-014",
+      "Chinese44-015",
+      "Chinese44-016"
     ]
   }
 }

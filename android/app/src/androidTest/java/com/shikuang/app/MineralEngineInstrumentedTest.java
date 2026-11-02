@@ -480,23 +480,23 @@ public class MineralEngineInstrumentedTest {
     }
 
     /** Checks versioned public book metadata/UI only; never touches saved specimens. */
-    static String book174ReadOnlyScript(String expectedJSON) {
+    static String book190ReadOnlyScript(String expectedJSON) {
         return script(
-            "(async(expected)=>{const s=window.__shikuangRuntimeSmoke;s.phase='book174-checking';",
-            "const need=(condition,message)=>{if(!condition)throw Error('Book174: '+message);};const content=node=>node?node.textContent:'';",
+            "(async(expected)=>{const s=window.__shikuangRuntimeSmoke;s.phase='book190-checking';",
+            "const need=(condition,message)=>{if(!condition)throw Error('Book190: '+message);};const content=node=>node?node.textContent:'';",
             "const digest=async value=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(value)))),b=>b.toString(16).padStart(2,'0')).join('');",
             "const stable=value=>Array.isArray(value)?value.map(stable):value&&typeof value==='object'?Object.keys(value).sort().reduce((o,k)=>{o[k]=stable(value[k]);return o;},{}):value;const same=(a,b)=>JSON.stringify(stable(a))===JSON.stringify(stable(b));",
             "const page=r=>[(r.pdf_page_1based===undefined?'':'PDF 第 '+r.pdf_page_1based+' 页'),r.printed_page===null?'印刷页未注明':'印刷页 '+r.printed_page,r.table_number?'表 '+r.table_number:''].filter(Boolean).join(' · ');",
-            "const labels={formula:'化学式',occurrence:'成因与产出（书籍陈述）',aggregate_and_occurrence_example:'集合体与产状示例',aggregate_habit:'集合体习性',cleavage:'解理',color:'颜色示例',crystal_habit:'晶体习性',crystal_system:'晶系',density_comparison:'密度定性比较',form_and_use_description:'形态与用途',form_description:'形态描述',formation:'形成条件与途径',fracture:'断口',hardness:'硬度',hardness_comparison:'硬度定性比较',luster:'光泽',optical_effect:'光学现象示例',processed_material_use:'加工材料使用',processing:'加工过程',streak:'条痕',structure_description:'结构模型描述',surface_finish_example:'抛光外观示例',twin_example:'双晶示例',uses:'用途'};",
+            "const labels={formula:'化学式',occurrence:'成因与产出（书籍陈述）',aggregate_and_occurrence_example:'集合体与产状示例',aggregate_habit:'集合体习性',cleavage:'解理',color:'颜色示例',crystal_habit:'晶体习性',crystal_system:'晶系',density_comparison:'密度定性比较',form_and_use_description:'形态与用途',form_description:'形态描述',formation:'形成条件与途径',fracture:'断口',hardness:'硬度',hardness_comparison:'硬度定性比较',luster:'光泽',optical_effect:'光学现象示例',processed_material_use:'加工材料使用',processing:'加工过程',streak:'条痕',structure_description:'结构模型描述',surface_finish_example:'抛光外观示例',surface_features:'表面特征（书籍描述）',named_specimen_observation:'具名标本示例',twin_example:'双晶示例',uses:'用途'};",
             "const scope=document.getElementById('libraryScope'),search=document.getElementById('librarySearch'),filter=document.getElementById('classFilter');",
             "const original={scope:scope.value,search:search.value,filter:filter.value};",
             "const selectScope=(value)=>{scope.value=value;filter.value='';search.value='';scope.dispatchEvent(new Event('change',{bubbles:true}));search.dispatchEvent(new Event('input',{bubbles:true}));};",
             "try{",
             " const c=MINERAL_CATALOG,o=c.reviewed_book_evidence,primaryBefore=await digest(c.minerals);",
-            " need(c.minerals.length===6239,'primary species count');need(o.records.length===174&&o.books.length===10&&o.counts.selected_source_pages===20,'overlay 174/10/20');",
-            " need(o.counts.reviewed_source_statements===174&&o.counts.withheld_fields===1&&o.withheld.length===1,'overlay statement/HOLD counts');",
-            " need(expected.schema==='android-currentbook174-Root56-fixed-public-expectations-v1'&&expected.root_review_sha256==='be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf'&&expected.source_book_sha256==='6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25','fixed174 public expectation profile');",
-            " const legacyRows=o.records.filter(r=>r.source_id!==expected.source_id),legacyBooks=o.books.filter(b=>b.source_id!==expected.source_id),legacyPages=new Set(legacyRows.map(r=>JSON.stringify([r.source_id,r.pdf_page_1based===undefined?null:r.pdf_page_1based,r.printed_page,r.table_number===undefined?null:r.table_number])));",
+            " need(c.minerals.length===6239,'primary species count');need(o.records.length===190&&o.books.length===11&&o.counts.selected_source_pages===23,'overlay 190/11/23');",
+            " need(o.counts.reviewed_source_statements===190&&o.counts.withheld_fields===1&&o.withheld.length===1,'overlay statement/HOLD counts');",
+            " need(expected.schema==='android-currentbook190-Root56-China16-fixed-public-expectations-v1'&&expected.root_review_sha256==='be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf'&&expected.source_book_sha256==='6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25','fixed190 public expectation profile');",
+            " const legacyRows=o.records.filter(r=>r.source_id!==expected.source_id&&r.source_id!=='new-book-10'),legacyBooks=o.books.filter(b=>b.source_id!==expected.source_id&&b.source_id!=='new-book-10'),legacyPages=new Set(legacyRows.map(r=>JSON.stringify([r.source_id,r.pdf_page_1based===undefined?null:r.pdf_page_1based,r.printed_page,r.table_number===undefined?null:r.table_number])));",
             " need(legacyRows.length===118&&legacyBooks.length===9&&legacyPages.size===16,'preserve original118/9/16 subset');",
             " need(await digest(stable({books:legacyBooks,records:legacyRows,withheld:o.withheld}))===expected.legacy118_overlay_compact_sorted_SHA256,'all original118 records/books/HOLD unchanged');",
             " const rows=o.records.filter(r=>r.review&&r.review.root_record_sha256==='ac37968d5d88c49cef73182cd5cf5426991922540fce73d7c4f190ae5cb3fe56');",
@@ -505,7 +505,7 @@ public class MineralEngineInstrumentedTest {
             " const ids=[...new Set(rows.map(r=>r.catalog_id))];need(ids.length===13,'new statement species');",
             " selectScope('books');const cards=[...document.querySelectorAll('#libraryList [data-detail]')];",
             " const bookIds=[...new Set(o.records.map(r=>r.catalog_id))],keys=bookIds.map(id=>{const m=c.minerals.find(m=>m.id===id);need(m,'book species exists');return m.detail_key&&MINERAL_KB[m.detail_key]?m.detail_key:'catalog:'+id;}).sort();",
-            " need(cards.length===61&&bookIds.length===61&&JSON.stringify(cards.map(card=>card.dataset.detail).sort())===JSON.stringify(keys),'61 actual book cards');",
+            " need(cards.length===63&&bookIds.length===63&&JSON.stringify(cards.map(card=>card.dataset.detail).sort())===JSON.stringify(keys),'63 actual book cards');",
             " const legacyBookIds=[...new Set(legacyRows.map(r=>r.catalog_id))],legacyKeys=legacyBookIds.map(id=>{const m=c.minerals.find(m=>m.id===id);return m.detail_key&&MINERAL_KB[m.detail_key]?m.detail_key:'catalog:'+id;});",
             " need(legacyKeys.length===28&&cards.filter(card=>legacyKeys.includes(card.dataset.detail)).length===28,'preserve28 original book cards');",
             " const open=id=>{const m=c.minerals.find(m=>m.id===id),key=m.detail_key&&MINERAL_KB[m.detail_key]?m.detail_key:'catalog:'+id,card=cards.find(card=>card.dataset.detail===key);need(card,'detail card '+id);card.click();need(document.getElementById('detailDialog').open,'detail dialog '+id);};",
@@ -560,9 +560,33 @@ public class MineralEngineInstrumentedTest {
             "  }close();",
             " }",
             " need(chineseChecked===56&&same(chineseFields,{crystal_habit:5,cleavage:1,formula:23,occurrence:27}),'all56 fixed field counts');need(formulaDOM.zirconSiO4Subscript===true&&formulaDOM.ottensiteH2SubscriptBaseline3===true,'both formula DOM examples checked');",
+            " const china=expected.china16,chinaRows=o.records.filter(r=>r.source_id==='new-book-10').sort((a,b)=>a.review.approved_candidate_id.localeCompare(b.review.approved_candidate_id)),chinaIds=chinaRows.map(r=>r.review.approved_candidate_id),chinaBook=o.books.find(b=>b.source_id==='new-book-10');",
+            " need(china.schema==='android190-China16-fixed-public-expectations-v1'&&china.source_Web_commit==='2af2cac72e610da78d47108dabdf99550dd7b1c8'&&china.source_id==='new-book-10'&&china.root_review_sha256==='9014c9d215aa3a5abe5b564e9eef1a4ee908f3a84962006891efdf52e534527b'&&china.source_book_sha256==='e01c975676698f4bf169e1d3dfbcc43f8073e5c7a6a5912b56a6d61a4cddb863','fixed China16 approved source profile');",
+            " need(chinaRows.length===16&&same(chinaIds,Array.from({length:16},(_,i)=>'Chinese44-'+String(i+1).padStart(3,'0')))&&same(chinaRows,china.records)&&same(chinaBook,china.book),'all16 exact public values, source/page/Root/proposal proofs and book');",
+            " need(chinaBook.credit_role==='compiler'&&same(chinaBook.authors,['中华人民共和国地质部地质博物馆'])&&chinaBook.publication_year===1980&&!Object.prototype.hasOwnProperty.call(chinaBook,'isbn'),'China16 fixed compiler, historical year and absent ISBN');",
+            " const chinaPages={};for(const row of chinaRows)for(const locator of row.source_pages){need(locator.printed_page===null,'China16 no invented printed folio');chinaPages[String(locator.pdf_page_1based)]=locator;}",
+            " need(same(Object.keys(chinaPages).sort(),['10','11','13'])&&same(chinaPages,china.pages),'China16 all3 actual page proofs, no page12');",
+            " const chinaSpecies=[...new Set(chinaRows.map(r=>r.catalog_id))].sort();need(same(chinaSpecies,['ima-chalcopyrite','ima-copper']),'China16 exact2 species');",
+            " let chinaChecked=0,chinaSectionCount=0;const chinaFields={},chinaFormulaDOM={copperLiteral:false,chalcopyriteSemanticSubscript:false,ariaLabelsPreserved:true};",
+            " for(const id of chinaSpecies){open(id);",
+            "  const blocks=[...document.querySelectorAll('#detailBody .book-evidence-section')].filter(section=>content(section.querySelector('p'))===chinaBook.title);need(blocks.length===(id==='ima-copper'?1:2),'China16 actual page sections '+id);chinaSectionCount+=blocks.length;",
+            "  for(const block of blocks){const text=block.textContent;need(text.includes('编者：中华人民共和国地质部地质博物馆')&&!/作者：|主编：|ISBN/.test(text),'China16 visible compiler and no invented ISBN');need(text.includes('出版：上海科学技术出版社 · 1980年12月第1版、第1次印刷')&&text.includes('书目页：PDF 第 3、4 页'),'China16 complete historical bibliography');need(text.includes('1980 年出版')&&text.includes('印刷页未注明')&&text.includes('不作为当前标本的物相、产地或实测物性')&&!/PDF 第 12 页|最有工业价值|在现代并不具有重要的工业价值/.test(text),'China16 visible historical/current-specimen limits');}",
+            "  for(const row of chinaRows.filter(r=>r.catalog_id===id)){",
+            "   const section=sectionFor(row,chinaBook),field=section&&section.querySelector('[data-book-field=\"'+row.field+'\"]'),property=field&&field.querySelector('.property-value');need(property&&content(field.querySelector('dt'))===labels[row.field],'China16 complete field and Chinese label '+row.review.approved_candidate_id);",
+            "   need(row.unit===null&&row.hardness_scale===null&&row.printed_page===null&&row.review.decision==='approved_source_statement'&&row.review.root_record_sha256===china.root_review_sha256&&row.review.source_book_sha256===china.source_book_sha256,'China16 fixed literal field proof');for(const locator of row.source_pages)need(section.textContent.includes(page(locator)),'China16 visible actual page '+row.review.approved_candidate_id);",
+            "   if(row.field==='formula'){const formula=property.querySelector('[data-book-formula]'),statement=property.querySelector('small.field-hint');need(formula&&statement&&statement.textContent===row.value&&formula.querySelector('[aria-label]')&&formula.querySelector('[aria-label]').getAttribute('aria-label')===row.formula_display&&formula.textContent===(id==='ima-copper'?'Cu':'CuFeS2')&&formula.textContent!==row.value,'China16 raw formula, semantic visible text and complete independent narrative');need(field.textContent.includes('保留本书化学式写法，不改主资料，也不是对当前标本的成分鉴定。'),'China16 secondary formula boundary');if(id==='ima-copper'){need(formula.textContent==='Cu','China16 copper literal formula');chinaFormulaDOM.copperLiteral=true;}else{need(/CuFeS<sub>2<\\/sub>/.test(formula.innerHTML),'China16 sulphur semantic subscript');chinaFormulaDOM.chalcopyriteSemanticSubscript=true;}}",
+            "   else need(property.textContent===row.value&&!property.querySelector('[data-book-formula]'),'China16 complete nonformula narrative '+row.review.approved_candidate_id);",
+            "   if(row.field==='uses')need(field.textContent.includes('不代表现今工业排名、储量或当前标本的工业品级'),'China16 historical use scope');",
+            "   if(row.field==='occurrence'||row.field==='named_specimen_observation')need(field.textContent.includes('仅为书中具名标本示例，不是完整分布或普遍共生清单'),'China16 finite named-specimen scope');",
+            "   if(row.field==='surface_features')need(field.textContent.includes('锖色是书中描述的表面现象，不据此自动判定为另一矿物'),'China16 surface tarnish scope');",
+            "   chinaFields[row.field]=(chinaFields[row.field]||0)+1;chinaChecked++;",
+            "  }close();",
+            " }",
+            " need(chinaChecked===16&&chinaSectionCount===3&&same(chinaFields,china.field_counts)&&chinaFormulaDOM.copperLiteral&&chinaFormulaDOM.chalcopyriteSemanticSubscript,'China16 complete16/2/3 public rendered proof');",
+            " const china16Proof={checkedFields:chinaChecked,checkedSpecies:chinaSpecies.length,sections:chinaSectionCount,approvedPages:Object.keys(chinaPages).sort(),fieldCounts:chinaFields,candidateIds:chinaIds,rootReviewSHA256:china.root_review_sha256,sourceBookSHA256:china.source_book_sha256,compilerCredit:true,unknownPrintedFolios:true,formulaNarrativesSeparate:true,formulaDOM:chinaFormulaDOM,historicalScopeVisible:true,finiteSpecimenScopeVisible:true,surfaceTarnishScopeVisible:true,allPublicProofsEqualFixedExpected:true};",
             " selectScope(original.scope);filter.value=original.filter;search.value=original.search;search.dispatchEvent(new Event('input',{bubbles:true}));",
             " const primaryAfter=await digest(c.minerals);need(primaryBefore===primaryAfter,'all 6239 primary objects unchanged');",
-            " s.bookEvidence174={statements:o.records.length,books:o.books.length,pages:o.counts.selected_source_pages,cards:cards.length,legacy118:{statements:legacyRows.length,books:legacyBooks.length,pages:legacyPages.size,cards:legacyKeys.length,checkedFields,checkedSpecies:ids.length,mohsFields,candidateIds,bibliography:[...bibliography].sort(),legacyUnknownScalePreserved:true,allRecordsBooksAndHoldUnchanged:true},chinese56:{checkedFields:chineseChecked,checkedSpecies:chineseSpecies.length,fieldCounts:chineseFields,candidateIds:chineseIds,rootReviewSHA256:expected.root_review_sha256,sourceBookSHA256:expected.source_book_sha256,approvedPages:Object.keys(pageProofs).sort(),formulaNarrativesSeparate:true,formulaReadability:{zirconSiO4Subscript:formulaDOM.zirconSiO4Subscript,ottensiteH2SubscriptBaseline3:formulaDOM.ottensiteH2SubscriptBaseline3,computedStyleAvailable:typeof getComputedStyle==='function',fontSizes:formulaFontSizes},cleavage100FamilyOnly:true,excluded023Absent:true,allPublicProofsEqualFixedExpected:true},primarySpecies:c.minerals.length,primaryBeforeSHA256:primaryBefore,primaryAfterSHA256:primaryAfter,readOnly:true};s.phase='book174-checked';",
+            " s.bookEvidence190={china16:china16Proof,statements:o.records.length,books:o.books.length,pages:o.counts.selected_source_pages,cards:cards.length,legacy118:{statements:legacyRows.length,books:legacyBooks.length,pages:legacyPages.size,cards:legacyKeys.length,checkedFields,checkedSpecies:ids.length,mohsFields,candidateIds,bibliography:[...bibliography].sort(),legacyUnknownScalePreserved:true,allRecordsBooksAndHoldUnchanged:true},chinese56:{checkedFields:chineseChecked,checkedSpecies:chineseSpecies.length,fieldCounts:chineseFields,candidateIds:chineseIds,rootReviewSHA256:expected.root_review_sha256,sourceBookSHA256:expected.source_book_sha256,approvedPages:Object.keys(pageProofs).sort(),formulaNarrativesSeparate:true,formulaReadability:{zirconSiO4Subscript:formulaDOM.zirconSiO4Subscript,ottensiteH2SubscriptBaseline3:formulaDOM.ottensiteH2SubscriptBaseline3,computedStyleAvailable:typeof getComputedStyle==='function',fontSizes:formulaFontSizes},cleavage100FamilyOnly:true,excluded023Absent:true,allPublicProofsEqualFixedExpected:true},primarySpecies:c.minerals.length,primaryBeforeSHA256:primaryBefore,primaryAfterSHA256:primaryAfter,readOnly:true};s.phase='book190-checked';",
             "}catch(e){s.phase='failed';s.failure=String(e);}}",
             ")("+expectedJSON+");"
         );
@@ -570,24 +594,36 @@ public class MineralEngineInstrumentedTest {
 
     private void checkBookReferenceCatalog(JSONObject reference) throws Exception {
         JSONObject counts=reference.getJSONObject("counts");
-        assertEquals(174,counts.getInt("reviewed_book_source_statements"));
-        assertEquals(20,counts.getInt("reviewed_book_source_pages"));
+        assertEquals(190,counts.getInt("reviewed_book_source_statements"));
+        assertEquals(23,counts.getInt("reviewed_book_source_pages"));
         assertEquals(1,counts.getInt("reviewed_book_withheld_fields"));
         JSONObject expected;
-        try (InputStream stream=InstrumentationRegistry.getInstrumentation().getContext().getAssets().open("book174-expected.json")) {
+        try (InputStream stream=InstrumentationRegistry.getInstrumentation().getContext().getAssets().open("book190-expected.json")) {
             java.io.ByteArrayOutputStream bytes=new java.io.ByteArrayOutputStream();byte[] buffer=new byte[4096];int count;
             while ((count=stream.read(buffer))!=-1) {bytes.write(buffer,0,count);assertTrue("Bounded public test expectation",bytes.size()<=262144);}
             expected=new JSONObject(new String(bytes.toByteArray(),StandardCharsets.UTF_8));
         }
         JSONObject catalogPin=expected.getJSONObject("catalog_pin");
-        assertEquals("0ec5ec2d6cf44da6e3d5dc1425cdf40c2d9cb1282192a11e6283053c1745d00d",catalogPin.getString("sha256"));
-        assertEquals(4909626,catalogPin.getInt("bytes"));
+        assertEquals("d615612b316b355486d16c4e965a63570da716ba329da0dfe408fbbe48c62698",catalogPin.getString("sha256"));
+        assertEquals(4934911,catalogPin.getInt("bytes"));
         boolean exactCatalog=false;JSONArray files=reference.getJSONArray("files");
         for(int i=0;i<files.length();i++) {JSONObject file=files.getJSONObject(i);if("data/catalog.json".equals(file.getString("path")))exactCatalog=file.getString("sha256").equals(catalogPin.getString("sha256"))&&file.getInt("bytes")==catalogPin.getInt("bytes");}
-        assertTrue("Exact currentbook174 catalogue descriptor",exactCatalog);
-        evaluate(book174ReadOnlyScript(expected.toString()));
-        JSONObject proof=awaitPhase("book174-checked",30000).getJSONObject("bookEvidence174");
-        assertEquals(174,proof.getInt("statements"));assertEquals(10,proof.getInt("books"));assertEquals(20,proof.getInt("pages"));assertEquals(61,proof.getInt("cards"));
+        assertTrue("Exact currentbook190 catalogue descriptor",exactCatalog);
+        evaluate(book190ReadOnlyScript(expected.toString()));
+        JSONObject proof=awaitPhase("book190-checked",30000).getJSONObject("bookEvidence190");
+        assertEquals(190,proof.getInt("statements"));assertEquals(11,proof.getInt("books"));assertEquals(23,proof.getInt("pages"));assertEquals(63,proof.getInt("cards"));
+        JSONObject china16=proof.getJSONObject("china16"),chinaFields=china16.getJSONObject("fieldCounts"),formulaDOM=china16.getJSONObject("formulaDOM");
+        assertEquals(16,china16.getInt("checkedFields"));assertEquals(2,china16.getInt("checkedSpecies"));assertEquals(3,china16.getInt("sections"));
+        assertEquals("[\"10\",\"11\",\"13\"]",china16.getJSONArray("approvedPages").toString());
+        assertEquals(9,chinaFields.length());
+        for(String field:new String[]{"formula","color","luster","crystal_system","crystal_habit","uses","occurrence"})assertEquals(2,chinaFields.getInt(field));
+        assertEquals(1,chinaFields.getInt("surface_features"));assertEquals(1,chinaFields.getInt("named_specimen_observation"));
+        JSONArray chinaIds=china16.getJSONArray("candidateIds");assertEquals(16,chinaIds.length());
+        for(int i=0;i<16;i++)assertEquals(String.format(java.util.Locale.ROOT,"Chinese44-%03d",i+1),chinaIds.getString(i));
+        assertEquals("9014c9d215aa3a5abe5b564e9eef1a4ee908f3a84962006891efdf52e534527b",china16.getString("rootReviewSHA256"));
+        assertEquals("e01c975676698f4bf169e1d3dfbcc43f8073e5c7a6a5912b56a6d61a4cddb863",china16.getString("sourceBookSHA256"));
+        for(String field:new String[]{"compilerCredit","unknownPrintedFolios","formulaNarrativesSeparate","historicalScopeVisible","finiteSpecimenScopeVisible","surfaceTarnishScopeVisible","allPublicProofsEqualFixedExpected"})assertTrue("China16 "+field,china16.getBoolean(field));
+        for(String field:new String[]{"copperLiteral","chalcopyriteSemanticSubscript","ariaLabelsPreserved"})assertTrue("China16 formula "+field,formulaDOM.getBoolean(field));
         JSONObject legacy=proof.getJSONObject("legacy118"),chinese=proof.getJSONObject("chinese56");
         assertEquals(118,legacy.getInt("statements"));assertEquals(28,legacy.getInt("cards"));assertEquals(40,legacy.getInt("checkedFields"));assertEquals(13,legacy.getInt("checkedSpecies"));
         assertEquals(56,chinese.getInt("checkedFields"));assertEquals(34,chinese.getInt("checkedSpecies"));assertTrue(chinese.getBoolean("excluded023Absent"));

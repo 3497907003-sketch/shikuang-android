@@ -277,8 +277,9 @@ test('books scope selects actual reviewed rows only and does not change model sc
 test('Chinese56 keeps all reviewed narratives and separate literal formulas with explicit source conditions',async()=>{
   const rows=catalog.reviewed_book_evidence.records.filter(r=>r.source_id==='user-book-04');
   assert.equal(rows.length,56);assert.equal(new Set(rows.map(r=>r.catalog_id)).size,34);
-  assert.equal(catalog.reviewed_book_evidence.records.length,174);assert.equal(catalog.reviewed_book_evidence.books.length,10);
-  assert.equal(catalog.reviewed_book_evidence.counts.selected_source_pages,20);
+  assert.equal(catalog.reviewed_book_evidence.records.length,190);assert.equal(catalog.reviewed_book_evidence.books.length,11);
+  assert.equal(catalog.reviewed_book_evidence.records.filter(r=>r.source_id!=='new-book-10').length,174);
+  assert.equal(catalog.reviewed_book_evidence.counts.selected_source_pages,23);
   const before=JSON.stringify(catalog.minerals),f=fixture({catalog});await f.settle();let calls=0;f.context.fetch=()=>{calls++;throw Error('no extra requests');};
   const escape=s=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   for(const id of new Set(rows.map(r=>r.catalog_id))){
@@ -332,10 +333,11 @@ test('Chinese56 exact proof blocks unresolved locality, wrong formula, altered p
   }
 });
 
-test('Chinese56 adds61 actual book species without adding model labels or the held Qusongite locality',async()=>{
+test('Chinese56 retains its original61 book species without adding model labels or the held Qusongite locality',async()=>{
   const f=fixture({catalog});await f.settle();f.node('libraryScope').value='books';f.node('libraryScope').fire('change');
-  assert.equal((f.node('libraryList').innerHTML.match(/data-detail=/g)||[]).length,61);
-  assert.match(f.node('catalogIntro').innerHTML,/书籍核对：61 种矿物、174 条陈述/);
+  assert.equal((f.node('libraryList').innerHTML.match(/data-detail=/g)||[]).length,63);
+  assert.equal(new Set(catalog.reviewed_book_evidence.records.filter(r=>r.source_id!=='new-book-10').map(r=>r.catalog_id)).size,61);
+  assert.match(f.node('catalogIntro').innerHTML,/书籍核对：63 种矿物、190 条陈述/);
   assert.match(f.node('catalogIntro').innerHTML,/所选书页/);
   const rows=catalog.reviewed_book_evidence.records.filter(r=>r.source_id==='user-book-04'&&r.catalog_id==='ima-qusongite');
   assert.deepEqual(rows.map(r=>r.field),['formula']);
