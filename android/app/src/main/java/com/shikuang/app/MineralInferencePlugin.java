@@ -274,7 +274,12 @@ public final class MineralInferencePlugin extends Plugin {
             MineralModelContract.validateShape(input.getShape(), new long[] {1,3,224,224});
             MineralModelContract.validateShape(output.getShape(), new long[] {1,model.classes});
             sessions.put(key, loaded); job.modelLoads++; return loaded;
-        } catch (Exception e) { loaded.close(); throw e; }
+        } catch (Exception | Error failure) {
+            // Until registration succeeds this session is absent from sessions;
+            // the outer cache cleanup cannot release it after OOM/linkage errors.
+            NativeResourceCleanup.closeAfterFailure(loaded, failure);
+            throw failure;
+        }
     }
 
     private File modelDirectory() {

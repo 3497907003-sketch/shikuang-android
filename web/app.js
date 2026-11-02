@@ -3,7 +3,7 @@
   const $ = s => document.querySelector(s);
   window.MineralViewport?.start(window,document);
   const state = { photos: [], active: 0, scene: 'daily', result: null, busy: false, controller: null,
-    recordId: null, specimenEpoch:0, records: [], selectedRecord: null, pendingDelete: null, view: 'identify', mode:'offline', mediaBusy:false, mediaController:null, offlineController:null, assistController:null, saving:false, draftDirty:false, revision:0 };
+    recordId: null, recordSampleId:'', specimenEpoch:0, records: [], selectedRecord: null, pendingDelete: null, view: 'identify', mode:'offline', mediaBusy:false, mediaController:null, offlineController:null, assistController:null, saving:false, draftDirty:false, revision:0 };
   let cameraStream,videoStream,recorder,recordTimer,discardRecording=false,mediaEpoch=0,inputJob=null,restoreAllowed=true;
   function stopCamera(){cameraStream?.getTracks().forEach(t=>t.stop());cameraStream=null;$('#cameraPreview').srcObject=null;}
   function stopRecording(discard=false){discardRecording=discard;if(recorder?.state==='recording')recorder.stop();clearTimeout(recordTimer);videoStream?.getTracks().forEach(t=>t.stop());videoStream=null;$('#videoPreview').srcObject=null;$('#videoPreview').hidden=true;}
@@ -572,29 +572,41 @@
   function resetSample() {
     if(state.draftDirty&&!confirm('当前标本尚有未保存内容。开始新标本将清空当前照片和观察，已保存记录保留。继续吗？'))return;
     restoreAllowed=false;cancelInput(false);cancelAnalysis(false);
-    state.photos = []; state.active = 0; invalidate();state.specimenEpoch++;state.recordId=null;state.draftDirty=false;
+    state.photos = []; state.active = 0; invalidate();state.specimenEpoch++;state.recordId=null;state.recordSampleId='';state.draftDirty=false;
     $('#notes').value = ''; $('#sampleId').value = ''; $('#hardness').value = ''; $('#luster').value = '';
     renderPhotos(); status('拍摄或选择一张照片即可开始。'); window.scrollTo({top:0,behavior:'instant'});
   }
   async function thumbnail(src) {
-    const img = await MineralEngine.image(src), canvas = document.createElement('canvas'), scale = 256/Math.max(img.naturalWidth,img.naturalHeight);
-    canvas.width = Math.round(img.naturalWidth*scale); canvas.height = Math.round(img.naturalHeight*scale);
-    canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height); return canvas.toDataURL('image/jpeg',0.7);
+    const img = await MineralEngine.image(src);let canvas;
+    try {
+      canvas = document.createElement('canvas');const scale = 256/Math.max(img.naturalWidth,img.naturalHeight);
+      canvas.width = Math.round(img.naturalWidth*scale); canvas.height = Math.round(img.naturalHeight*scale);
+      const context=canvas.getContext('2d');if(!context)throw new Error('当前环境无法创建标本缩略图，请重试');
+      context.drawImage(img,0,0,canvas.width,canvas.height); return canvas.toDataURL('image/jpeg',0.7);
+    }finally{try{if(canvas)canvas.width=canvas.height=0;}finally{if(typeof img.removeAttribute==='function')img.removeAttribute('src');else img.src='';}}
   }
   async function save() {
     if (!state.result || state.busy || state.saving) return;
     state.saving=true;
-    const snapshot={result:state.result,recordId:state.recordId,specimenEpoch:state.specimenEpoch,revision:state.revision,photos:state.photos.map(p=>({...p})),scene:state.scene,notes:$('#notes').value.trim(),sampleId:$('#sampleId').value.trim(),observation:observation()};
+    const snapshot={result:state.result,recordId:state.recordId,sampleIdBaseline:state.recordSampleId,specimenEpoch:state.specimenEpoch,revision:state.revision,photos:state.photos.map(p=>({...p})),scene:state.scene,notes:$('#notes').value.trim(),sampleId:$('#sampleId').value.trim(),observation:observation()};
     $('#saveBtn').disabled = true;
     try {
       const r = snapshot.result, id = snapshot.recordId || (crypto.randomUUID?.() || `specimen-${Date.now()}-${Math.random().toString(36).slice(2)}`);
       const old = snapshot.recordId ? (await SpecimenStore.list()).find(x => x.id === snapshot.recordId) : null;
       const photos = await Promise.all(snapshot.photos.map(p => thumbnail(p.src)));
-      await SpecimenStore.put({ ...r, id, time:old?.time || Date.now(), name:name(r.key), photos, scene:snapshot.scene,
+      const saved=await SpecimenStore.put({ ...r, id, time:old?.time || Date.now(), name:name(r.key), photos, scene:snapshot.scene,
         notes:snapshot.notes, sampleId:snapshot.sampleId, observation:snapshot.observation,
-        confirmedKey:old?.confirmedKey || '', confirmationMethod:old?.confirmationMethod || '' });
-      if(state.specimenEpoch===snapshot.specimenEpoch){state.recordId = id;if(state.revision===snapshot.revision)state.draftDirty=false; $('#saveBtn').innerHTML = '<i data-lucide="bookmark-check"></i>更新标本';icons();} toast('标本已保存在这台设备');
-    } catch (e) { toast(e.message); } finally { state.saving=false;$('#saveBtn').disabled = state.busy; }
+        confirmedKey:old?.confirmedKey || '', confirmationMethod:old?.confirmationMethod || '' }, {preserveReview:true,requireExisting:Boolean(snapshot.recordId),expectedSampleId:snapshot.sampleIdBaseline});
+      if(state.specimenEpoch===snapshot.specimenEpoch){
+        state.recordId=id;const sampleId=typeof saved?.sampleId==='string'?saved.sampleId:snapshot.sampleId;
+        if($('#sampleId').value.trim()===snapshot.sampleId){$('#sampleId').value=sampleId;state.recordSampleId=sampleId;}
+        else if(sampleId===snapshot.sampleId)state.recordSampleId=sampleId;
+        if(state.revision===snapshot.revision)state.draftDirty=false;$('#saveBtn').innerHTML='<i data-lucide="bookmark-check"></i>更新标本';icons();
+      } toast('标本已保存在这台设备');
+    } catch (e) {
+      if(e.code==='SAMPLE_ID_CONFLICT'&&state.specimenEpoch===snapshot.specimenEpoch&&state.recordId===snapshot.recordId)state.recordSampleId=e.latestSampleId;
+      toast(e.message);
+    } finally { state.saving=false;$('#saveBtn').disabled = state.busy; }
   }
   function crystalSystemAnnotation(fact){
     if(fact?.status!=='verified')return null;
@@ -931,7 +943,10 @@
     const key = $('#confirmedKey').value, method = $('#confirmationMethod').value.trim();
     if (key && !method) { toast('请填写确认方法或报告编号，让结论可追溯'); return; }
     try {
-      await SpecimenStore.put({ ...state.selectedRecord, sampleId:$('#recordSampleId').value.trim(), confirmedKey:key, confirmationMethod:key?method:'' });
+      const selected=state.selectedRecord,values={sampleId:$('#recordSampleId').value.trim(),confirmedKey:key,confirmationMethod:key?method:''},changes={};
+      for(const field of Object.keys(values))if(values[field]!==String(selected[field]||''))changes[field]=values[field];
+      const saved=await SpecimenStore.review(selected.id,changes);
+      if(state.recordId===selected.id&&$('#sampleId').value.trim()===state.recordSampleId){const sampleId=typeof saved?.sampleId==='string'?saved.sampleId:values.sampleId;$('#sampleId').value=sampleId;state.recordSampleId=sampleId;}
       closeDialog('#recordDialog'); await renderRecords(); toast('复核信息已保存，原始候选已保留');
     } catch (e) { toast(e.message); }
   }
@@ -1136,7 +1151,7 @@
   $('#importInput').addEventListener('change',()=>void importRecords($('#importInput')));
   $('#closeDetail').addEventListener('click',()=>closeDialog('#detailDialog'));$('#closeRecord').addEventListener('click',()=>closeDialog('#recordDialog'));
   $('#cancelDelete').addEventListener('click',()=>{state.pendingDelete=null;closeDialog('#confirmDialog');});
-  $('#confirmDelete').addEventListener('click',async()=>{const id=state.pendingDelete;if(!id)return;try{await SpecimenStore.remove(id);state.pendingDelete=null;if(state.recordId===id)state.recordId=null;closeDialog('#confirmDialog');closeDialog('#recordDialog');await renderRecords();toast('记录已删除');}catch(e){toast(e.message);}});
+  $('#confirmDelete').addEventListener('click',async()=>{const id=state.pendingDelete;if(!id)return;try{await SpecimenStore.remove(id);state.pendingDelete=null;if(state.recordId===id){state.recordId=null;state.recordSampleId='';}closeDialog('#confirmDialog');closeDialog('#recordDialog');await renderRecords();toast('记录已删除');}catch(e){toast(e.message);}});
   document.querySelectorAll('dialog').forEach(d=>d.addEventListener('close',()=>{if(d.open)return;if(d.id==='cameraDialog'){stopCamera();if(inputJob?.kind==='camera'&&inputJob.phase!=='decoding')cancelInput();}if(d.id==='videoDialog'){if(inputJob?.kind==='record-video')cancelInput();stopRecording(true);$('#recordVideo').disabled=false;$('#chooseVideo').disabled=false;$('#stopVideo').hidden=true;}if(!document.querySelector('dialog[open]'))document.body.classList.remove('dialog-open');}));
   $('#offlineBtn').addEventListener('click',()=>void prepareOffline());$('#assistBtn').addEventListener('click',()=>void assist());
   addEventListener('hashchange',route);

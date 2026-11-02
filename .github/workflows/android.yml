@@ -28,6 +28,19 @@ jobs:
       - run: npm run check
       - run: python3 tests/test_apk_compatibility.py
       - run: npm run sync
+      - name: Run Android JVM regression tests
+        working-directory: android
+        run: ./gradlew --no-daemon --max-workers=2 testDebugUnitTest
+      - name: Preserve Android JVM test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-jvm-tests-${{ github.run_id }}
+          path: |
+            android/app/build/test-results/testDebugUnitTest/
+            android/app/build/reports/tests/testDebugUnitTest/
+          if-no-files-found: warn
+          retention-days: 7
       - name: Prepare persistent preview signing key
         env:
           SIGNING_STORE: ${{ secrets.SHIKUANG_SIGNING_STORE }}

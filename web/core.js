@@ -354,6 +354,9 @@
     checkBackupSize(text);
     const data = JSON.parse(text);
     if (data?.schema !== 'shikuang-records' || data.version !== 2 || !Array.isArray(data.records) || data.records.length > 100) throw new Error('请选择识矿导出的标本文件（最多 100 条）');
+    // A backup must retain its original identity. New IDs are useful for a new
+    // local record, but would turn a damaged backup into duplicates on retry.
+    if (data.records.some(record => !record || typeof record.id !== 'string' || !record.id.trim() || record.id.length > 100)) throw new Error('备份中的标本编号无效，请使用完整导出的标本文件');
     const records = data.records.map(sanitizeRecord);
     if (new Set(records.map(r => r.id)).size !== records.length) throw new Error('导入文件包含重复记录编号');
     return records;

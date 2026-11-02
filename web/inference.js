@@ -1,55 +1,69 @@
 (function () {
   'use strict';
-  let worker, workerReady=false, nativeEngine, researchClient, researchPhotoClient, configuration=null, active=false, manifestCacheState='unprepared';
+  let worker, workerReady=false, nativeEngine, researchClient, researchPhotoClient, configuration=null, active=false, manifestCacheState='unprepared', preparationVersion=0;
   const configurationHashes=new WeakMap();
   const hex = bytes => Array.from(new Uint8Array(bytes),b=>b.toString(16).padStart(2,'0')).join('');
   function cancellable(promise,signal) {
-    abort(signal);if(!signal)return promise;
-    return new Promise((resolve,reject)=>{const cancel=()=>reject(new DOMException('分析已停止','AbortError'));signal.addEventListener('abort',cancel,{once:true});Promise.resolve(promise).then(resolve,reject).finally(()=>signal.removeEventListener('abort',cancel));});
+    // Observe the underlying promise even when cancellation has already won.
+    const pending=Promise.resolve(promise);if(!signal)return pending;
+    return new Promise((resolve,reject)=>{const cancel=()=>{signal.removeEventListener('abort',cancel);reject(new DOMException('分析已停止','AbortError'));};signal.addEventListener('abort',cancel,{once:true});pending.then(resolve,reject).finally(()=>signal.removeEventListener('abort',cancel));if(signal.aborted)cancel();});
   }
+  // Older bridge cleanup may return void or throw. Always settle the analysis.
+  function cleanup(action) { try { void Promise.resolve(action()).catch(()=>{}); } catch (_) {} }
   function productionOnly(options) {
     if(['profileId','profileVersion','inputProfile','researchProfile','researchManifest'].some(key=>Object.prototype.hasOwnProperty.call(options,key)))throw new Error('生产模型只接受原schema1输入；研究profile请显式使用prepareResearchInput，尚未注册研究模型');
   }
   async function prepare(options={}) {
     productionOnly(options);
-    const {signal} = options; abort(signal);
+    const {signal} = options; abort(signal);const version=++preparationVersion;
     try {if(window.Capacitor?.isNativePlatform?.() || window.Capacitor?.getPlatform?.()==='android') {
       if(!window.MineralNativeAssets)throw new Error('本机资源迁移组件缺失，请更新 App');
       const migrated=await cancellable(window.MineralNativeAssets.prepare(),signal);abort(signal);
       if(migrated.restartRequired)throw new Error('正在重启以更新本机资源，请稍候');
-    }}catch(error){configuration=null;manifestCacheState='failed';throw error;}
+    }}catch(error){if(version===preparationVersion){configuration=null;manifestCacheState='failed';}throw error;}
     const controller=new AbortController(),cancel=()=>controller.abort();
     signal?.addEventListener('abort',cancel,{once:true});
     let expired=false;
     const timer=setTimeout(()=>{expired=true;controller.abort();},15000);
     try {
-      const response=await fetch(new URL('model-manifest.json',location.href),{cache:'no-cache',signal:controller.signal});
+      const response=await cancellable(fetch(new URL('model-manifest.json',location.href),{cache:'no-cache',signal:controller.signal}),controller.signal);
       const bytes=await MineralCore.readResource(response,100000,undefined,undefined,{signal:controller.signal,timeout:15000});
       abort(signal);
       const loaded=MineralCore.validateManifest(JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes)),Object.keys(MINERAL_CLASSES));
       if(!crypto.subtle)throw new Error('当前环境无法校验模型，请使用安装版或 HTTPS 地址');
-      const digest=hex(await crypto.subtle.digest('SHA-256',bytes)); abort(signal);
-      configuration=loaded;configurationHashes.set(loaded,digest);manifestCacheState=response.headers?.get('x-shikuang-manifest-state')||'packaged-or-network';return loaded;
-    }catch(error){configuration=null;manifestCacheState='failed';if(expired)throw new Error('模型清单读取超过 15 秒，请重试或更新离线资源');abort(signal);throw error;}
+      const digest=hex(await cancellable(crypto.subtle.digest('SHA-256',bytes),controller.signal)); abort(signal);
+      configurationHashes.set(loaded,digest);if(version===preparationVersion){configuration=loaded;manifestCacheState=response.headers?.get('x-shikuang-manifest-state')||'packaged-or-network';}return loaded;
+    }catch(error){if(version===preparationVersion){configuration=null;manifestCacheState='failed';}if(expired)throw new Error('模型清单读取超过 15 秒，请重试或更新离线资源');abort(signal);throw error;}
     finally{clearTimeout(timer);signal?.removeEventListener('abort',cancel);}
   }
   const abort=signal=>{if(signal?.aborted)throw new DOMException('分析已停止','AbortError');};
   async function image(src,signal) {
     abort(signal);return window.MineralMedia.decodePhoto(src,{signal});
   }
+  function releaseCanvas(canvas) { if(canvas){canvas.width=0;canvas.height=0;} }
+  function releaseImage(img) {
+    if(!img)return;img.onload=null;img.onerror=null;
+    if(typeof img.removeAttribute==='function')img.removeAttribute('src');else img.src='';
+  }
   function cropCanvas(img,size=224,crop=1) {
     const canvas=document.createElement('canvas');canvas.width=canvas.height=size;
     const side=Math.min(img.naturalWidth,img.naturalHeight)*crop;
-    const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='low';ctx.drawImage(img,(img.naturalWidth-side)/2,(img.naturalHeight-side)/2,side,side,0,0,size,size);return canvas;
+    try {
+      const ctx=canvas.getContext('2d',{willReadFrequently:true});if(!ctx)throw new Error('当前环境无法创建图像分析画布');
+      ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='low';ctx.drawImage(img,(img.naturalWidth-side)/2,(img.naturalHeight-side)/2,side,side,0,0,size,size);return canvas;
+    }catch(error){releaseCanvas(canvas);throw error;}
   }
   function workerRun(inputs,keys,{signal,report,models,manifestHash}) {
     abort(signal);
     if(!window.Worker)throw new Error('当前 WebView 不支持后台识别，请更新系统 WebView');
     if(!worker){workerReady=false;worker=new Worker(MineralCore.shellResourceURL('./engine-worker.js',location.href));}
     const current=worker;
-    const discard=()=>{current.onmessage=null;current.onerror=null;current.terminate();if(worker===current){worker=null;workerReady=false;}};
+    const discard=()=>{
+      current.onmessage=null;current.onerror=null;if(worker===current){worker=null;workerReady=false;}
+      try{void Promise.resolve(current.terminate()).catch(()=>{});}catch(_){}
+    };
     return new Promise((resolve,reject)=>{
-      let settled=false,repairPending=Promise.resolve();
+      let settled=false,repairPending=Promise.resolve(),repairFailed=false;
       const finish=(error,result,terminate=false)=>{
         if(settled)return;settled=true;clearTimeout(timer);clearTimeout(bootTimer);signal?.removeEventListener('abort',cancel);
         current.onmessage=null;
@@ -66,15 +80,18 @@
       let posted=false;
       const start=()=>{if(posted||settled)return;posted=true;try{current.postMessage({type:'analyze',base:new URL('./',location.href).href,inputs,labels:keys,modelIds:models.map(m=>m.id),mode:models.length===1?'fast':'ensemble',manifestSha256:manifestHash,screen:true,blocked:window.IMAGENET_BLOCKED},inputs.map(x=>x.buffer));}catch(e){finish(e,null,true);}};
       current.onmessage=({data})=>{
-        if(data.type==='ready'){workerReady=true;clearTimeout(bootTimer);start();}
-        if(data.type==='boot-error')finish(new Error(`识别组件初始化失败：${data.message}`),null,true);
-        if(data.type==='progress')report(data.message);
-        if(data.type==='partial')report(`初步候选：${window.MINERAL_KB[data.key]?.name_zh||data.key}；正在继续复核…`);
-        if(data.type==='result')finish(null,data);
-        if(data.type==='resource-invalid')repairPending=repairPending.then(()=>evictResource(data.url));
-        if(data.type==='error')repairPending.then(()=>finish(new Error(data.message),null,true));
+        if(settled)return;
+        try {
+          if(data.type==='ready'){workerReady=true;clearTimeout(bootTimer);start();}
+          if(data.type==='boot-error')finish(new Error(`识别组件初始化失败：${data.message}`),null,true);
+          if(data.type==='progress')report(data.message);
+          if(data.type==='partial')report(`初步候选：${window.MINERAL_KB[data.key]?.name_zh||data.key}；正在继续复核…`);
+          if(data.type==='result')finish(null,data);
+          if(data.type==='resource-invalid')repairPending=repairPending.then(()=>{if(!settled)return evictResource(data.url);}).catch(()=>{repairFailed=true;});
+          if(data.type==='error')void repairPending.then(()=>finish(new Error(data.message+(repairFailed?'；离线缓存未能自动修复，请重新准备离线资源或更新 App':'')),null,true));
+        }catch(error){finish(error,null,true);}
       };
-      if(workerReady)start();else report('正在启动浏览器识别线程…');
+      try{if(workerReady)start();else report('正在启动浏览器识别线程…');}catch(error){finish(error,null,true);}
     });
   }
   async function evictResource(value) {
@@ -104,15 +121,15 @@
       let settled=false,listener;
       const finish=(error,result,cancelNative=false)=>{
         if(settled)return;settled=true;clearTimeout(timer);signal?.removeEventListener('abort',cancel);
-        if(listener)void listener.remove().catch(()=>{});
-        if(cancelNative)void current.cancel({jobId}).catch(()=>{});
+        if(listener)cleanup(()=>listener.remove());
+        if(cancelNative)cleanup(()=>current.cancel({jobId}));
         error?reject(error):resolve(result);
       };
       const cancel=()=>finish(new DOMException('分析已停止','AbortError'),null,true);
       const timer=setTimeout(()=>finish(new Error('原生分析超过 120 秒，已停止。可重试快速模式'),null,true),120000);
       signal?.addEventListener('abort',cancel,{once:true});
-      Promise.resolve().then(()=>current.addListener('mineralProgress',event=>{if(!settled&&event.jobId===jobId)report(event.message);})).then(handle=>{
-        if(settled){void handle.remove().catch(()=>{});return null;}
+      Promise.resolve().then(()=>current.addListener('mineralProgress',event=>{try{if(!settled&&event.jobId===jobId)report(event.message);}catch(error){finish(error,null,true);}})).then(handle=>{
+        if(settled){cleanup(()=>handle.remove());return null;}
         listener=handle;abort(signal);report('正在启动 Android 原生识别…');abort(signal);
         return current.classify({jobId,inputs:inputs.map(encodedInput),inputEncoding:'float32-le-base64',labels:keys,modelIds:models.map(m=>m.id),mode:models.length===1?'fast':'ensemble',manifestSha256:manifestHash,blocked:window.IMAGENET_BLOCKED});
       }).then(result=>{if(!settled)finish(null,result);}).catch(error=>finish(error));
@@ -150,13 +167,18 @@
     const inputs=[],qualityReports=[],warnings=[];
     for(let i=0;i<photos.length;i++){
       abort(signal);report(`检查图像质量 ${i+1}/${photos.length}…`);
-      const img=await image(photos[i].src,signal);abort(signal);
-      if(Math.min(img.naturalWidth,img.naturalHeight)<64)throw new Error(`图像 ${i+1} 分辨率过低，请重新拍摄`);
-      const crop=photos[i].crop===undefined?1:photos[i].crop;if(!Number.isFinite(crop)||crop<0.5||crop>1)throw new Error('中心分析区域需在 50%–100% 之间');
-      const pixels=cropCanvas(img,224,crop).getContext('2d').getImageData(0,0,224,224);
-      const q=MineralCore.quality(pixels.data,224,224);qualityReports.push(q);
-      if(q.warnings.some(x=>/偏暗|过曝|纹理过少/.test(x)))throw new Error(`图像 ${i+1}：${q.warnings.join('；')}。请重拍或选择清晰视频帧`);
-      warnings.push(...q.warnings.map(x=>`图像 ${i+1}：${x}`));inputs.push(MineralCore.pixelsToInput(pixels.data,manifest.input));
+      let img,canvas;
+      try {
+        img=await image(photos[i].src,signal);abort(signal);
+        if(Math.min(img.naturalWidth,img.naturalHeight)<64)throw new Error(`图像 ${i+1} 分辨率过低，请重新拍摄`);
+        const crop=photos[i].crop===undefined?1:photos[i].crop;if(!Number.isFinite(crop)||crop<0.5||crop>1)throw new Error('中心分析区域需在 50%–100% 之间');
+        canvas=cropCanvas(img,224,crop);
+        const pixels=canvas.getContext('2d').getImageData(0,0,224,224);
+        const q=MineralCore.quality(pixels.data,224,224);qualityReports.push(q);
+        if(q.warnings.some(x=>/偏暗|过曝|纹理过少/.test(x)))throw new Error(`图像 ${i+1}：${q.warnings.join('；')}。请重拍或选择清晰视频帧`);
+        warnings.push(...q.warnings.map(x=>`图像 ${i+1}：${x}`));inputs.push(MineralCore.pixelsToInput(pixels.data,manifest.input));
+        // Release decoded working surfaces before allocating model resources.
+      }finally{try{releaseCanvas(canvas);}finally{releaseImage(img);}}
     }
     const native=!!window.Capacitor?.isNativePlatform?.();
     const keys=Object.keys(MINERAL_CLASSES),raw=await (native?nativeRun:workerRun)(inputs,keys,{signal,report,models,manifestHash});abort(signal);
