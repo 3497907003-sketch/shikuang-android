@@ -1,7 +1,7 @@
 {
-  "source_commit": "2af2cac72e610da78d47108dabdf99550dd7b1c8",
+  "source_commit": "6a962e39adb6e7410f3641eb5ccdab62627d8aa3",
   "source_repository": "https://github.com/3497907003-sketch/shikuang-app",
-  "source_method": "Exact immutable Web2af current190/11-book/23-page/63-species resources. Four approved raw changes; 164 other raw assets and 11 build inputs remain. Separate canonical168 build and literal comparison. No model, native runtime, CI, independent accuracy or release claim.",
+  "source_method": "Exact committed Web6a962e39 assets after reviewed first-detail reference loading and noninteractive toast fix. Only app.js/styles.css/reference-loader.js change; other165 raw assets and11 build inputs remain exact. Separate canonical168 comparison; local source/build/sync only, no new CI, APK, device or accuracy acceptance.",
   "applicationVersion": "2.5.0-preview.1",
   "androidVersionCode": 25001,
   "packageName": "com.shikuang.app.preview",
@@ -9,8 +9,8 @@
   "assets": [
     {
       "path": "app.js",
-      "bytes": 170546,
-      "sha256": "eaabcebae6a3d54fbe472cf70f028fb9192d111137cf7f1c14240bdb3b801625"
+      "bytes": 171853,
+      "sha256": "c2553bc4f64775327ab1c5baa8da67536d6b1e69589ab8b493d62c05b569a8ce"
     },
     {
       "path": "compat.js",
@@ -754,8 +754,8 @@
     },
     {
       "path": "reference-loader.js",
-      "bytes": 3709,
-      "sha256": "4c13b058e9c305fedbab3a30caf9f3b450e093041d24d85f3a0da27d2c7f5a21"
+      "bytes": 3716,
+      "sha256": "8923ab338dc588918198c3eee9195d76ce895b486de99be01f44156c21a2f1dd"
     },
     {
       "path": "research-input.js",
@@ -809,8 +809,8 @@
     },
     {
       "path": "styles.css",
-      "bytes": 37339,
-      "sha256": "16a2f659055275b6538c2c057a4a503b8ca0384ff5cfcc5f84682d2063a61608"
+      "bytes": 37443,
+      "sha256": "b1308fbc24addd75836675826f4cec7091a1cbe2489492281eb51117065b7720"
     },
     {
       "path": "sw.js",
@@ -851,7 +851,7 @@
   "assetCount": 168,
   "publishedPhotos": 117,
   "scope": "Local preview source and packaged-asset identity; not field accuracy, new model training, CI, physical-device acceptance or a public release",
-  "local_sync_at": "2026-11-02T02:04:34.549821+00:00",
+  "local_sync_at": "2026-11-02T03:00:17.740891+00:00",
   "developmentRevision": "r9",
   "public_deployment_verified_for_this_sync": false,
   "historical_production_web_merge": "95b4b4e4d1d9be561a18ed745c95eb60f0b6ab0f",

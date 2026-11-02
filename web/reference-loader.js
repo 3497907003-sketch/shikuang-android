@@ -1,4 +1,4 @@
-// The large reference collection loads only when opening the library. Photo
+// The large reference collection loads when opening the library or a detail. Photo
 // inference and saving specimens do not wait for this download.
 (() => {
   let pending = null;

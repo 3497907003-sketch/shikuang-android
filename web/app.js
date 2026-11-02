@@ -809,9 +809,28 @@
     if(k.industrial_uses?.length)return `<section class="detail-section" data-industrial-uses="legacy"><h3>用途（原项目资料，待复核）</h3><ul>${k.industrial_uses.map(value=>`<li>${html(value)}</li>`).join('')}</ul></section>`;
     return reference?'<section class="detail-section"><h3>用途</h3><p>未收录</p></section>':'';
   }
-  function showDetail(key) {
+  let detailRequestSequence=0;
+  function showDetail(key,retry=false){
+    const request=++detailRequestSequence;
+    if(!renderDetail(key))return;
+    const loader=window.MineralReference;
+    if(!loader?.load||loader.status==='ready'&&catalog===window.MINERAL_CATALOG)return;
+    $('#detailBody').insertAdjacentHTML('afterbegin','<p class="field-hint detail-reference-state" role="status" aria-live="polite">正在读取完整资料，原有资料可先查阅…</p>');
+    void ensureReferenceCatalog(retry).then(()=>{
+      const dialog=$('#detailDialog');
+      if(request!==detailRequestSequence||!dialog.open)return;
+      if(loader.status==='ready'&&catalog===window.MINERAL_CATALOG){
+        const scroll=dialog.scrollTop;
+        renderDetail(key);dialog.scrollTop=scroll;
+      }else{
+        const message=document.querySelector('#detailBody .detail-reference-state');
+        if(message)message.innerHTML='完整资料暂未打开，当前显示原有资料。 <button type="button" class="secondary" data-retry-detail-reference="'+html(key)+'">重试读取完整资料</button>';
+      }
+    });
+  }
+  function renderDetail(key) {
     const reference=key.startsWith('catalog:')?catalogById.get(key.slice(8)):catalogByDetail.get(key),detailKey=window.MINERAL_KB[key]?key:reference?.detail_key||key,k=kb(detailKey);
-    if (!Object.keys(k).length&&!reference) { toast('该候选暂未收录资料'); return; }
+    if (!Object.keys(k).length&&!reference) { toast('该候选暂未收录资料'); return false; }
     stopGallery();
     const translatedName=reviewedCatalogName(reference);
     $('#detailTitle').textContent = k.name_zh||translatedName?.name_zh||reference?.name_en||name(detailKey);
@@ -824,7 +843,7 @@
     if(reference){$('#detailBody').insertAdjacentHTML('beforeend',crystalSectionMarkup());appendCrystalRecords();}
     selectedImages=[...(imagesByName.get(normalizeSearch(reference?.name_en||k.name_en))||[])].sort((a,b)=>Number(!!localPhoto(b))-Number(!!localPhoto(a)));imagesShown=0;
     if(selectedImages.length){$('#detailBody').insertAdjacentHTML('beforeend',imageSectionMarkup());appendImageRecords();document.querySelector('#detailBody .image-section')?.addEventListener('toggle',()=>void loadReferencePhotos());}
-    openDialog('#detailDialog'); icons();
+    if(!$('#detailDialog').open)openDialog('#detailDialog');icons();return true;
   }
   async function copyFormula(text){
     const original=String(text||'');if(!original)return;
@@ -1083,6 +1102,7 @@
     if(photo && !state.busy&&!state.mediaBusy){state.active=Number(photo.dataset.photo);renderPhotos();}
     if(e.target.closest('[data-add-photo]') && !state.busy)void capture('camera');
     if(detail)showDetail(detail.dataset.detail);
+    const retryDetail=e.target.closest('[data-retry-detail-reference]');if(retryDetail)showDetail(retryDetail.dataset.retryDetailReference,true);
     if(e.target.closest('[data-more-crystals]'))appendCrystalRecords();
     if(e.target.closest('[data-more-images]'))appendImageRecords();
     const formula=e.target.closest('[data-copy-formula]');if(formula)void copyFormula(formula.dataset.copyFormula);

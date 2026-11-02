@@ -129,3 +129,5 @@ dialog[open]{position:fixed;top:50%;bottom:auto;left:0;right:0;margin:0 auto;tra
 /* Editing in a compressed viewport takes priority over fixed navigation. */
 body.compact-editing .bottom-nav{display:none}
 body.compact-editing main{padding-bottom:20px;padding-bottom:calc(20px + env(safe-area-inset-bottom))}
+/* Status messages must not intercept taps on the controls beneath them. */
+.toast{pointer-events:none}
