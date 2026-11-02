@@ -135,11 +135,11 @@ class RunnerTests(unittest.TestCase):
                 if stop!=0:self.assertTrue(report['cleanup_errors'])
     def test_actual_static_library_metadata_join_without_fixed_package_suffix(self):
         use=m.static_use(b'<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.google.android.webview"><application><uses-static-library android:name="com.vendor.trichromelibrary" android:version="42"/></application></manifest>')
-        rows=m.static_candidates(b'<packages><package name="com.vendor.trichromelibrary_ARBITRARY" realName="com.vendor.trichromelibrary" codePath="/data/app/real"/></packages>',use)
+        rows=m.static_candidates(b'<packages><package name="com.vendor.trichromelibrary_ARBITRARY" realName="com.vendor.trichromelibrary" codePath="/data/app/real" version="42"/></packages>',use)
         self.assertEqual(rows[0]['package'],'com.vendor.trichromelibrary_ARBITRARY')
         manifest=b'<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.vendor.trichromelibrary"><application><static-library android:name="com.vendor.trichromelibrary" android:version="42"/></application></manifest>'
         self.assertTrue(m.static_definition(manifest,use));self.assertFalse(m.static_definition(manifest,{**use,'version':'43'}))
-        with self.assertRaises(ValueError):m.static_candidates(b'<packages><package name="com.vendor.trichromelibrary_42" codePath="/data/app/../bad"/></packages>',use)
+        with self.assertRaises(ValueError):m.static_candidates(b'<packages><package name="com.vendor.trichromelibrary_42" codePath="/data/app/../bad" version="42"/></packages>',use)
         self.assertNotIn('com.google.android.trichromelibrary_636771938',(ROOT/'tools/android_memoryinfra_diagnostic.py').read_text())
     def test_actual_apkanalyzer_and_qualified_same_value_attribute_shapes(self):
         import xml.etree.ElementTree as ET

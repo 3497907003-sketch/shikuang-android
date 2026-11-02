@@ -1,0 +1,32 @@
+{
+  "source_run": 41411622226,
+  "source_arm": "catalog-detail-only",
+  "source_member": "work/resume54-Android-third-diagnostic-readonly-001/extracted/catalog-detail-only/arm/calls/package-manager-abx2xml.stdout.bin",
+  "source_xml_bytes": 602340,
+  "source_xml_sha256": "a36b821535968a340e69d24d65345834c6b3498b48634861a0c50f89e51be1f2",
+  "method": "Exact actual name/codePath/version attribute values for the sole Trichrome package row, serialized into a minimal metadata-only XML fixture. No APK or guessed pm listing is included.",
+  "fixture_bytes": 264,
+  "fixture_sha256": "5b055c6921426993c515114703c32100d2e13ad20365311f62c10585625b660e",
+  "pm_list_match_libraries_actual_output_observed": false,
+  "official_source_review": [
+    {
+      "url": "https://android.googlesource.com/platform/frameworks/base/+/android-15.0.0_r1/services/core/java/com/android/server/pm/PackageManagerShellCommand.java?format=TEXT",
+      "path": "work/resume54-Android-static-path-readonly-001/PackageManagerShellCommand.java",
+      "bytes": 219542,
+      "sha256": "121608ff4ddedab75087f9dec5ffc580630f89b0f7f1bf6f913d28968f73dadd",
+      "success": true
+    },
+    {
+      "url": "https://android.googlesource.com/platform/frameworks/base/+/android-15.0.0_r1/services/core/java/com/android/server/pm/ComputerEngine.java?format=TEXT",
+      "path": "work/resume54-Android-static-path-readonly-001/ComputerEngine.java",
+      "bytes": 271904,
+      "sha256": "60c12db6133f211e9e95b0ec8ed4b7538bcf7552615ec606f34a904189522174",
+      "success": true
+    }
+  ],
+  "source_contract_notes": [
+    "pm path omits the explicit static-library match flag.",
+    "list packages --match-libraries -f emits actual sourceDir and external manifest package, not necessarily internal version suffix.",
+    "No actual device list --match-libraries output has yet been observed."
+  ]
+}

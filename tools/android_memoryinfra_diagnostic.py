@@ -183,17 +183,47 @@ def static_candidates(raw, use):
     root=xml_root(raw);need(root.tag=='packages','actual PackageManager installed metadata')
     rows=[]
     for r in root.findall('package'):
-        name=r.get('name','');real=r.get('realName','');code=r.get('codePath','')
+        name=r.get('name','');real=r.get('realName','');code=r.get('codePath','');version=r.get('version','')
         # These are discovery filters only. Each candidate must still bind its
         # actual static-library manifest name/version, PackageManager path and ELF.
         if name==use['name'] or real==use['name'] or name.startswith(use['name']+'_'):
             need(re.fullmatch('[A-Za-z0-9_.]{1,256}',name)
                  and re.fullmatch('/[A-Za-z0-9_+=~./-]+',code)
-                 and all(v not in ('.','..') for v in code.split('/')), 'bounded installed static-library candidate')
-            rows.append({'package':name,'realName':real,'codePath':code})
+                 and all(v not in ('.','..') for v in code.split('/'))
+                 and re.fullmatch('0|[1-9][0-9]{0,18}',version) and int(version)<=0x7fffffffffffffff,
+                 'bounded installed static-library candidate')
+            rows.append({'package':name,'realName':real,'codePath':code,'package_version':version})
     need(0<len(rows)<=4 and len({r['package'] for r in rows})==len(rows),
          'finite unique actual installed static-library candidates')
     return rows
+
+
+def static_library_paths(raw):
+    # pm path omits MATCH_STATIC_SHARED_AND_SDK_LIBRARIES on Android 15.
+    # The explicit --match-libraries listing reports real sourceDir paths and
+    # external manifest names, which may lack the internal version suffix.
+    need(0<len(raw)<=16*1024, 'bounded actual static-library path listing')
+    lines=raw.splitlines();need(0<len(lines)<=4, 'finite actual static-library path listing')
+    rows=[]
+    for line in lines:
+        match=re.fullmatch(rb'package:(/[A-Za-z0-9_+=~./-]+\.apk)=([A-Za-z0-9_.]{1,256}) versionCode:(0|[1-9][0-9]{0,18})',line)
+        need(match is not None, 'literal actual static-library path record')
+        path=provider_path(b'package:'+match[1]);version=match[3].decode()
+        need(int(version)<=0x7fffffffffffffff, 'bounded static-library package version')
+        rows.append({'path':path,'manifest_package':match[2].decode(),'package_version':version})
+    need(len({r['path'] for r in rows})==len(rows), 'unique actual static-library APK paths')
+    return rows
+
+
+def static_candidate_path(candidate, paths):
+    # Join by the actual PackageManager codePath, never by order, package suffix,
+    # or an assumed base.apk name. A cluster's codePath is a directory.
+    code=candidate['codePath'].rstrip('/')
+    matches=[row for row in paths if row['path']==code or str(Path(row['path']).parent)==code]
+    need(len(matches)==1, 'exactly one PackageManager codePath/sourceDir binding')
+    selected=matches[0]
+    need(selected['package_version']==candidate['package_version'], 'PackageManager package version binding')
+    return selected
 
 
 def static_definition(raw, use):
@@ -247,16 +277,17 @@ def stock_provider(host, out, sdk):
         use=static_use(host.run('webview-actual-manifest',[str(analyzer),'manifest','print',str(web_apk)],seconds=30))
         packages,package_binding=package_manager_metadata(host,out)
         candidates=static_candidates(packages,use);matches=[]
+        path_command=['shell','pm','list','packages','--match-libraries','-f','--show-versioncode','--user','0',use['name']]
+        path_output=host.command('static-library-source-paths',path_command)
+        paths=static_library_paths(path_output)
         for i,candidate in enumerate(candidates):
-            actual=provider_path(host.command('static-candidate-%d-path'%i,['shell','pm','path',candidate['package']]))
-            code=candidate['codePath'].rstrip('/')
-            need(actual==code or str(Path(actual).parent)==code, 'PackageManager codePath/pm path mismatch')
+            selected=static_candidate_path(candidate,paths);actual=selected['path']
             apk=capture('static-candidate-%d-apk'%i,actual)
             manifest=host.run('static-candidate-%d-manifest'%i,[str(analyzer),'manifest','print',str(apk)],seconds=30)
             if not static_definition(manifest,use):
                 continue
             declared=xml_root(manifest).get('package','')
-            need(re.fullmatch('[A-Za-z0-9_.]{1,200}',declared) and
+            need(declared==selected['manifest_package'] and re.fullmatch('[A-Za-z0-9_.]{1,200}',declared) and
                  (candidate['realName']==declared or candidate['package']==declared
                   or candidate['package'].startswith(declared+'_')), 'actual installed/manifest package binding')
             matches.append({**candidate,'apk':apk,'path':actual,'manifest_package':declared})
@@ -278,6 +309,9 @@ def stock_provider(host, out, sdk):
                 'webview_apk_sha256':digest(web_apk.read_bytes()),'actual_uses_static_library':use,
                 'installed_static_library_join':chosen,'elf_build_id':elf_build_id(notes),
                 'package_manager_metadata_binding':package_binding,
+                'static_library_path_listing':{'command':path_command,'bytes':len(path_output),
+                    'sha256':digest(path_output),'records':paths,
+                    'contract':'https://android.googlesource.com/platform/frameworks/base/+/android-15.0.0_r1/services/core/java/com/android/server/pm/PackageManagerShellCommand.java#1026'},
                 'stock_apk_sha256':digest(apk.read_bytes()),'stock_apk_bytes':apk.stat().st_size,
                 'elf_sha256':digest(elf.read_bytes()),'elf_bytes':elf.stat().st_size,
                 'candidate_filter_does_not_assign_dependency':True,
