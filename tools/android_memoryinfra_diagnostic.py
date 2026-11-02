@@ -156,10 +156,21 @@ def xml_root(raw):
     return ET.fromstring(raw)
 
 
+def android_manifest_attribute(element, name):
+    # apkanalyzer's decoded XML may emit unqualified attributes, while source
+    # XML uses the Android namespace. Both identify the same attribute; never
+    # choose one silently when both representations contain conflicting values.
+    qualified = element.get('{http://schemas.android.com/apk/res/android}' + name)
+    plain = element.get(name)
+    need(qualified is None or plain is None or qualified == plain,
+         'conflicting Android manifest attribute: ' + name)
+    return qualified if qualified is not None else (plain if plain is not None else '')
+
+
 def static_use(raw):
-    root=xml_root(raw);ns='{http://schemas.android.com/apk/res/android}'
+    root=xml_root(raw)
     need(root.tag=='manifest' and root.get('package')=='com.google.android.webview', 'actual WebView APK manifest')
-    rows=[{'name':r.get(ns+'name',''),'version':r.get(ns+'version','')}
+    rows=[{'name':android_manifest_attribute(r,'name'),'version':android_manifest_attribute(r,'version')}
           for r in root.findall('./application/uses-static-library')]
     # Select the actual declared Trichrome dependency, never an installed package suffix.
     selected=[r for r in rows if r['name'].endswith('.trichromelibrary')]
@@ -186,10 +197,10 @@ def static_candidates(raw, use):
 
 
 def static_definition(raw, use):
-    root=xml_root(raw);ns='{http://schemas.android.com/apk/res/android}'
+    root=xml_root(raw)
     rows=root.findall('./application/static-library')
-    return (root.tag=='manifest' and len(rows)==1 and rows[0].get(ns+'name')==use['name']
-            and rows[0].get(ns+'version')==use['version'])
+    return (root.tag=='manifest' and len(rows)==1 and android_manifest_attribute(rows[0],'name')==use['name']
+            and android_manifest_attribute(rows[0],'version')==use['version'])
 
 
 def stock_provider(host, out, sdk):

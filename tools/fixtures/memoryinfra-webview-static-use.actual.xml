@@ -1,0 +1,2 @@
+<?xml version='1.0' encoding='utf-8'?>
+<manifest package="com.google.android.webview"><application><uses-static-library name="com.google.android.trichromelibrary" version="636771938" certDigest="b6198a8d5689b62b96a0aa3829ce2cc67d59497f78c469f8792b2cd9255490a1" /></application></manifest>

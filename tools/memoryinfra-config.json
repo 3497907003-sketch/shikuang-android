@@ -24,7 +24,7 @@
     "required_webview_elf_build_id": "2fdf3a989203643cc036b36c2d7975dfe53e8ca3"
   },
   "tool_sha256": {
-    "tools/android_memoryinfra_diagnostic.py": "f0707ab6288683d400a9ef9dd70ef6d5e64e06d0711671acf22a0a811b986f13",
+    "tools/android_memoryinfra_diagnostic.py": "4f2ccb5d99aa131faad9b3e85a9b26256c372d4fb0e068a3cf635fd9fd98cf15",
     "tools/android_pretest_install_diagnostic.py": "0ba2e419814be0104b4ba906ea04e3f08d36bf360ae1a866330b979df8495605",
     "tools/collect_memoryinfra.py": "27524117a5a64de751163c1d3be5bbfe98436a8c5dfa2b3882a97720afd3d4a6"
   },

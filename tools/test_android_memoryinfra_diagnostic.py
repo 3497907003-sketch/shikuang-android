@@ -141,6 +141,45 @@ class RunnerTests(unittest.TestCase):
         self.assertTrue(m.static_definition(manifest,use));self.assertFalse(m.static_definition(manifest,{**use,'version':'43'}))
         with self.assertRaises(ValueError):m.static_candidates(b'<packages><package name="com.vendor.trichromelibrary_42" codePath="/data/app/../bad"/></packages>',use)
         self.assertNotIn('com.google.android.trichromelibrary_636771938',(ROOT/'tools/android_memoryinfra_diagnostic.py').read_text())
+    def test_actual_apkanalyzer_and_qualified_same_value_attribute_shapes(self):
+        import xml.etree.ElementTree as ET
+        raw=(ROOT/'tools/fixtures/memoryinfra-webview-static-use.actual.xml').read_bytes()
+        provenance=json.loads((ROOT/'tools/fixtures/memoryinfra-webview-static-use.provenance.json').read_text())
+        self.assertEqual(hashlib.sha256(raw).hexdigest(),'aa8b2ede2747c2bf2b1002fcf6a4c458f421630cb236373a8787ce69b2d4a5a8')
+        self.assertEqual(provenance['fixture_sha256'],hashlib.sha256(raw).hexdigest())
+        self.assertEqual(provenance['original_manifest_sha256'],'db766f0eb32aab98a70954e3f1c283ced9a4b18e03ae5affd9d01b23909c1d16')
+        self.assertEqual((provenance['run_id'],provenance['run_attempt']),(41403807314,1))
+        self.assertEqual(provenance['member'],'arm/calls/webview-actual-manifest.stdout.bin')
+        expected={'name':'com.google.android.trichromelibrary','version':'636771938'}
+        self.assertEqual(m.static_use(raw),expected)
+        ns='{http://schemas.android.com/apk/res/android}'
+        for carrier in ['uses-static-library','static-library']:
+            for representation in ['actual-unqualified','source-qualified','both-same-value']:
+                with self.subTest(carrier=carrier,representation=representation):
+                    manifest=ET.Element('manifest',{'package':'com.google.android.webview' if carrier=='uses-static-library' else expected['name']})
+                    item=ET.SubElement(ET.SubElement(manifest,'application'),carrier)
+                    for name,value in expected.items():
+                        if representation!='source-qualified':item.set(name,value)
+                        if representation!='actual-unqualified':item.set(ns+name,value)
+                    encoded=ET.tostring(manifest)
+                    if carrier=='uses-static-library':self.assertEqual(m.static_use(encoded),expected)
+                    else:self.assertTrue(m.static_definition(encoded,expected))
+
+    def test_Android_manifest_mixed_attribute_conflicts_fail_closed(self):
+        import xml.etree.ElementTree as ET
+        expected={'name':'com.google.android.trichromelibrary','version':'636771938'}
+        ns='{http://schemas.android.com/apk/res/android}'
+        for carrier in ['uses-static-library','static-library']:
+            for conflict in ['name','version']:
+                with self.subTest(carrier=carrier,conflict=conflict):
+                    manifest=ET.Element('manifest',{'package':'com.google.android.webview' if carrier=='uses-static-library' else expected['name']})
+                    item=ET.SubElement(ET.SubElement(manifest,'application'),carrier)
+                    for name,value in expected.items():item.set(name,value);item.set(ns+name,value)
+                    item.set(ns+conflict,'com.wrong.trichromelibrary' if conflict=='name' else '636771939')
+                    with self.assertRaisesRegex(ValueError,'conflicting Android manifest attribute: '+conflict):
+                        if carrier=='uses-static-library':m.static_use(ET.tostring(manifest))
+                        else:m.static_definition(ET.tostring(manifest),expected)
+
     def test_parent_default_runtime_is_unchanged_and_memoryinfra_route_is_mixed_safe(self):
         import yaml
         parent=yaml.load((ROOT/'.github/workflows/android-runtime.yml').read_text(),Loader=yaml.BaseLoader)

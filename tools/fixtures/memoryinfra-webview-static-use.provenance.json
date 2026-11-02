@@ -1,0 +1,15 @@
+{
+  "schema": "memoryinfra-actual-manifest-projection-v1",
+  "run_id": 41403807314,
+  "run_attempt": 1,
+  "source_sha": "8a83c778645c772042b5a602d22fa736772004b1",
+  "artifact_id": 13122063811,
+  "artifact_name": "memoryinfra-catalog-detail-only-41403807314",
+  "member": "arm/calls/webview-actual-manifest.stdout.bin",
+  "original_manifest_bytes": 20522,
+  "original_manifest_sha256": "db766f0eb32aab98a70954e3f1c283ced9a4b18e03ae5affd9d01b23909c1d16",
+  "projection": "Retain only original manifest package and single application/uses-static-library with all original attributes; omit unrelated nodes. Actual apkanalyzer attributes are unqualified.",
+  "fixture_bytes": 289,
+  "fixture_sha256": "aa8b2ede2747c2bf2b1002fcf6a4c458f421630cb236373a8787ce69b2d4a5a8",
+  "original_google_APK_not_included": true
+}
