@@ -41,6 +41,11 @@ on:
         required: false
         type: boolean
         default: false
+      memoryinfra_diagnostic:
+        description: 'One explicit three-arm stock API35/16K MemoryInfra diagnostic; not acceptance'
+        required: false
+        type: boolean
+        default: false
       expected_source_sha:
         description: 'Exact reviewed commit required for diagnostic modes'
         required: false
@@ -61,6 +66,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     env:
+      MEMORYINFRA_DIAGNOSTIC: ${{ inputs.memoryinfra_diagnostic }}
       RENDER_DIAGNOSTIC: ${{ inputs.webview_render_diagnostic }}
       PRETEST_INSTALL: ${{ inputs.pretest_install_diagnostic }}
       NETWORK_PROBE: ${{ inputs.network_probe }}
@@ -76,6 +82,14 @@ jobs:
           python3 -B - <<'PY_RENDER_DISPATCH'
           import json, os, re
           e = os.environ
+          if e.get('MEMORYINFRA_DIAGNOSTIC') == 'true':
+              if not (e.get('GITHUB_EVENT_NAME') == 'workflow_dispatch'
+                      and e.get('GITHUB_RUN_ATTEMPT') == '1'
+                      and all(e.get(k) == 'false' for k in ('NETWORK_PROBE', 'NATIVE_DIALOG_DIAGNOSTIC', 'LIFECYCLE_DIAGNOSTIC', 'RUNTIME_16K_ONLY', 'RENDER_DIAGNOSTIC', 'PRETEST_INSTALL'))
+                      and re.fullmatch('[a-f0-9]{40}', e.get('EXPECTED_SOURCE', ''))
+                      and e.get('EXPECTED_SOURCE') == e.get('GITHUB_SHA')
+                      and re.fullmatch('[a-f0-9]{32}', e.get('UNIT_NONCE', ''))):
+                  raise SystemExit('memoryinfra_diagnostic_dispatch_rejected')
           if e.get('RENDER_DIAGNOSTIC') == 'true':
               if not (e.get('GITHUB_EVENT_NAME') == 'workflow_dispatch'
                       and e.get('GITHUB_RUN_ATTEMPT') == '1'
@@ -98,7 +112,7 @@ jobs:
           PY_RENDER_DISPATCH
   runtime:
     needs: dispatch-contract
-    if: ${{ !(github.event_name == 'workflow_dispatch' && (inputs.lifecycle_diagnostic || inputs.native_dialog_diagnostic || inputs.pretest_install_diagnostic)) }}
+    if: ${{ !(github.event_name == 'workflow_dispatch' && (inputs.lifecycle_diagnostic || inputs.native_dialog_diagnostic || inputs.pretest_install_diagnostic || inputs.memoryinfra_diagnostic)) }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
@@ -1028,3 +1042,12 @@ jobs:
           if-no-files-found: error
           overwrite: false
           retention-days: 7
+
+  memoryinfra-diagnostic:
+    needs: dispatch-contract
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.memoryinfra_diagnostic }}
+    uses: ./.github/workflows/android-memoryinfra-diagnostic.yml
+    with:
+      run_diagnostic: true
+      expected_source_sha: ${{ inputs.expected_source_sha }}
+      unit_nonce: ${{ inputs.unit_nonce }}

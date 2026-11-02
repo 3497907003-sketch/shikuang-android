@@ -146,8 +146,9 @@ def tool(argv, out, label):
     return stdout
 
 
-def freeze(args):
-    repo = Path.cwd(); auth = identity(args.source, args.nonce, repo)
+def freeze_artifacts(args, auth):
+    """Neutral shared artifact core; caller must supply its separately verified CI auth."""
+    repo = Path.cwd()
     app_meta = repo / 'android/app/build/outputs/apk/debug/output-metadata.json'
     test_meta = repo / 'android/app/build/outputs/apk/androidTest/debug/output-metadata.json'
     args.out.mkdir(parents=True, exist_ok=False); (args.out / 'apks').mkdir()
@@ -202,6 +203,10 @@ def freeze(args):
     print(json.dumps({'plan_sha': sha((args.out/'apk-plan.json').read_bytes()), 'APKs': 3, 'product_acceptance': False}))
 
 
+def freeze(args):
+    return freeze_artifacts(args, identity(args.source, args.nonce, Path.cwd()))
+
+
 def stop_owned(process):
     receipt = {'PID': process.pid, 'terminate_sent': False, 'kill_sent': False}
     if process.poll() is None:
@@ -220,7 +225,8 @@ class Recorder(Host):
         super().__init__('emulator-5554', out)
         self.adb = adb; self.deadline = time.monotonic() + seconds
 
-    def run(self, label, argv, *, seconds=3, deadline=None, monitor=None, allowed=(0,)):
+    def run(self, label, argv, *, seconds=3, deadline=None, monitor=None, allowed=(0,), stdout_cap=MAX_STDOUT):
+        need(type(stdout_cap) is int and 0 < stdout_cap <= MAX_APK, "bounded_stdout_cap")
         start = time.monotonic(); end = min(self.deadline, deadline or self.deadline, start+seconds)
         reserve = min(0.25, max(0, end-start)/10); action_end = end-reserve
         need(start < action_end, 'phase_deadline_before_command:' + label)
@@ -234,7 +240,7 @@ class Recorder(Host):
                 process = subprocess.Popen(argv, stdout=stdout, stderr=stderr)
                 row['owned_client_PID'] = process.pid; next_sample = start
                 while process.poll() is None:
-                    need(stdout_path.stat().st_size <= MAX_STDOUT and stderr_path.stat().st_size <= MAX_STDOUT, 'command_output_bound')
+                    need(stdout_path.stat().st_size <= stdout_cap and stderr_path.stat().st_size <= MAX_STDOUT, 'command_output_bound')
                     if time.monotonic() >= action_end:
                         row['timed_out'] = True; raise ValueError('command_deadline:' + label)
                     if monitor and time.monotonic() >= next_sample:
@@ -252,12 +258,12 @@ class Recorder(Host):
             for stream, path in [('stdout', stdout_path), ('stderr', stderr_path)]:
                 size = path.stat().st_size if path.exists() else 0
                 row[stream+'_bytes'] = size
-                row[stream+'_sha256'] = sha(path.read_bytes() if path.exists() else b'') if size <= MAX_STDOUT else None
+                row[stream+'_sha256'] = sha(path.read_bytes() if path.exists() else b'') if size <= (stdout_cap if stream == 'stdout' else MAX_STDOUT) else None
             if failure: row['failure'] = type(failure).__name__+': '+str(failure)
             save(self.out/'command-receipts.json', self.receipts)
         if failure: raise failure
         need(row['return_code'] in allowed and not row['timed_out'], 'command_failed:' + label)
-        need(row['stdout_bytes'] <= MAX_STDOUT and row['stderr_bytes'] <= MAX_STDOUT, 'command_output_bound')
+        need(row['stdout_bytes'] <= stdout_cap and row['stderr_bytes'] <= MAX_STDOUT, 'command_output_bound')
         return stdout_path.read_bytes()
 
     def command(self, label, args, allow_absent=False, *, deadline=None):

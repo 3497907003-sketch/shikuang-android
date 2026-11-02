@@ -1,0 +1,35 @@
+{
+  "schema": "memoryinfra-dispatch-config-v1",
+  "enabled": true,
+  "base_app_source": "5a004ef9e121c3039df0645b0e08e2b27decb99f",
+  "image": {
+    "package": "system-images;android-35;google_apis_ps16k;x86_64",
+    "revision": 5,
+    "official_repository_url": "https://dl.google.com/android/repository/sys-img/google_apis/sys-img2-3.xml",
+    "repository_bytes": 237654,
+    "repository_sha256": "b1261b4f645125367bc74d5e0881a55cb489cf13bae26a3c9d61bdef287d228e",
+    "retrieved_at_UTC": "2026-11-02T06:14:09.387968+00:00",
+    "official_archive_url": "https://dl.google.com/android/repository/sys-img/google_apis/x86_64-ps16k-35_r05.zip",
+    "archive_bytes": 1696342085,
+    "official_archive_checksum_type": "sha1",
+    "official_archive_checksum": "d709cf26b375abecfbbf5803afd20749ddfa2865",
+    "archive_downloaded_in_preparation": false,
+    "historical_failed_revision": null,
+    "new_revision_not_claimed_same_as_historical": true,
+    "required_os_build_id": "AE3A.240806.043",
+    "required_os_fingerprint": "google/sdk_gphone16k_x86_64/emu64xa16k:15/AE3A.240806.043/12960925:userdebug/dev-keys",
+    "required_provider_package": "com.google.android.webview",
+    "required_provider_version": "124.0.6367.219",
+    "required_provider_code": 636771938,
+    "required_webview_elf_build_id": "2fdf3a989203643cc036b36c2d7975dfe53e8ca3"
+  },
+  "tool_sha256": {
+    "tools/android_memoryinfra_diagnostic.py": "f0707ab6288683d400a9ef9dd70ef6d5e64e06d0711671acf22a0a811b986f13",
+    "tools/android_pretest_install_diagnostic.py": "0ba2e419814be0104b4ba906ea04e3f08d36bf360ae1a866330b979df8495605",
+    "tools/collect_memoryinfra.py": "27524117a5a64de751163c1d3be5bbfe98436a8c5dfa2b3882a97720afd3d4a6"
+  },
+  "ci_control_sha256": {
+    ".github/workflows/android-runtime.yml": "52045e5314cfd1fd39eaf124d0c6529129128081b53b992804a45f40a46a9a57",
+    ".github/workflows/android-memoryinfra-diagnostic.yml": "2f4bdd5b732458f212fc294d87b06b44d56d7267fc9a7d21b86991f66eeeb558"
+  }
+}

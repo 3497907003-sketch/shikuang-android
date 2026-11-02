@@ -1,0 +1,238 @@
+name: MemoryInfra three-arm diagnostic (explicit only, not acceptance)
+on:
+  workflow_dispatch:
+    inputs:
+      run_diagnostic:
+        description: 'Explicitly run exactly one three-arm diagnostic; no product acceptance'
+        type: boolean
+        required: true
+        default: false
+      expected_source_sha:
+        description: 'Exact reviewed new commit including instrumentation/config/runner'
+        type: string
+        required: true
+      unit_nonce:
+        description: 'Fresh 32 lower-case hexadecimal nonce; no retry'
+        type: string
+        required: true
+  workflow_call:
+    inputs:
+      run_diagnostic:
+        description: 'Explicit already-guarded caller route; still requires enabled reviewed config'
+        type: boolean
+        required: true
+      expected_source_sha:
+        type: string
+        required: true
+      unit_nonce:
+        type: string
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: memoryinfra-${{ github.run_id }}
+  cancel-in-progress: false
+env:
+  SHIKUANG_MEMORYINFRA_DIAGNOSTIC: ${{ inputs.run_diagnostic }}
+  EXPECTED_SOURCE: ${{ inputs.expected_source_sha }}
+  UNIT_NONCE: ${{ inputs.unit_nonce }}
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Reject implicit, mixed, wrong-source or repeated execution
+        run: |
+          python3 -B - <<'PY'
+          import os,re
+          e=os.environ
+          assert e.get('GITHUB_EVENT_NAME')=='workflow_dispatch' and e.get('GITHUB_RUN_ATTEMPT')=='1'
+          assert e.get('SHIKUANG_MEMORYINFRA_DIAGNOSTIC')=='true'
+          assert re.fullmatch('[a-f0-9]{40}',e.get('EXPECTED_SOURCE',''))
+          assert e['EXPECTED_SOURCE']==e.get('GITHUB_SHA')
+          assert re.fullmatch('[a-f0-9]{32}',e.get('UNIT_NONCE',''))
+          PY
+      - uses: actions/checkout@v4
+      - name: Require enabled reviewed config and unchanged ordinary/product source
+        run: python3 -B tools/android_memoryinfra_diagnostic.py guard --source "$EXPECTED_SOURCE" --nonce "$UNIT_NONCE"
+  build:
+    needs: guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    outputs:
+      plan_sha: ${{ steps.freeze.outputs.plan_sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+      - name: Preserve build host/source before any dependency or SDK operation
+        run: |
+          mkdir memoryinfra-build-diagnostics
+          git rev-parse HEAD > memoryinfra-build-diagnostics/host-source.txt
+          git status --porcelain > memoryinfra-build-diagnostics/host-status.txt
+          cp tools/memoryinfra-config.json memoryinfra-build-diagnostics/reviewed-config.json
+          cp /etc/os-release memoryinfra-build-diagnostics/host-os-release.txt
+      - name: Prepare exact shared source once
+        run: |
+          set -o pipefail
+          npm ci 2>&1 | tee memoryinfra-build-diagnostics/npm-ci.log
+          npm run sync 2>&1 | tee memoryinfra-build-diagnostics/npm-sync.log
+          npm run check 2>&1 | tee memoryinfra-build-diagnostics/npm-check.log
+          python3 -B -m unittest discover -s tools -p test_collect_memoryinfra.py 2>&1 | tee memoryinfra-build-diagnostics/collector-tests.log
+          python3 -B -m unittest discover -s tools -p test_android_pretest_install_diagnostic.py 2>&1 | tee memoryinfra-build-diagnostics/pretest-tests.log
+      - name: Prepare official build tools (no system image in build job)
+        run: |
+          set -o pipefail
+          SHIKUANG_SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          "$SHIKUANG_SDK/cmdline-tools/latest/bin/sdkmanager" "build-tools;35.0.0" "platforms;android-34" 2>&1 | tee memoryinfra-build-diagnostics/sdk-build-tools.log
+      - name: Build App/test once and resolve exact existing services utility
+        working-directory: android
+        run: |
+          set -o pipefail
+          test ! -e app/build/outputs/apk
+          ./gradlew --no-daemon --max-workers=2 -PshikuangSoftwareDrawProbe=false -I ../tools/pretest_install_artifacts.init.gradle -PshikuangPretestPlanOut="$GITHUB_WORKSPACE/memoryinfra-resolved.json" :app:exportPretestInstallInputs 2>&1 | tee "$GITHUB_WORKSPACE/memoryinfra-build-diagnostics/gradle-build.log"
+      - name: Freeze same-build signed APKs and verify actual packaged 168 assets
+        id: freeze
+        run: |
+          set -o pipefail
+          python3 -B tools/android_memoryinfra_diagnostic.py freeze --source "$EXPECTED_SOURCE" --nonce "$UNIT_NONCE" --sdk "${ANDROID_SDK_ROOT:-$ANDROID_HOME}" --resolved memoryinfra-resolved.json --out memoryinfra-frozen 2>&1 | tee memoryinfra-build-diagnostics/freeze.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: memoryinfra-same-build-${{ github.run_id }}
+          path: memoryinfra-frozen/
+          if-no-files-found: error
+          overwrite: false
+          retention-days: 7
+      - name: Preserve terminal build identity even after setup or build failure
+        if: always()
+        env:
+          BUILD_JOB_STATUS: ${{ job.status }}
+        run: |
+          mkdir -p memoryinfra-build-diagnostics
+          printf '%s\n' "$BUILD_JOB_STATUS" > memoryinfra-build-diagnostics/terminal-job-status.txt
+          printf '%s\n' "$EXPECTED_SOURCE" > memoryinfra-build-diagnostics/requested-source.txt
+          git rev-parse HEAD > memoryinfra-build-diagnostics/terminal-host-source.txt 2>&1 || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: memoryinfra-build-diagnostics-${{ github.run_id }}
+          path: |
+            memoryinfra-build-diagnostics/
+            memoryinfra-frozen/build-evidence/
+            memoryinfra-frozen/metadata/
+            memoryinfra-frozen/apk-plan.json
+            memoryinfra-frozen/memoryinfra-build-receipt.json
+            memoryinfra-resolved.json
+            android/app/build/reports/
+          if-no-files-found: error
+          overwrite: false
+          retention-days: 7
+  arm:
+    needs: [guard, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        arm: [catalog-detail-only, native-inference-only, combined-first-detail]
+    env:
+      ARM: ${{ matrix.arm }}
+      FROZEN_PLAN_SHA: ${{ needs.build.outputs.plan_sha }}
+      ANDROID_AVD_HOME: /tmp/shikuang-memoryinfra-avd
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: memoryinfra-same-build-${{ github.run_id }}
+          path: memoryinfra-frozen
+      - name: Require exact committed diagnostic source and derive arm-specific nonce
+        id: armmeta
+        run: |
+          python3 -B tools/android_memoryinfra_diagnostic.py guard --source "$EXPECTED_SOURCE" --nonce "$UNIT_NONCE"
+          python3 -B - <<'PY'
+          import os,sys
+          sys.path.insert(0,'tools')
+          from android_memoryinfra_diagnostic import arm_nonce
+          nonce=arm_nonce(os.environ['UNIT_NONCE'],os.environ['ARM'])
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:f.write('arm_nonce='+nonce+'\n')
+          PY
+      - name: Install official fixed image and create one fresh AVD
+        env:
+          ARM_NONCE: ${{ steps.armmeta.outputs.arm_nonce }}
+        run: |
+          mkdir memoryinfra-evidence
+          SHIKUANG_SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          "$SHIKUANG_SDK/cmdline-tools/latest/bin/sdkmanager" "platform-tools" "emulator" "system-images;android-35;google_apis_ps16k;x86_64"
+          cp "$SHIKUANG_SDK/system-images/android-35/google_apis_ps16k/x86_64/source.properties" memoryinfra-evidence/installed-source.properties
+          cp "$SHIKUANG_SDK/system-images/android-35/google_apis_ps16k/x86_64/package.xml" memoryinfra-evidence/installed-package.xml
+          printf '%s\n' "$SHIKUANG_SDK/platform-tools" >> "$GITHUB_PATH"
+          python3 -B - <<'PY'
+          import os,sys,json
+          from pathlib import Path
+          sys.path.insert(0,'tools')
+          from android_memoryinfra_diagnostic import installed_image
+          installed_image(Path(os.environ.get('ANDROID_SDK_ROOT') or os.environ['ANDROID_HOME']),json.loads(Path('tools/memoryinfra-config.json').read_text()))
+          PY
+          test ! -e "$ANDROID_AVD_HOME"
+          mkdir "$ANDROID_AVD_HOME"
+          printf 'no\n' | "$SHIKUANG_SDK/cmdline-tools/latest/bin/avdmanager" create avd --name "shikuang-memoryinfra-$ARM_NONCE" --package "system-images;android-35;google_apis_ps16k;x86_64" --device pixel_2 --path "$ANDROID_AVD_HOME/fresh.avd"
+          sudo chmod 666 /dev/kvm
+      - name: Boot fixed accelerated fresh 4096MiB emulator and retain owner
+        env:
+          ARM_NONCE: ${{ steps.armmeta.outputs.arm_nonce }}
+        run: |
+          mkdir -p memoryinfra-evidence
+          python3 -B - <<'PY'
+          import datetime,json,os,subprocess
+          from pathlib import Path
+          sdk=Path(os.environ.get('ANDROID_SDK_ROOT') or os.environ['ANDROID_HOME'])
+          nonce=os.environ['ARM_NONCE'];out=Path('memoryinfra-evidence')
+          argv=[str(sdk/'emulator/emulator'),'-avd','shikuang-memoryinfra-'+nonce,'-port','5554','-no-window','-no-audio','-no-boot-anim','-no-snapshot','-gpu','swiftshader_indirect','-camera-back','none','-camera-front','none','-memory','4096','-cores','2','-accel','on']
+          with (out/'emulator.log').open('xb') as log:p=subprocess.Popen(argv,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
+          (out/'emulator-owner.json').write_text(json.dumps({'PID':p.pid,'argv':argv,'source_sha':os.environ['EXPECTED_SOURCE'],'arm_nonce':nonce,'arm':os.environ['ARM'],'started_UTC':datetime.datetime.now(datetime.timezone.utc).isoformat()},indent=2)+'\n')
+          PY
+          timeout 180 adb -s emulator-5554 wait-for-device
+          timeout 180 bash -c 'until [[ "$(adb -s emulator-5554 shell getprop sys.boot_completed | tr -d "\r")" == 1 ]]; do sleep 2; done'
+          SHIKUANG_ROOT=false
+          for SHIKUANG_ATTEMPT in 1 2 3 4 5; do
+            timeout 20 adb -s emulator-5554 root >> memoryinfra-evidence/root-transition.txt 2>&1 || true
+            timeout 30 adb -s emulator-5554 wait-for-device >> memoryinfra-evidence/root-transition.txt 2>&1 || true
+            if [[ "$(timeout 10 adb -s emulator-5554 shell id -u | tr -d '\r')" == 0 ]]; then SHIKUANG_ROOT=true; break; fi
+            sleep 2
+          done
+          test "$SHIKUANG_ROOT" = true
+          timeout 90 bash -c 'until [[ "$(adb -s emulator-5554 shell getprop gsm.sim.state)" == *LOADED* ]]; do sleep 2; done'
+          adb -s emulator-5554 shell cmd connectivity airplane-mode enable
+          test "$(adb -s emulator-5554 shell cmd connectivity airplane-mode | tr -d '\r')" = enabled
+          adb -s emulator-5554 shell svc wifi disable
+          adb -s emulator-5554 shell svc data disable
+          adb -s emulator-5554 shell 'for device in eth0 eth1 wlan0; do if ip link show "$device" >/dev/null 2>&1; then ip link set "$device" down; fi; done'
+          timeout 60 bash -c 'until [[ "$(adb -s emulator-5554 shell dumpsys connectivity)" == *"Active default network: none"* ]]; do sleep 2; done'
+          python3 -B tools/android_offline_setup.py --serial emulator-5554 --out memoryinfra-evidence/offline-setup
+      - name: Observe exactly this arm once; fail accurately after collecting evidence
+        run: |
+          python3 -B tools/android_memoryinfra_diagnostic.py run --source "$EXPECTED_SOURCE" --nonce "$UNIT_NONCE" --arm "$ARM" --sdk "${ANDROID_SDK_ROOT:-$ANDROID_HOME}" --owner memoryinfra-evidence/emulator-owner.json --plan-sha "$FROZEN_PLAN_SHA" --out memoryinfra-evidence/arm
+      - name: Preserve boot/setup failures without relaunching App
+        if: always()
+        run: |
+          mkdir -p memoryinfra-evidence
+          python3 -B tools/android_memoryinfra_diagnostic.py preserve --source "$EXPECTED_SOURCE" --nonce "$UNIT_NONCE" --arm "$ARM" --sdk "${ANDROID_SDK_ROOT:-$ANDROID_HOME}" --owner memoryinfra-evidence/emulator-owner.json --out memoryinfra-evidence/setup-final-evidence
+          git rev-parse HEAD > memoryinfra-evidence/final-host-source.txt
+          git status --porcelain > memoryinfra-evidence/final-host-status.txt
+          cp /etc/os-release memoryinfra-evidence/host-os-release.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: memoryinfra-${{ matrix.arm }}-${{ github.run_id }}
+          path: memoryinfra-evidence/
+          if-no-files-found: error
+          overwrite: false
+          retention-days: 7
