@@ -66,6 +66,18 @@ class RuntimeMatrixTests(unittest.TestCase):
         self.assertNotIn('-memory 3072',lifecycle)
         self.assertIn('-memory 3072',native_dialog)
         self.assertNotIn('SHIKUANG_DIAGNOSTIC_MEMORY_MIB',runtime)
-        self.assertIn("if: ${{ !(github.event_name == 'workflow_dispatch' && (inputs.lifecycle_diagnostic || inputs.native_dialog_diagnostic || inputs.pretest_install_diagnostic)) }}",source)
+        self.assertIn("if: ${{ !(github.event_name == 'workflow_dispatch' && (inputs.lifecycle_diagnostic || inputs.native_dialog_diagnostic || inputs.pretest_install_diagnostic || inputs.memoryinfra_diagnostic)) }}",source)
+
+
+    def test_memoryinfra_route_is_explicit_and_separate_from_ordinary_matrix(self):
+        source=WORKFLOW.read_text()
+        flag=source.split('      memoryinfra_diagnostic:',1)[1].split('      expected_source_sha:',1)[0]
+        self.assertRegex(flag,r'type: boolean');self.assertRegex(flag,r'default: false')
+        route=source.split('\n  memoryinfra-diagnostic:',1)[1]
+        self.assertIn('needs: dispatch-contract',route)
+        self.assertIn("if: ${{ github.event_name == 'workflow_dispatch' && inputs.memoryinfra_diagnostic }}",route)
+        self.assertIn('uses: ./.github/workflows/android-memoryinfra-diagnostic.yml',route)
+        for binding in ['run_diagnostic: true','expected_source_sha: ${{ inputs.expected_source_sha }}','unit_nonce: ${{ inputs.unit_nonce }}']:
+            self.assertIn(binding,route)
 
 if __name__=='__main__':unittest.main()

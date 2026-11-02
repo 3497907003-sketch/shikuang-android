@@ -181,8 +181,10 @@ class FirstDetailEvidenceTest(unittest.TestCase):
                       '          node --test tests/first-detail-instrumentation-source.test.cjs\n'):
             self.assertEqual(workflow.count(added), 1)
             workflow = workflow.replace(added, '')
+        # Reviewed explicit-only MemoryInfra dispatch hook; ordinary runtime
+        # job body and all nine instrumentation assertions remain unchanged.
         self.assertEqual(hashlib.sha256(workflow.encode()).hexdigest(),
-                         'd645af6288d6e441d982258a828feb6405c25714f036b581587eb4592265df26')
+                         '22110ccda8d7a24545750b54bb4ed4cf2b621c477f084dc501fa8d510d27ed05')
 
 
 if __name__ == '__main__':
