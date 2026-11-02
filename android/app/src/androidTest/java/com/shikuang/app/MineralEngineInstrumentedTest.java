@@ -479,6 +479,79 @@ public class MineralEngineInstrumentedTest {
         evaluate("window.__shikuangRuntimeSmoke.coldProcessBaseline="+baseline+";window.__shikuangRuntimeSmoke.phase='passed';");
     }
 
+    /** Observe the real public UI call; never supply classifier outputs or App state. */
+    static String firstDetailSetupScript() {
+        return script(
+            "(() => {const s=window.__shikuangRuntimeSmoke={phase:'first-detail-starting',firstDetailRequests:[],firstDetailPhotoRequests:[],libraryClicks:0};",
+            " s.initialLoaderStatus=MineralReference.status;s.initialIdentifyVisible=!document.getElementById('view-identify').hidden;s.initialLibraryHidden=document.getElementById('view-library').hidden;",
+            " s.initialReferenceRequests=performance.getEntriesByType('resource').filter(row=>/\\/data\\/(reference-manifest|catalog|crystals|image-sources)\\.json(?:[?#]|$)|\\/images\\/reviewed-v25\\//.test(row.name)).map(row=>row.name);",
+            " document.addEventListener('click',event=>{if(event.target.closest('[data-view=library]'))s.libraryClicks++;},true);",
+            " const realFetch=window.fetch.bind(window);window.fetch=async(...args)=>{const url=new URL(args[0] instanceof Request?args[0].url:String(args[0]),location.href),row={path:url.pathname,url:url.href,local:url.origin===location.origin,startedPhase:s.phase};",
+            "  const reference=/\\/data\\/(reference-manifest|catalog|crystals|image-sources)\\.json$/.test(url.pathname),photo=/\\/images\\/reviewed-v25\\/commons-\\d+\\.jpg$/.test(url.pathname);if(reference)s.firstDetailRequests.push(row);if(photo)s.firstDetailPhotoRequests.push(row);",
+            "  try{const response=await realFetch(...args);row.status=response.status;return response;}catch(error){row.error=String(error);throw error;}};",
+            " const realAnalyze=MineralEngine.analyze.bind(MineralEngine);MineralEngine.analyze=async(...args)=>{try{const result=await realAnalyze(...args);s.firstDetailAnalyze={key:result.key,engine:result.engine,modelCount:result.modelCount,modelVersion:result.modelVersion,manifestSha256:result.manifestSha256,diagnostics:result.diagnostics};s.phase='first-detail-analysis-finished';return result;}catch(error){s.phase='failed';s.failure=String(error);throw error;}};})()"
+        );
+    }
+
+    static String firstDetailSnapshotScript() {
+        return script(
+            "(() => {const s=window.__shikuangRuntimeSmoke,c=MINERAL_CATALOG,o=c.reviewed_book_evidence,body=document.getElementById('detailBody'),dialog=document.getElementById('detailDialog'),sections=[...body.querySelectorAll('.book-evidence-section')];",
+            " const rows=o.records.filter(row=>row.catalog_id==='ima-quartz'),fields=rows.map(row=>{const book=o.books.find(book=>book.source_id===row.source_id),section=sections.find(section=>section.querySelector('p').textContent.trim()===book.title&&section.querySelector('.field-hint').textContent.includes('PDF 第 '+row.pdf_page_1based+' 页')),field=section&&section.querySelector('[data-book-field=\"'+row.field+'\"]'),value=field&&field.querySelector('.property-value');return {field:row.field,sourceId:row.source_id,pdfPage:row.pdf_page_1based,renderedValueMatches:!!value&&value.textContent.trim()===row.value};});",
+            " s.firstResultDetail={schema:'android-first-result-detail-before-library-v1',initialLoaderStatus:s.initialLoaderStatus,initialIdentifyVisible:s.initialIdentifyVisible,initialLibraryHidden:s.initialLibraryHidden,initialReferenceRequests:s.initialReferenceRequests,beforeClick:s.firstDetailBeforeClick,analysis:s.firstDetailAnalyze,libraryClicks:s.libraryClicks,libraryStillHidden:document.getElementById('view-library').hidden,dialogOpen:dialog.open,title:document.getElementById('detailTitle').textContent,loaderStatus:MineralReference.status,loadingMessageAbsent:!body.querySelector('.detail-reference-state'),hasOfficialFields:body.textContent.includes('官方目录字段'),bookSections:sections.length,quartzBookFields:fields,totalBookStatements:o.records.length,books:o.books.length,bookSourcePages:o.counts.selected_source_pages,bookSpecies:new Set(o.records.map(row=>row.catalog_id)).size,primarySpecies:c.minerals.length,galleryPresent:!!body.querySelector('.image-section'),galleryClosed:!!body.querySelector('.image-section')&&!body.querySelector('.image-section').open,sourceImageRecords:MINERAL_IMAGE_SOURCES.records.length,requests:s.firstDetailRequests,photoRequests:s.firstDetailPhotoRequests,online:navigator.onLine};s.phase='first-detail-passed';})()"
+        );
+    }
+
+    /** Fresh Activity UI path before any library visit; no store/cache mutation. */
+    private JSONObject checkFirstResultDetailBeforeLibrary() throws Exception {
+        JSONObject manifest=bundledJson("model-manifest.json"),reference=bundledJson("data/reference-manifest.json");
+        JSONObject before=nativeNetworkState();
+        assertTrue("First-detail path requires disconnected native networking",before.isNull("activeNetwork"));
+        assertFalse(before.getBoolean("connected"));
+        assertEquals("First-detail path must begin before lazy references load","idle",evaluate("MineralReference.status"));
+        evaluate(firstDetailSetupScript());
+        assertEquals("Fresh Activity must still show the empty photo input","true",evaluate("!document.getElementById('captureEmpty').hidden"));
+        submitFixture(fixture("quartz.jpg"),"first-result-quartz.jpg");
+        evaluate("window.__shikuangRuntimeSmoke.phase='first-detail-inference';document.getElementById('predictBtn').click();");
+        JSONObject analyzed=awaitPhase("first-detail-analysis-finished",180000).getJSONObject("firstDetailAnalyze");
+        assertEquals("quartz",analyzed.getString("key"));
+        assertEquals("onnx-native-android",analyzed.getString("engine"));
+        assertEquals(manifest.getJSONObject("modes").getJSONArray("ensemble").length(),analyzed.getInt("modelCount"));
+        assertEquals(manifest.getString("version"),analyzed.getString("modelVersion"));
+        assertTrue(analyzed.getString("manifestSha256").matches("[a-f0-9]{64}"));
+        assertTrue(analyzed.getJSONObject("diagnostics").getLong("elapsedMs")>0);
+        awaitUi("!document.getElementById('result').hidden && !document.getElementById('predictBtn').disabled","real native result before first detail",15000);
+        assertEquals("References must still be idle after actual inference","idle",evaluate("MineralReference.status"));
+        assertEquals(0,state().getJSONArray("firstDetailRequests").length());
+        evaluate("(() => {const s=window.__shikuangRuntimeSmoke;s.firstDetailBeforeClick={loaderStatus:MineralReference.status,referenceRequests:s.firstDetailRequests.length,libraryHidden:document.getElementById('view-library').hidden,resultVisible:!document.getElementById('result').hidden};s.phase='first-detail-loading';document.getElementById('detailBtn').click();})()");
+        awaitUi("MineralReference.status==='ready' && document.getElementById('detailDialog').open && !document.querySelector('#detailBody .detail-reference-state') && !!document.querySelector('#detailBody .book-evidence-section') && !!document.querySelector('#detailBody .image-section')","complete first-result references without visiting library",60000);
+        evaluate(firstDetailSnapshotScript());
+        JSONObject proof=awaitPhase("first-detail-passed",15000).getJSONObject("firstResultDetail");
+        assertEquals("idle",proof.getString("initialLoaderStatus"));
+        assertTrue(proof.getBoolean("initialIdentifyVisible"));assertTrue(proof.getBoolean("initialLibraryHidden"));
+        assertEquals(0,proof.getJSONArray("initialReferenceRequests").length());
+        assertEquals(0,proof.getInt("libraryClicks"));assertTrue(proof.getBoolean("libraryStillHidden"));
+        JSONObject clicked=proof.getJSONObject("beforeClick");
+        assertEquals("idle",clicked.getString("loaderStatus"));assertEquals(0,clicked.getInt("referenceRequests"));
+        assertTrue(clicked.getBoolean("libraryHidden"));assertTrue(clicked.getBoolean("resultVisible"));
+        assertEquals("ready",proof.getString("loaderStatus"));assertEquals("石英",proof.getString("title"));
+        for(String key:new String[]{"dialogOpen","loadingMessageAbsent","hasOfficialFields","galleryPresent","galleryClosed"})assertTrue(key,proof.getBoolean(key));
+        assertEquals(190,proof.getInt("totalBookStatements"));assertEquals(11,proof.getInt("books"));
+        assertEquals(23,proof.getInt("bookSourcePages"));assertEquals(63,proof.getInt("bookSpecies"));
+        assertEquals(reference.getJSONObject("counts").getInt("ima_species"),proof.getInt("primarySpecies"));
+        assertEquals(reference.getJSONObject("counts").getInt("source_image_records"),proof.getInt("sourceImageRecords"));
+        assertEquals(3,proof.getInt("bookSections"));assertEquals(3,proof.getJSONArray("quartzBookFields").length());
+        for(int i=0;i<3;i++)assertTrue(proof.getJSONArray("quartzBookFields").getJSONObject(i).getBoolean("renderedValueMatches"));
+        JSONArray requests=proof.getJSONArray("requests");assertEquals(4,requests.length());
+        for(int i=0;i<requests.length();i++){JSONObject row=requests.getJSONObject(i);assertTrue(row.getBoolean("local"));assertEquals(200,row.getInt("status"));assertEquals("first-detail-loading",row.getString("startedPhase"));}
+        assertEquals(0,proof.getJSONArray("photoRequests").length());assertFalse(proof.getBoolean("online"));
+        JSONObject after=nativeNetworkState();assertTrue(after.isNull("activeNetwork"));assertFalse(after.getBoolean("connected"));
+        proof.put("nativeNetworkBefore",before).put("nativeNetworkAfter",after);
+        screenshot("quartz-first-result-detail.png","#detailTitle");
+        proof.put("screenshot",state().getJSONArray("screenshots").getJSONObject(0));
+        evaluate("document.getElementById('closeDetail').click();");
+        return proof;
+    }
+
     /** Checks versioned public book metadata/UI only; never touches saved specimens. */
     static String book190ReadOnlyScript(String expectedJSON) {
         return script(
@@ -864,6 +937,13 @@ public class MineralEngineInstrumentedTest {
         try {
             requireSupportedWebView();
             awaitPage();
+            JSONObject firstResultDetail=checkFirstResultDetailBeforeLibrary();
+            // Retain the original cold-library path and all its idle/fetch assertions.
+            scenario.recreate();
+            requireSupportedWebView();
+            awaitPage();
+            assertEquals("New Activity restores the original lazy-loader baseline","idle",evaluate("MineralReference.status"));
+            firstResultDetail.put("activityRecreateRestoredIdle",true);
             evaluate(script(
                 "window.__shikuangRuntimeSmoke={phase:'started',fullOfflineProductVerified:false,photoRecognitionVerified:false,boot:window.__shikuangBootCapabilities,logs:[],errors:[],origin:location.origin,online:navigator.onLine,userAgent:navigator.userAgent,secureContext:isSecureContext,wasm:typeof WebAssembly,labels:Object.keys(MINERAL_CLASSES).length};",
                 "const smoke=window.__shikuangRuntimeSmoke;smoke.visibleVersion=document.querySelector('.brand .version').textContent;",
@@ -891,6 +971,7 @@ public class MineralEngineInstrumentedTest {
                 " }catch(e){smoke.phase='failed';smoke.failure=String(e);}})();"
             ));
             JSONObject resources = awaitPhase("resources", 60000);
+            evaluate("window.__shikuangRuntimeSmoke.firstResultDetail="+firstResultDetail+";");
             assertTrue(resources.getJSONObject("boot").getBoolean("supported"));
             assertEquals("message",resources.getJSONObject("workerProbe").getString("status"));
             assertEquals("ready",resources.getJSONObject("workerProbe").getJSONObject("message").getString("type"));

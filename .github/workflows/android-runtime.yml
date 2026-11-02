@@ -135,6 +135,8 @@ jobs:
         if: ${{ !inputs.network_probe }}
         run: |
           python3 -B -m unittest discover -s tools -p test_android_cold_restart.py
+          python3 -B -m unittest discover -s tools -p test_android_first_detail.py
+          node --test tests/first-detail-instrumentation-source.test.cjs
           python3 -B -m unittest discover -s tools -p test_android_offline_setup.py
           python3 -B -m unittest discover -s tools -p test_android_pixel_launcher_setup.py
           python3 -B -m unittest discover -s tools -p test_android_runtime_matrix.py
@@ -482,6 +484,14 @@ jobs:
           manifest = json.loads(Path('web/model-manifest.json').read_text())
           reference = json.loads(Path('web/data/reference-manifest.json').read_text())
           images = json.loads(Path('web/data/image-sources.json').read_text())
+          import sys
+          sys.path.insert(0, 'tools')
+          from android_first_detail import verify_first_result_detail
+          first_detail = verify_first_result_detail(
+              report, manifest, hashlib.sha256(Path('web/model-manifest.json').read_bytes()).hexdigest(),
+              reference, json.loads(Path('web/data/catalog.json').read_text()),
+              ${{ matrix.api }}, ${{ matrix.pageSize }}, folder)
+          assert first_detail['firstResultDetailBeforeLibraryVerified'] is True
           native = json.loads((folder / 'native-contract-runtime.json').read_text())
           photo_manifest_bytes = Path('web/data/reviewed-photo-assets.json').read_bytes()
           photo_manifest = json.loads(photo_manifest_bytes)
@@ -570,6 +580,7 @@ jobs:
           cold = verify_artifacts(cold_folder, original, ${{ matrix.api }}, ${{ matrix.pageSize }})
           assert cold['forceStopColdProcessVerified'] is True
           print('Preserved native inference, offline catalog JSON and six genuine app screenshots.')
+          print('Verified first native result opens complete book/catalog/gallery detail before any library visit; its additional genuine screenshot is required.')
           print('Verified actual host force-stop, absent PID, new App PID and unchanged offline record/photo/search UI.')
           PY
       - uses: actions/upload-artifact@v4
