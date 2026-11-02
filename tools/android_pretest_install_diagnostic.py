@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import re
+import stat
 import subprocess
 import time
 import xml.etree.ElementTree as ET
@@ -21,6 +22,7 @@ ROLES = [('app', '01-app.apk', 'com.shikuang.app.preview'),
          ('test', '03-app-test.apk', 'com.shikuang.app.preview.test')]
 INSTALL_SECONDS, PHASE_SECONDS = 90, 360
 MAX_STDOUT, MAX_LOG, MAX_APK = 2 * 1024**2, 32 * 1024**2, 256 * 1024**2
+MAX_STDIN = 8 * 1024**2
 FATAL = re.compile(rb'Fatal signal [0-9]+|FATAL EXCEPTION:|Kernel panic|WATCHDOG KILLING SYSTEM PROCESS', re.I)
 sha = lambda raw: hashlib.sha256(raw).hexdigest()
 utc = lambda: datetime.datetime.now(datetime.timezone.utc).isoformat()
@@ -225,7 +227,27 @@ class Recorder(Host):
         super().__init__('emulator-5554', out)
         self.adb = adb; self.deadline = time.monotonic() + seconds
 
-    def run(self, label, argv, *, seconds=3, deadline=None, monitor=None, allowed=(0,), stdout_cap=MAX_STDOUT):
+    def _owned_stdin(self, path):
+        need(isinstance(path, Path) and path.parent == self.out, 'stdin_requires_owned_output')
+        prior = [row for row in self.receipts if self.out/(row['label']+'.stdout.bin') == path
+                 and row.get('return_code') == 0 and not row.get('timed_out')
+                 and row.get('stdout_sha256')]
+        need(len(prior) == 1, 'stdin_requires_registered_successful_output')
+        need(hasattr(os, 'O_NOFOLLOW'), 'stdin_requires_nofollow')
+        stream = os.fdopen(os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK), 'rb')
+        try:
+            info = os.fstat(stream.fileno())
+            need(stat.S_ISREG(info.st_mode) and 0 < info.st_size <= MAX_STDIN, 'bounded_regular_stdin')
+            raw = stream.read(MAX_STDIN+1)
+            need(len(raw) == info.st_size == prior[0]['stdout_bytes']
+                 and sha(raw) == prior[0]['stdout_sha256'], 'stdin_original_output_drift')
+            stream.seek(0)
+            return stream, {'path': str(path), 'bytes': len(raw), 'sha256': sha(raw),
+                            'stat': [info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns]}
+        except Exception:
+            stream.close(); raise
+
+    def run(self, label, argv, *, seconds=3, deadline=None, monitor=None, allowed=(0,), stdout_cap=MAX_STDOUT, stdin_path=None):
         need(type(stdout_cap) is int and 0 < stdout_cap <= MAX_APK, "bounded_stdout_cap")
         start = time.monotonic(); end = min(self.deadline, deadline or self.deadline, start+seconds)
         reserve = min(0.25, max(0, end-start)/10); action_end = end-reserve
@@ -233,11 +255,16 @@ class Recorder(Host):
         row = {'label': label, 'argv': argv, 'started_UTC': utc(), 'started_monotonic': start,
                'deadline_monotonic': end, 'return_code': None, 'timed_out': False, 'stopped_on_health': False}
         self.receipts.append(row); save(self.out/'command-receipts.json', self.receipts)
-        process = None; failure = None
+        process = None; failure = None; stdin = None
         stdout_path = self.out/(label+'.stdout.bin'); stderr_path = self.out/(label+'.stderr.bin')
         try:
+            if stdin_path is not None:
+                stdin, row['stdin'] = self._owned_stdin(stdin_path)
             with stdout_path.open('xb') as stdout, stderr_path.open('xb') as stderr:
-                process = subprocess.Popen(argv, stdout=stdout, stderr=stderr)
+                need(time.monotonic() < action_end, 'phase_deadline_before_process:' + label)
+                kwargs = {'stdout': stdout, 'stderr': stderr}
+                if stdin is not None: kwargs['stdin'] = stdin
+                process = subprocess.Popen(argv, **kwargs)
                 row['owned_client_PID'] = process.pid; next_sample = start
                 while process.poll() is None:
                     need(stdout_path.stat().st_size <= stdout_cap and stderr_path.stat().st_size <= MAX_STDOUT, 'command_output_bound')
@@ -254,6 +281,19 @@ class Recorder(Host):
             failure = error
         finally:
             if process: row['owned_client_cleanup'] = stop_owned(process)
+            if stdin is not None:
+                try:
+                    consumed = stdin.tell(); info = os.fstat(stdin.fileno())
+                    need([info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns] == row['stdin']['stat'], 'stdin_stat_drift')
+                    stdin.seek(0); raw = stdin.read(MAX_STDIN+1)
+                    need(len(raw) == row['stdin']['bytes'] and sha(raw) == row['stdin']['sha256'], 'stdin_bytes_drift')
+                    row['stdin'].update(consumed_bytes=consumed, verified_after=True)
+                    if failure is None and row['return_code'] in allowed:
+                        need(consumed == row['stdin']['bytes'], 'stdin_not_fully_consumed')
+                except Exception as error:
+                    row['stdin_verification_failure'] = type(error).__name__+': '+str(error)
+                    if failure is None: failure = error
+                finally: stdin.close()
             row.update(finished_UTC=utc(), finished_monotonic=time.monotonic())
             for stream, path in [('stdout', stdout_path), ('stderr', stderr_path)]:
                 size = path.stat().st_size if path.exists() else 0

@@ -1,0 +1,16 @@
+{
+  "schema": "stock-AVD-actual-Packagemanager-ABX-v1",
+  "run_id": 41404793482,
+  "run_attempt": 1,
+  "source_sha": "ffcb72676519f2aecd7d2cad3a7064802f9869dc",
+  "artifact_id": 13122534893,
+  "artifact_name": "memoryinfra-catalog-detail-only-41404793482",
+  "member": "arm/calls/package-manager-original-metadata.stdout.bin",
+  "original_bytes": 364693,
+  "original_sha256": "fedfc4bb317f4059dd231d92704dc98094a1f58d2b7569f6f89520c3f82d1826",
+  "compression": "gzip lossless mtime=0; full original metadata, no inferred XML or hand-written ABX decoder",
+  "compressed_bytes": 139692,
+  "compressed_sha256": "1c9353ca420d2d1b91f18ae6f96ffe269d226449ba46706cfbb3e2aac1181e45",
+  "metadata_context": "Fresh stock API35 emulator before any App install; no human account or specimen images",
+  "official_converter_execution_local": "not_available; tests verify transport with controlled fixture output, actual device conversion pending CI"
+}

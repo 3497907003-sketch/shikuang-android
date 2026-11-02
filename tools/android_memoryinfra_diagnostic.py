@@ -203,6 +203,34 @@ def static_definition(raw, use):
             and android_manifest_attribute(rows[0],'version')==use['version'])
 
 
+def package_manager_metadata(host, out):
+    # Android 15 may persist packages.xml as ABX, despite its filename. Keep
+    # the original bytes; the platform converter reads that exact saved stdin.
+    raw=host.run('package-manager-original-metadata',
+        ['adb','-s',SERIAL,'exec-out','cat','/data/system/packages.xml'],seconds=15,stdout_cap=8*1024*1024)
+    proof={'original_bytes':len(raw),'original_sha256':digest(raw),
+           'original_member':'package-manager-original-metadata.stdout.bin'}
+    if raw.startswith(b'ABX\x00'):
+        command=['adb','-s',SERIAL,'shell','-T','-e','none','/system/bin/abx2xml','-','-']
+        # exec-out only copies device stdout; it does not forward host stdin.
+        xml=host.run('package-manager-abx2xml',command,seconds=30,stdout_cap=8*1024*1024,
+                     stdin_path=out/'package-manager-original-metadata.stdout.bin')
+        receipt=host.receipts[-1].get('stdin',{})
+        need(receipt.get('bytes')==len(raw) and receipt.get('sha256')==digest(raw)
+             and receipt.get('verified_after') is True and receipt.get('consumed_bytes')==len(raw),
+             'converter stdin does not bind original PackageManager bytes')
+        need(host.receipts[-1].get('stderr_bytes')==0,'platform ABX converter stderr')
+        proof.update(format='ABX-v0',converter=command,stdin_verified=True,
+            converter_contract='https://android.googlesource.com/platform/frameworks/base/+/android-15.0.0_r1/cmds/abx/src/com/android/commands/abx/Abx.java')
+    else:
+        need(not raw.startswith(b'ABX'),'unsupported PackageManager binary XML version')
+        xml=raw;proof.update(format='XML',converter=None)
+    need(xml_root(xml).tag=='packages','actual PackageManager installed metadata')
+    proof.update(xml_bytes=len(xml),xml_sha256=digest(xml))
+    save(out/'package-manager-metadata-binding.json',proof)
+    return xml,proof
+
+
 def stock_provider(host, out, sdk):
     provider=host.command('stock-webview',['shell','dumpsys','webviewupdate'])
     need(b'Current WebView package (name, version): (com.google.android.webview, 124.0.6367.219)' in provider
@@ -217,7 +245,7 @@ def stock_provider(host, out, sdk):
         web_path=provider_path(host.command('webview-apk-path',['shell','pm','path','com.google.android.webview']))
         web_apk=capture('webview-original-apk',web_path)
         use=static_use(host.run('webview-actual-manifest',[str(analyzer),'manifest','print',str(web_apk)],seconds=30))
-        packages=host.run('package-manager-original-metadata',['adb','-s',SERIAL,'exec-out','cat','/data/system/packages.xml'],seconds=15,stdout_cap=8*1024*1024)
+        packages,package_binding=package_manager_metadata(host,out)
         candidates=static_candidates(packages,use);matches=[]
         for i,candidate in enumerate(candidates):
             actual=provider_path(host.command('static-candidate-%d-path'%i,['shell','pm','path',candidate['package']]))
@@ -249,6 +277,7 @@ def stock_provider(host, out, sdk):
                 'provider_package':'com.google.android.webview','webview_apk_path':web_path,
                 'webview_apk_sha256':digest(web_apk.read_bytes()),'actual_uses_static_library':use,
                 'installed_static_library_join':chosen,'elf_build_id':elf_build_id(notes),
+                'package_manager_metadata_binding':package_binding,
                 'stock_apk_sha256':digest(apk.read_bytes()),'stock_apk_bytes':apk.stat().st_size,
                 'elf_sha256':digest(elf.read_bytes()),'elf_bytes':elf.stat().st_size,
                 'candidate_filter_does_not_assign_dependency':True,
