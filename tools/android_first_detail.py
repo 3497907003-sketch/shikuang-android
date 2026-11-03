@@ -53,8 +53,8 @@ def verify_first_result_detail(report, manifest, manifest_sha256, reference, cat
         'primarySpecies': reference['counts']['ima_species'],
         'sourceImageRecords': reference['counts']['source_image_records'],
     }
-    need(expected_counts == {'totalBookStatements': 190, 'books': 11,
-         'bookSourcePages': 23, 'bookSpecies': 63, 'primarySpecies': 6239,
+    need(expected_counts == {'totalBookStatements': 200, 'books': 11,
+         'bookSourcePages': 25, 'bookSpecies': 71, 'primarySpecies': 6239,
          'sourceImageRecords': 871}, 'reviewed_public_catalog_profile')
     need(all(type(proof[k]) is int and proof[k] == v for k, v in expected_counts.items()), 'catalog_counts')
     expected_fields = sorted((row['field'], row['source_id'], row['pdf_page_1based'])

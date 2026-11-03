@@ -91,10 +91,10 @@ test('new fields remain forbidden for a generic legacy source even when its row 
   }
 });
 
-test('China16 increases reviewed book lookup to63 species while model scope and physical evidence remain unchanged',async()=>{
+test('China16 remains intact within cumulative71 book species and unchanged model/physical scope',async()=>{
   const f=fixture({catalog});await f.settle();f.node('libraryScope').value='books';f.node('libraryScope').fire('change');
-  assert.equal((f.node('libraryList').innerHTML.match(/data-detail=/g)||[]).length,63);
-  assert.match(f.node('catalogIntro').innerHTML,/书籍核对：63 种矿物、190 条陈述/);
+  assert.equal((f.node('libraryList').innerHTML.match(/data-detail=/g)||[]).length,71);
+  assert.match(f.node('catalogIntro').innerHTML,/书籍核对：71 种矿物、200 条陈述/);
   assert.deepEqual(Object.keys(f.context.MINERAL_CLASSES),['quartz']);
   assert.deepEqual(Core.evidenceFor({reviewed_book_evidence:catalog.reviewed_book_evidence},{hardness:'9',luster:'metal'}),[]);
 });

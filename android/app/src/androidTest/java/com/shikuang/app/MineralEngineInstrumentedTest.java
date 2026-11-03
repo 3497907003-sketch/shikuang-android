@@ -535,8 +535,8 @@ public class MineralEngineInstrumentedTest {
         assertTrue(clicked.getBoolean("libraryHidden"));assertTrue(clicked.getBoolean("resultVisible"));
         assertEquals("ready",proof.getString("loaderStatus"));assertEquals("石英",proof.getString("title"));
         for(String key:new String[]{"dialogOpen","loadingMessageAbsent","hasOfficialFields","galleryPresent","galleryClosed"})assertTrue(key,proof.getBoolean(key));
-        assertEquals(190,proof.getInt("totalBookStatements"));assertEquals(11,proof.getInt("books"));
-        assertEquals(23,proof.getInt("bookSourcePages"));assertEquals(63,proof.getInt("bookSpecies"));
+        assertEquals(200,proof.getInt("totalBookStatements"));assertEquals(11,proof.getInt("books"));
+        assertEquals(25,proof.getInt("bookSourcePages"));assertEquals(71,proof.getInt("bookSpecies"));
         assertEquals(reference.getJSONObject("counts").getInt("ima_species"),proof.getInt("primarySpecies"));
         assertEquals(reference.getJSONObject("counts").getInt("source_image_records"),proof.getInt("sourceImageRecords"));
         assertEquals(3,proof.getInt("bookSections"));assertEquals(3,proof.getJSONArray("quartzBookFields").length());
@@ -566,10 +566,10 @@ public class MineralEngineInstrumentedTest {
             "const selectScope=(value)=>{scope.value=value;filter.value='';search.value='';scope.dispatchEvent(new Event('change',{bubbles:true}));search.dispatchEvent(new Event('input',{bubbles:true}));};",
             "try{",
             " const c=MINERAL_CATALOG,o=c.reviewed_book_evidence,primaryBefore=await digest(c.minerals);",
-            " need(c.minerals.length===6239,'primary species count');need(o.records.length===190&&o.books.length===11&&o.counts.selected_source_pages===23,'overlay 190/11/23');",
-            " need(o.counts.reviewed_source_statements===190&&o.counts.withheld_fields===1&&o.withheld.length===1,'overlay statement/HOLD counts');",
+            " need(c.minerals.length===6239,'primary species count');need(o.records.length===200&&o.books.length===11&&o.counts.selected_source_pages===25,'overlay 200/11/25');",
+            " need(o.counts.reviewed_source_statements===200&&o.counts.withheld_fields===1&&o.withheld.length===1,'overlay statement/HOLD counts');",
             " need(expected.schema==='android-currentbook190-Root56-China16-fixed-public-expectations-v1'&&expected.root_review_sha256==='be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf'&&expected.source_book_sha256==='6f7fbb45b74b4bf60a0943378cfa042a9e3f773475ef97076593e75fe016ae25','fixed190 public expectation profile');",
-            " const legacyRows=o.records.filter(r=>r.source_id!==expected.source_id&&r.source_id!=='new-book-10'),legacyBooks=o.books.filter(b=>b.source_id!==expected.source_id&&b.source_id!=='new-book-10'),legacyPages=new Set(legacyRows.map(r=>JSON.stringify([r.source_id,r.pdf_page_1based===undefined?null:r.pdf_page_1based,r.printed_page,r.table_number===undefined?null:r.table_number])));",
+            " const legacyRows=o.records.filter(r=>r.source_id!==expected.source_id&&r.source_id!=='new-book-10'&&r.review.root_record_sha256!=='97b6ad99bece5d1054320aeeb45471d5f4d0866f96d5ea428ed5484ead3bef65'),legacyBooks=o.books.filter(b=>b.source_id!==expected.source_id&&b.source_id!=='new-book-10').map(b=>({...b,subjects:b.subjects.filter(s=>s.root_review_sha256!=='97b6ad99bece5d1054320aeeb45471d5f4d0866f96d5ea428ed5484ead3bef65')})),legacyPages=new Set(legacyRows.map(r=>JSON.stringify([r.source_id,r.pdf_page_1based===undefined?null:r.pdf_page_1based,r.printed_page,r.table_number===undefined?null:r.table_number])));",
             " need(legacyRows.length===118&&legacyBooks.length===9&&legacyPages.size===16,'preserve original118/9/16 subset');",
             " need(await digest(stable({books:legacyBooks,records:legacyRows,withheld:o.withheld}))===expected.legacy118_overlay_compact_sorted_SHA256,'all original118 records/books/HOLD unchanged');",
             " const rows=o.records.filter(r=>r.review&&r.review.root_record_sha256==='ac37968d5d88c49cef73182cd5cf5426991922540fce73d7c4f190ae5cb3fe56');",
@@ -578,7 +578,7 @@ public class MineralEngineInstrumentedTest {
             " const ids=[...new Set(rows.map(r=>r.catalog_id))];need(ids.length===13,'new statement species');",
             " selectScope('books');const cards=[...document.querySelectorAll('#libraryList [data-detail]')];",
             " const bookIds=[...new Set(o.records.map(r=>r.catalog_id))],keys=bookIds.map(id=>{const m=c.minerals.find(m=>m.id===id);need(m,'book species exists');return m.detail_key&&MINERAL_KB[m.detail_key]?m.detail_key:'catalog:'+id;}).sort();",
-            " need(cards.length===63&&bookIds.length===63&&JSON.stringify(cards.map(card=>card.dataset.detail).sort())===JSON.stringify(keys),'63 actual book cards');",
+            " need(cards.length===71&&bookIds.length===71&&JSON.stringify(cards.map(card=>card.dataset.detail).sort())===JSON.stringify(keys),'71 actual book cards');",
             " const legacyBookIds=[...new Set(legacyRows.map(r=>r.catalog_id))],legacyKeys=legacyBookIds.map(id=>{const m=c.minerals.find(m=>m.id===id);return m.detail_key&&MINERAL_KB[m.detail_key]?m.detail_key:'catalog:'+id;});",
             " need(legacyKeys.length===28&&cards.filter(card=>legacyKeys.includes(card.dataset.detail)).length===28,'preserve28 original book cards');",
             " const open=id=>{const m=c.minerals.find(m=>m.id===id),key=m.detail_key&&MINERAL_KB[m.detail_key]?m.detail_key:'catalog:'+id,card=cards.find(card=>card.dataset.detail===key);need(card,'detail card '+id);card.click();need(document.getElementById('detailDialog').open,'detail dialog '+id);};",
@@ -667,8 +667,8 @@ public class MineralEngineInstrumentedTest {
 
     private void checkBookReferenceCatalog(JSONObject reference) throws Exception {
         JSONObject counts=reference.getJSONObject("counts");
-        assertEquals(190,counts.getInt("reviewed_book_source_statements"));
-        assertEquals(23,counts.getInt("reviewed_book_source_pages"));
+        assertEquals(200,counts.getInt("reviewed_book_source_statements"));
+        assertEquals(25,counts.getInt("reviewed_book_source_pages"));
         assertEquals(1,counts.getInt("reviewed_book_withheld_fields"));
         JSONObject expected;
         try (InputStream stream=InstrumentationRegistry.getInstrumentation().getContext().getAssets().open("book190-expected.json")) {
@@ -677,14 +677,14 @@ public class MineralEngineInstrumentedTest {
             expected=new JSONObject(new String(bytes.toByteArray(),StandardCharsets.UTF_8));
         }
         JSONObject catalogPin=expected.getJSONObject("catalog_pin");
-        assertEquals("d615612b316b355486d16c4e965a63570da716ba329da0dfe408fbbe48c62698",catalogPin.getString("sha256"));
-        assertEquals(4934911,catalogPin.getInt("bytes"));
+        assertEquals("1700d400e0f6652d56051d6b30e793d6c031ba15837ea32a07cbe050d1a0571e",catalogPin.getString("sha256"));
+        assertEquals(4951869,catalogPin.getInt("bytes"));
         boolean exactCatalog=false;JSONArray files=reference.getJSONArray("files");
         for(int i=0;i<files.length();i++) {JSONObject file=files.getJSONObject(i);if("data/catalog.json".equals(file.getString("path")))exactCatalog=file.getString("sha256").equals(catalogPin.getString("sha256"))&&file.getInt("bytes")==catalogPin.getInt("bytes");}
         assertTrue("Exact currentbook190 catalogue descriptor",exactCatalog);
         evaluate(book190ReadOnlyScript(expected.toString()));
         JSONObject proof=awaitPhase("book190-checked",30000).getJSONObject("bookEvidence190");
-        assertEquals(190,proof.getInt("statements"));assertEquals(11,proof.getInt("books"));assertEquals(23,proof.getInt("pages"));assertEquals(63,proof.getInt("cards"));
+        assertEquals(200,proof.getInt("statements"));assertEquals(11,proof.getInt("books"));assertEquals(25,proof.getInt("pages"));assertEquals(71,proof.getInt("cards"));
         JSONObject china16=proof.getJSONObject("china16"),chinaFields=china16.getJSONObject("fieldCounts"),formulaDOM=china16.getJSONObject("formulaDOM");
         assertEquals(16,china16.getInt("checkedFields"));assertEquals(2,china16.getInt("checkedSpecies"));assertEquals(3,china16.getInt("sections"));
         assertEquals("[\"10\",\"11\",\"13\"]",china16.getJSONArray("approvedPages").toString());

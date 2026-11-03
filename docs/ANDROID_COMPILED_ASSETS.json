@@ -1,15 +1,15 @@
 {
   "schema_version": 1,
   "source_repository": "https://github.com/3497907003-sketch/shikuang-app",
-  "source_commit": "b2378cc2df00faea8b0f5a2ae073adfcfd2ac912",
-  "raw_assets_sha256": "e5eaafb1e8fa056ebe0d4f1da5175168d1ebf7c36d91b74c2a335f0ae180359e",
+  "source_commit": "6d9d4daf52bb9aea4bfb6b72f7756b9630174115",
+  "raw_assets_sha256": "c5df3cef6d58f6b465cc786b23b8b855010972aa050e04166b5988050f40f15a",
   "build_inputs_sha256": "671e8bbd6cc9e5256b82ed7c3062185063f72ed1c75b99debe2ddc28c9c5695c",
   "assetCount": 168,
   "assets": [
     {
       "path": "app.js",
-      "bytes": 202069,
-      "sha256": "fe4f0f9d33a0a62416bdc207e720c41b5758907e2cf854e539a7d920930144af"
+      "bytes": 222633,
+      "sha256": "ccfaf9ee52c825c949cf2f5e6383f4baccf347a528fe7b48bd53979b6f4025dc"
     },
     {
       "path": "compat.js",
@@ -24,12 +24,12 @@
     {
       "path": "core.js",
       "bytes": 32570,
-      "sha256": "af6398908e3391188881353d306090bfc7115456dcf151e43919ec30980703c0"
+      "sha256": "d50205c23f4b8eb97a6237e1aaa51d41bc122232d11f189452696f9bae5bac3a"
     },
     {
       "path": "data/catalog.json",
-      "bytes": 4934911,
-      "sha256": "d615612b316b355486d16c4e965a63570da716ba329da0dfe408fbbe48c62698"
+      "bytes": 4951869,
+      "sha256": "1700d400e0f6652d56051d6b30e793d6c031ba15837ea32a07cbe050d1a0571e"
     },
     {
       "path": "data/classes.js",
@@ -69,7 +69,7 @@
     {
       "path": "data/reference-manifest.json",
       "bytes": 1765,
-      "sha256": "32d50f8280c506ee827a662802264e30baf491faf866c0f29752881abcd046e6"
+      "sha256": "69e0971bd90a561deeb2c05030a79404537568dd94573c5c0cb170e2d09b89a4"
     },
     {
       "path": "data/reviewed-photo-assets.json",
@@ -84,7 +84,7 @@
     {
       "path": "engine-worker.js",
       "bytes": 10096,
-      "sha256": "d8915f7c581b783c09715734e1d1bacf611e3ee17b916d894f92c121dcab63f2"
+      "sha256": "47c92c83f83a63517da329a02d682a33897c9593948e154f39b9c74b915dad54"
     },
     {
       "path": "gallery.js",
@@ -704,7 +704,7 @@
     {
       "path": "index.html",
       "bytes": 31206,
-      "sha256": "2a7679676263cb3de2991576a4e1566b4566c5b7690040a130d3ecdeb4099047"
+      "sha256": "a0746e6a6b557738ee65ad0ea6bd5c38a9535a7b0b1486eedfac1057f8abdf90"
     },
     {
       "path": "inference.js",
@@ -757,16 +757,6 @@
       "sha256": "33f001ab02bf2c00eda078aaf6a644f32b2c52aef6578ff0a42a25ff6a9bdf88"
     },
     {
-      "path": "research-input.js",
-      "bytes": 11793,
-      "sha256": "e8b9d0dbd0b0693472c8ebba5ca48c71ba29e1ffd7cc5f797fe747dbee76a786"
-    },
-    {
-      "path": "research-photo.js",
-      "bytes": 9495,
-      "sha256": "34bee6dd61e4d39c7cf73377940f9f83e0122db3d944a34d4385efeae93a4129"
-    },
-    {
       "path": "research/shikuang-research-native-roi-q16-torchf32-v1/encoded-header.js",
       "bytes": 12458,
       "sha256": "0e45ed9a1672cac08308970aa1ff4d6576bd2b37bf989e3711ea10ada9f1c39a"
@@ -799,7 +789,17 @@
     {
       "path": "research/shikuang-research-native-roi-q16-torchf32-v1/worker.js",
       "bytes": 2978,
-      "sha256": "dc79891d6b5369ebd60b385733f27bb8dac0febd15bdd3641a1b38fb66fcbead"
+      "sha256": "e54eb734cfed4d11002707e2c829df74155f066d381509a8e6bf3c9fabe9b928"
+    },
+    {
+      "path": "research-input.js",
+      "bytes": 11793,
+      "sha256": "e8b9d0dbd0b0693472c8ebba5ca48c71ba29e1ffd7cc5f797fe747dbee76a786"
+    },
+    {
+      "path": "research-photo.js",
+      "bytes": 9495,
+      "sha256": "34bee6dd61e4d39c7cf73377940f9f83e0122db3d944a34d4385efeae93a4129"
     },
     {
       "path": "storage.js",
@@ -814,7 +814,7 @@
     {
       "path": "sw.js",
       "bytes": 13616,
-      "sha256": "94e51330c5840745e891758e55e90b89273134efcadee3f78874d7f6964b8572"
+      "sha256": "93fde18d16d9f8b513f859e5b507ce218bce66117fdc440b8dc44fa1635f52e0"
     },
     {
       "path": "vendor/lucide.min.js",

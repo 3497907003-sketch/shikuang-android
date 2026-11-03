@@ -41,6 +41,6 @@ test('snapshot observes source-bound public book fields and exposes missing rend
   const imageSection={open:false},body={textContent:'官方目录字段',querySelectorAll:()=>sections,querySelector:selector=>selector==='.image-section'?imageSection:null};
   const nodes={detailBody:body,detailDialog:{open:true},detailTitle:{textContent:'石英'},'view-library':{hidden:true}},s={initialLoaderStatus:'idle',initialIdentifyVisible:true,initialLibraryHidden:true,initialReferenceRequests:[],firstDetailBeforeClick:{},firstDetailAnalyze:{},libraryClicks:0,firstDetailRequests:[],firstDetailPhotoRequests:[]};
   const context={MINERAL_CATALOG:catalog,MINERAL_IMAGE_SOURCES:{records:new Array(871)},MineralReference:{status:'ready'},navigator:{onLine:false},document:{getElementById:id=>nodes[id]},__shikuangRuntimeSmoke:s};context.window=context;
-  vm.runInNewContext(snapshot,context);assert.equal(s.firstResultDetail.quartzBookFields.length,3);assert(s.firstResultDetail.quartzBookFields.every(row=>row.renderedValueMatches));assert.equal(s.firstResultDetail.totalBookStatements,190);
+  vm.runInNewContext(snapshot,context);assert.equal(s.firstResultDetail.quartzBookFields.length,3);assert(s.firstResultDetail.quartzBookFields.every(row=>row.renderedValueMatches));assert.equal(s.firstResultDetail.totalBookStatements,200);
   missing=true;vm.runInNewContext(snapshot,context);assert(s.firstResultDetail.quartzBookFields.every(row=>!row.renderedValueMatches));
 });

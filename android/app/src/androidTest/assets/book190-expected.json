@@ -1,8 +1,8 @@
 {
   "schema": "android-currentbook190-Root56-China16-fixed-public-expectations-v1",
   "catalog_pin": {
-    "bytes": 4934911,
-    "sha256": "d615612b316b355486d16c4e965a63570da716ba329da0dfe408fbbe48c62698"
+    "bytes": 4951869,
+    "sha256": "1700d400e0f6652d56051d6b30e793d6c031ba15837ea32a07cbe050d1a0571e"
   },
   "root_review_sha256": "be641dce3a8dac91c97aa91dadc0691a193b830a9ee527a761ff7c0568a732cf",
   "source_id": "user-book-04",

@@ -1,7 +1,7 @@
 {
-  "source_commit": "b2378cc2df00faea8b0f5a2ae073adfcfd2ac912",
+  "source_commit": "6d9d4daf52bb9aea4bfb6b72f7756b9630174115",
   "source_repository": "https://github.com/3497907003-sketch/shikuang-app",
-  "source_method": "Exact committed Web b2378cc2 assets after reviewed runtime resource cleanup, specimen review/number concurrency, legacy migration and backup integrity fixes. Six runtime sources change; other162 raw assets and11 build inputs remain exact. Separate canonical168 comparison; local source/build/sync validation only, not new native compilation, APK, physical-device or independent accuracy acceptance.",
+  "source_method": "Exact immutable Web6d9d4da after Root-reviewed10 short book statements for8 catalog species, finite source checks and unknown-Chinese-name notice. Three raw assets change; other165 and11 build inputs remain exact. Primary6239 objects/old190 statements/11 book owners/HOLD/model4/photo117 preserved. Local sync validation only; native/CI/device acceptance separate.",
   "applicationVersion": "2.5.0-preview.1",
   "androidVersionCode": 25001,
   "packageName": "com.shikuang.app.preview",
@@ -9,8 +9,8 @@
   "assets": [
     {
       "path": "app.js",
-      "bytes": 173275,
-      "sha256": "e787ee0656c848fd61a05518864d6e75b068cf48a1116adf669bd83d3ee148c9"
+      "bytes": 190235,
+      "sha256": "44442adf8270e374bfe3fbf2aa1d29c96a59a6db3108b3795f8a2f7a8ca23306"
     },
     {
       "path": "compat.js",
@@ -29,8 +29,8 @@
     },
     {
       "path": "data/catalog.json",
-      "bytes": 4934911,
-      "sha256": "d615612b316b355486d16c4e965a63570da716ba329da0dfe408fbbe48c62698"
+      "bytes": 4951869,
+      "sha256": "1700d400e0f6652d56051d6b30e793d6c031ba15837ea32a07cbe050d1a0571e"
     },
     {
       "path": "data/classes.js",
@@ -70,7 +70,7 @@
     {
       "path": "data/reference-manifest.json",
       "bytes": 1765,
-      "sha256": "32d50f8280c506ee827a662802264e30baf491faf866c0f29752881abcd046e6"
+      "sha256": "69e0971bd90a561deeb2c05030a79404537568dd94573c5c0cb170e2d09b89a4"
     },
     {
       "path": "data/reviewed-photo-assets.json",
@@ -851,7 +851,7 @@
   "assetCount": 168,
   "publishedPhotos": 117,
   "scope": "Local preview source and packaged-asset identity; not field accuracy, new model training, CI, physical-device acceptance or a public release",
-  "local_sync_at": "2026-11-02T16:17:56.111725+08:00",
+  "local_sync_at": "2026-11-03T10:38:57.473799+08:00",
   "developmentRevision": "r9",
   "public_deployment_verified_for_this_sync": false,
   "historical_production_web_merge": "95b4b4e4d1d9be561a18ed745c95eb60f0b6ab0f",

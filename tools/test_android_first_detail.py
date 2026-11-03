@@ -35,7 +35,7 @@ def synthetic_report():
                           'modelCount': len(MANIFEST['modes']['ensemble']), 'modelVersion': MANIFEST['version'],
                           'manifestSha256': MANIFEST_SHA, 'diagnostics': {'elapsedMs': 1, 'residentSessionCount': 4}},
              'nativeNetworkBefore': dict(network), 'nativeNetworkAfter': dict(network),
-             'totalBookStatements': 190, 'books': 11, 'bookSourcePages': 23, 'bookSpecies': 63,
+             'totalBookStatements': 200, 'books': 11, 'bookSourcePages': 25, 'bookSpecies': 71,
              'primarySpecies': 6239, 'sourceImageRecords': 871, 'bookSections': 3,
              'quartzBookFields': [{'field': row['field'], 'sourceId': row['source_id'],
                                   'pdfPage': row['pdf_page_1based'], 'renderedValueMatches': True}
@@ -71,7 +71,7 @@ class FirstDetailEvidenceTest(unittest.TestCase):
 
     def test_synthetic_parser_contract_accepts_all_required_fields(self):
         self.assertEqual(self.verify(), {'firstResultDetailBeforeLibraryVerified': True,
-            'actualEngine': 'onnx-native-android', 'bookStatements': 190,
+            'actualEngine': 'onnx-native-android', 'bookStatements': 200,
             'quartzRenderedFields': 3, 'referenceRequestsAfterDetailClick': 4, 'sdk': 35, 'pageSize': 16384})
 
     def test_absent_or_incomplete_proof_never_counts_as_executed(self):
@@ -169,7 +169,7 @@ class FirstDetailEvidenceTest(unittest.TestCase):
         self.assertEqual(source.count(attachment), 1)
         source = source.replace(attachment, '')
         self.assertEqual(hashlib.sha256(source.encode()).hexdigest(),
-                         'dcf82bf6e4f1bbd5bd550afd206792b599622e5492b31337c6b8435075cfa399')
+                         '6245fb53c707f8522a62477fd3d22dfc5af99c575861700e8d2fca4dea75373e')
         workflow = (ROOT / '.github/workflows/android-runtime.yml').read_text()
         begin = workflow.index("          import sys\n          sys.path.insert(0, 'tools')\n          from android_first_detail")
         end = workflow.index('          native = json.loads', begin)
