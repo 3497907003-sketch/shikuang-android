@@ -1,5 +1,6 @@
 """UNIT_ONLY route strings/subprocess receipts, no App/device/photo/model reads."""
 import json
+import os,shlex,sys,textwrap
 from pathlib import Path
 import subprocess
 import tempfile
@@ -99,6 +100,86 @@ class StrictOfflineSetupTests(unittest.TestCase):
                 self._run(parent, DUMMY4 + b'default via 10.0.2.2 dev eth0\n')
             receipts = json.loads((parent / 'setup/command-receipts.json').read_text())
             self.assertFalse(any('del' in r['argv'] for r in receipts))
+
+
+class ActualWorkflowRouteCaptureTests(unittest.TestCase):
+    """Real helper + real extracted shell, synthetic adb only; no device/App."""
+    def fragment(self):
+        root=Path(__file__).resolve().parents[1]
+        source=(root/'.github/workflows/android-runtime.yml').read_text()
+        begin='          python3 -B tools/android_offline_setup.py --out runtime-artifacts/offline-network-setup\n'
+        end='          adb shell dumpsys ethernet'
+        self.assertEqual(source.count(begin),1)
+        block=source[source.index(begin):source.index(end,source.index(begin))]
+        self.assertIn('adb shell ip route show table all > runtime-artifacts/ipv4-all-route-tables.txt',block)
+        self.assertIn('adb shell ip -6 route show table all > runtime-artifacts/ipv6-all-route-tables.txt',block)
+        self.assertNotIn('adb shell ip route show >',block)
+        self.assertNotIn('adb shell ip -6 route show >',block)
+        self.assertNotIn('|| true',block)
+        return textwrap.dedent(block)
+
+    def execute(self, block, mode):
+        root=Path(__file__).resolve().parents[1]
+        temporary=tempfile.TemporaryDirectory();self.addCleanup(temporary.cleanup)
+        staged=Path(temporary.name);(staged/'tools').mkdir();(staged/'bin').mkdir();(staged/'runtime-artifacts').mkdir()
+        for name in ['android_offline_setup.py','android_cold_restart.py']:
+            (staged/'tools'/name).write_bytes((root/'tools'/name).read_bytes())
+        python=staged/'bin/python3';python.write_text('#!/bin/sh\nexec '+shlex.quote(sys.executable)+' "$@"\n');python.chmod(0o700)
+        adb=staged/'bin/adb'
+        adb.write_text('#!'+sys.executable+'\n'+r'''import json,os,sys
+from pathlib import Path
+args=sys.argv[1:]
+if args[:1]==['-s']: args=args[2:]
+trace=Path('synthetic-adb-calls.jsonl')
+calls=[json.loads(line)for line in trace.read_text().splitlines()]if trace.exists()else[]
+calls.append(args);trace.write_text(''.join(json.dumps(row)+'\n'for row in calls))
+mode=os.environ['SHIKUANG_ROUTE_TEST_MODE']
+if args==['shell','id','-u']:raw=b'0\n'
+elif args==['shell','dumpsys','connectivity']:raw=b'Active default network: none\n'
+elif args in (['shell','ip','route','show'],['shell','ip','-6','route','show']):sys.exit(255)
+elif args in (['shell','ip','route','show','table','all'],['shell','ip','-6','route','show','table','all']):
+    family='ipv6'if '-6'in args else'ipv4'
+    if mode=='capture-'+family+'-fails'and sum(row==args for row in calls)==3:sys.exit(19)
+    if mode=='external-'+family:raw=b'default via 10.0.2.2 dev eth0\n'if family=='ipv4'else b'default via fe80::1 dev eth0\n'
+    else:raw=b'local 127.0.0.1 dev lo table local proto kernel scope host src 127.0.0.1\n'if family=='ipv4'else b'local ::1 dev lo table local proto kernel metric 0 pref medium\n'
+else:raise SystemExit('unexpected synthetic command: '+repr(args))
+sys.stdout.buffer.write(raw)
+''');adb.chmod(0o700)
+        env={**os.environ,'PATH':str(staged/'bin')+os.pathsep+os.environ['PATH'],'SHIKUANG_ROUTE_TEST_MODE':mode,'PYTHONDONTWRITEBYTECODE':'1'}
+        child=subprocess.run(['bash','-e','-o','pipefail','-c',block],cwd=staged,env=env,capture_output=True,timeout=15)
+        report=json.loads((staged/'runtime-artifacts/offline-network-setup/offline-route-setup-report.json').read_text())
+        calls=[json.loads(line)for line in (staged/'synthetic-adb-calls.jsonl').read_text().splitlines()]
+        return child,report,calls,staged
+
+    def test_observed_main_query_255_no_longer_blocks_verified_all_table_environment(self):
+        block=self.fragment();child,report,calls,staged=self.execute(block,'offline')
+        self.assertEqual(child.returncode,0,child.stderr.decode())
+        self.assertTrue(report['passed']);self.assertTrue(report['allTablesDefaultFreeVerified'])
+        for family in ['ipv4','ipv6']:
+            self.assertTrue((staged/('runtime-artifacts/'+family+'-all-route-tables.txt')).is_file())
+        legacy=block.replace('adb shell ip route show table all >','adb shell ip route show > runtime-artifacts/ipv4-routes.txt\nadb shell ip -6 route show > runtime-artifacts/ipv6-routes.txt\nadb shell ip route show table all >',1)
+        old,old_report,old_calls,old_staged=self.execute(legacy,'offline')
+        self.assertEqual(old.returncode,255);self.assertTrue(old_report['passed'])
+        self.assertEqual((old_staged/'runtime-artifacts/ipv4-routes.txt').read_bytes(),b'')
+        self.assertFalse((old_staged/'runtime-artifacts/ipv4-all-route-tables.txt').exists())
+
+    def test_external_ipv4_or_ipv6_default_still_stops_before_diagnostic_capture(self):
+        block=self.fragment()
+        for family in ['ipv4','ipv6']:
+            with self.subTest(family=family):
+                child,report,calls,staged=self.execute(block,'external-'+family)
+                self.assertNotEqual(child.returncode,0);self.assertFalse(report['passed'])
+                self.assertIn('setup_unknown_or_external_default_'+family,report['failure'])
+                self.assertFalse((staged/'runtime-artifacts/ipv4-all-route-tables.txt').exists())
+                self.assertFalse(any('del'in row for row in calls))
+
+    def test_ipv4_or_ipv6_complete_table_capture_failure_still_stops_shell(self):
+        block=self.fragment()
+        for family in ['ipv4','ipv6']:
+            with self.subTest(family=family):
+                child,report,calls,staged=self.execute(block,'capture-'+family+'-fails')
+                self.assertEqual(child.returncode,19);self.assertTrue(report['passed'])
+                self.assertNotIn('|| true',block)
 
 
 if __name__ == '__main__': unittest.main()

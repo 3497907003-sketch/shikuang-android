@@ -181,10 +181,10 @@ class FirstDetailEvidenceTest(unittest.TestCase):
                       '          node --test tests/first-detail-instrumentation-source.test.cjs\n'):
             self.assertEqual(workflow.count(added), 1)
             workflow = workflow.replace(added, '')
-        # Reviewed explicit-only MemoryInfra dispatch hook; ordinary runtime
-        # job body and all nine instrumentation assertions remain unchanged.
+        # Reviewed removal of two unused main-table diagnostic queries; strict
+        # all-table offline gates and all nine instrumentation assertions remain.
         self.assertEqual(hashlib.sha256(workflow.encode()).hexdigest(),
-                         '22110ccda8d7a24545750b54bb4ed4cf2b621c477f084dc501fa8d510d27ed05')
+                         '90bcdd829443f86357097ff1062486d553a3c2be326ceaa87e00be6e59a703ba')
 
 
 if __name__ == '__main__':

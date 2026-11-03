@@ -315,8 +315,6 @@ jobs:
           # only the exact known system forms during environment setup, keeping
           # the full-table zero-default cold-process gate unchanged.
           python3 -B tools/android_offline_setup.py --out runtime-artifacts/offline-network-setup
-          adb shell ip route show > runtime-artifacts/ipv4-routes.txt
-          adb shell ip -6 route show > runtime-artifacts/ipv6-routes.txt
           adb shell ip route show table all > runtime-artifacts/ipv4-all-route-tables.txt
           adb shell ip -6 route show table all > runtime-artifacts/ipv6-all-route-tables.txt
           adb shell dumpsys ethernet > runtime-artifacts/ethernet.txt 2>&1 || true
