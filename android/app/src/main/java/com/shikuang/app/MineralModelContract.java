@@ -28,6 +28,12 @@ final class MineralModelContract {
         final String id, role, path, title, sha256, inputName, outputName;
         final int bytes, classes;
         final double temperature;
+        // Independent schema2 token; the original schema1 constructor below is unchanged.
+        Model(MineralCandidateContract.ValidatedClassifier checked) {
+            id=checked.id; role="mineral-classifier"; path=checked.path; title=checked.id;
+            sha256=checked.sha256; inputName=checked.inputName; outputName=checked.outputName;
+            bytes=checked.bytes; classes=87; temperature=1;
+        }
         Model(JSONObject row, int labels) throws JSONException {
             id = string(row, "id"); role = string(row, "role"); path = string(row, "path");
             sha256 = string(row, "sha256"); inputName = string(row, "inputName"); outputName = string(row, "outputName");

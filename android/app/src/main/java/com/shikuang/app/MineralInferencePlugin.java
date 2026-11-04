@@ -60,6 +60,7 @@ public final class MineralInferencePlugin extends Plugin {
     private OrtEnvironment environment;
     private MineralModelContract manifest;
     private String manifestSha256 = "";
+    private volatile boolean candidateReleaseFailed;
 
     private static final class Job {
         final String id;
@@ -80,6 +81,19 @@ public final class MineralInferencePlugin extends Plugin {
 
     @PluginMethod
     public void classify(PluginCall call) {
+        try { MineralCandidateContract.requireProductionOnly(call.getData()); }
+        catch (IllegalArgumentException failure) { rejectLive(call,failure.getMessage(),"INVALID_INPUT"); return; }
+        submit(call, false);
+    }
+
+    @PluginMethod
+    public void classifyCandidate(PluginCall call) {
+        try { MineralCandidateContract.validateIntent(call.getData()); }
+        catch (Exception failure) { rejectLive(call,"开发候选需显式purpose、双路profile和诊断用途","INVALID_INPUT"); return; }
+        submit(call, true);
+    }
+
+    private void submit(PluginCall call, boolean candidate) {
         String jobId = call.getString("jobId", "");
         if (!jobId.matches("[A-Za-z0-9_-]{1,80}")) {
             rejectLive(call, "识别任务编号无效", "INVALID_INPUT");
@@ -99,7 +113,8 @@ public final class MineralInferencePlugin extends Plugin {
             executor.execute(() -> {
                 try {
                     checkCancelled(job);
-                    JSObject result = analyze(job, call);
+                    if (candidateReleaseFailed) throw new IllegalStateException("候选资源释放未确认，请完全重启 App 后再试");
+                    JSObject result = candidate ? analyzeCandidate(job, call) : analyze(job, call);
                     checkCancelled(job);
                     resolveLive(call, result);
                 } catch (Exception e) {
@@ -114,6 +129,10 @@ public final class MineralInferencePlugin extends Plugin {
                     releaseSessions();
                     rejectLive(call, "设备内存不足，请关闭其他应用后使用快速模式", "INSUFFICIENT_MEMORY");
                 } finally {
+                    if (candidate) {
+                        try { releaseCandidateSessions(); }
+                        catch (Exception | Error failure) { candidateReleaseFailed = true; }
+                    }
                     if (job.timeout != null) job.timeout.cancel(false);
                     synchronized (jobs) { jobs.remove(job.id); }
                 }
@@ -212,6 +231,80 @@ public final class MineralInferencePlugin extends Plugin {
             }
         }
         return result(job, runs, screening, warnings);
+    }
+
+    private JSObject analyzeCandidate(Job job, PluginCall call) throws Exception {
+        // Decode two independently allocated finite buffers before any model resource.
+        MineralCandidateContract.validateIntent(call.getData());
+        JSONArray encoded=call.getArray("inputs"), gateEncoded=call.getArray("gateInputs"), blocked=call.getArray("blocked");
+        if (encoded==null || encoded.length()<1 || encoded.length()>3 || gateEncoded==null || gateEncoded.length()!=encoded.length())
+            throw new IllegalArgumentException("候选诊断需1–3组独立gate与研究张量");
+        if (blocked==null || blocked.length()!=1000) throw new IllegalArgumentException("输入筛查清单不完整");
+        for (int i=0;i<blocked.length();i++) if (!(blocked.get(i) instanceof Boolean)) throw new IllegalArgumentException("输入筛查清单不完整");
+        List<FloatBuffer> inputs=new ArrayList<>(), gateInputs=new ArrayList<>();
+        for (int i=0;i<encoded.length();i++) {
+            checkCancelled(job);
+            if (!(encoded.get(i) instanceof String) || !(gateEncoded.get(i) instanceof String)) throw new IllegalArgumentException("候选张量编码不匹配");
+            inputs.add(MineralModelContract.decodeInput(encoded.getString(i)));
+            gateInputs.add(MineralModelContract.decodeInput(gateEncoded.getString(i)));
+        }
+        String path=MineralCandidateContract.manifestPath(call.getString("candidateManifestPath",""));
+        String expected=call.getString("candidateManifestSha256","");
+        if (!MineralCandidateContract.hash(expected)) throw new IllegalArgumentException("候选清单缺少SHA绑定");
+        ensureManifest(job);
+        if (!manifestSha256.equals(call.getString("legacyManifestSha256",""))) throw new IllegalArgumentException("候选gate清单身份已变化");
+        byte[] raw;
+        try (InputStream stream=getContext().getAssets().open("public/"+path)) { raw=readBytes(job,stream,100_000,null); }
+        if (!expected.equals(hex(MessageDigest.getInstance("SHA-256").digest(raw)))) throw new IllegalArgumentException("候选清单SHA不匹配");
+        MineralCandidateContract candidate=new MineralCandidateContract(new JSONObject(new String(raw,StandardCharsets.UTF_8)),manifest,manifestSha256);
+        JSArray runs=new JSArray(),screening=new JSArray(),warnings=new JSArray();
+        // Candidate tasks never overlap resident schema1 classifiers. A failed
+        // close poisons further allocations until process restart.
+        releaseCandidateSessions();
+        OrtSession gate=candidateSession(job,manifest.gate);
+        for (int i=0;i<gateInputs.size();i++) {
+            progress(job,"candidate-gate","开发候选输入筛查 "+(i+1)+"/"+gateInputs.size());
+            float[] values=run(job,gate,gateInputs.get(i),manifest.gate);
+            JSObject item=new JSObject();item.put("photo",i);item.put("values",array(values));screening.put(item);
+            if (isNonMineral(values,blocked)) throw new IllegalArgumentException("这不是矿物，请您放入清晰的矿物照片。");
+        }
+        releaseCandidateSessions(); // Must finish successfully before DINO is allocated.
+        OrtSession classifier=candidateSession(job,candidate.classifier);
+        for (int i=0;i<inputs.size();i++) {
+            progress(job,"candidate-run","开发候选诊断 "+(i+1)+"/"+inputs.size()+" · fold"+candidate.fold);
+            JSObject item=new JSObject();item.put("photo",i);item.put("model",candidate.classifier.id);
+            item.put("values",array(run(job,classifier,inputs.get(i),candidate.classifier)));runs.put(item);
+        }
+        releaseCandidateSessions();
+        warnings.put("开发候选模型，仅供受控验证；原始logit不是准确率，独立识别尚未验收。");
+        JSObject output=result(job,runs,screening,warnings);JSArray labels=new JSArray();
+        for (String label:MineralCandidateContract.LABELS) labels.put(label);
+        output.put("type","result");output.put("purpose",MineralCandidateContract.PURPOSE);
+        output.put("productionRegistered",false);output.put("independentAcceptance",false);
+        output.put("independentKappa",JSONObject.NULL);output.put("confidenceCalibrated",false);
+        output.put("unknownRejectionValidated",false);output.put("manifestSha256",expected);
+        output.put("modelVersion",candidate.version);output.put("classifierId",candidate.classifier.id);
+        output.put("profileId",MineralCandidateContract.PROFILE_ID);output.put("labels",labels);
+        return output;
+    }
+
+    private OrtSession candidateSession(Job job, MineralModelContract.Model model) throws Exception {
+        try { return modelSession(job,model); }
+        catch (Exception | Error failure) {
+            // Existing initialization cleanup preserves close failures as suppressed.
+            if (failure.getSuppressed().length>0) candidateReleaseFailed=true;
+            throw failure;
+        }
+    }
+
+    private void releaseCandidateSessions() throws Exception {
+        try { NativeResourceCleanup.closeAllStrict(sessions); }
+        catch (Exception | Error failure) { candidateReleaseFailed=true; throw failure; }
+        checkCandidateRelease();
+    }
+
+    private void checkCandidateRelease() {
+        if (candidateReleaseFailed) throw new IllegalStateException("候选资源释放未确认，请完全重启 App 后再试");
     }
 
     private JSObject result(Job job, JSArray runs, JSArray screening, JSArray warnings) {

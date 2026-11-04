@@ -16,6 +16,34 @@ public class NativeResourceCleanupTest {
         }
     }
 
+    @Test public void strictHandoffClosesAndRemovesAllOwnersBeforeNextAllocation() throws Exception {
+        Resource gate=new Resource(),prior=new Resource();
+        java.util.Map<String,Resource> owners=new java.util.LinkedHashMap<>();owners.put("prior",prior);owners.put("gate",gate);
+        NativeResourceCleanup.closeAllStrict(owners);
+        assertTrue(owners.isEmpty());assertEquals(1,prior.closes);assertEquals(1,gate.closes);
+    }
+
+    @Test public void strictHandoffRetainsFailedAndUnattemptedOwnersAndStopsNextAllocation() {
+        Resource prior=new Resource(),gate=new Resource(),unattempted=new Resource();
+        gate.closeFailure=new Exception("gate close failed");
+        java.util.Map<String,Resource> owners=new java.util.LinkedHashMap<>();owners.put("prior",prior);owners.put("gate",gate);owners.put("unattempted",unattempted);
+        boolean allocated=false;
+        try {NativeResourceCleanup.closeAllStrict(owners);allocated=true;fail("close failure accepted");}
+        catch (Exception expected) {assertSame(gate.closeFailure,expected);}
+        assertFalse(allocated);assertEquals(1,prior.closes);assertEquals(1,gate.closes);assertEquals(0,unattempted.closes);
+        assertFalse(owners.containsKey("prior"));assertTrue(owners.containsKey("gate"));assertTrue(owners.containsKey("unattempted"));
+    }
+
+    @Test public void strictHandoffDoesNotSwallowNativeLinkageOrAllocationErrors() throws Exception {
+        for (Error error:new Error[]{new LinkageError("JNI close"),new OutOfMemoryError("close")}) {
+            Resource gate=new Resource();gate.closeFailure=error;
+            java.util.Map<String,Resource> owners=new java.util.LinkedHashMap<>();owners.put("gate",gate);
+            try {NativeResourceCleanup.closeAllStrict(owners);fail("native Error accepted");}
+            catch (Error expected) {assertSame(error,expected);}
+            assertEquals(1,gate.closes);assertTrue(owners.containsKey("gate"));
+        }
+    }
+
     @Test public void initializationOomStillClosesTheUnretainedResource() {
         Resource resource = new Resource();
         OutOfMemoryError failure = new OutOfMemoryError("metadata allocation");
